@@ -7,12 +7,14 @@
 #define TYPE_NIL     0
 #define TYPE_INTEGER 1
 #define TYPE_DECIMAL 2
+#define TYPE_STRING  3
 
 typedef struct datum {
 	int type;
 	union {
 		int integer;
 		double decimal;
+		char *string;
 	} value;
 } datum;
 
@@ -21,6 +23,8 @@ extern datum GH_NIL_VALUE;
 datum* gh_integer(int value);
 
 datum* gh_decimal(double value);
+
+datum* gh_string(char *value);
 
 datum* eval(datum *expr);
 

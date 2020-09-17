@@ -11,12 +11,14 @@ extern char* yytext;
 %union {
 	int integer;
 	double decimal;
+	char *string;
 }
 
-%token <integer> TOK_NIL
-%token <decimal> TOK_DECIMAL
-%token <integer> TOK_INTEGER
-%token           TOK_INVALID
+%token <integer>   TOK_NIL
+%token <decimal>   TOK_DECIMAL
+%token <integer>   TOK_INTEGER
+%token <string>    TOK_STRING
+%token             TOK_INVALID
 
 %start program
 
@@ -29,6 +31,7 @@ expr: atom;
 atom: TOK_NIL     { ep(&GH_NIL_VALUE); }
 	| TOK_DECIMAL { ep(gh_decimal(atof(yytext))); }
 	| TOK_INTEGER { ep(gh_integer(atoi(yytext))); }
+	| TOK_STRING  { ep(gh_string(yytext)); }
 	| TOK_INVALID { fprintf(stderr, "Error: invalid token\n"); };
 
 %%

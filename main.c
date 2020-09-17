@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
 #include <gc.h>
 
 #include "gharial.h"
@@ -22,6 +24,14 @@ datum *gh_decimal(double value) {
 	return d;
 }
 
+datum *gh_string(char* value) {
+	datum *s = GC_MALLOC(sizeof(datum));
+	s->type = TYPE_STRING;
+	s->value.string = GC_MALLOC(sizeof(char) * (strlen(value) + 1));
+	strcpy(s->value.string, value);
+	return s;
+}
+
 datum *eval(datum *expr) {
 	return expr;
 }
@@ -36,6 +46,9 @@ void print(datum *expr) {
 			break;
 		case TYPE_DECIMAL:
 			printf("%f\n", expr->value.decimal);
+			break;
+		case TYPE_STRING:
+			printf("%s\n", expr->value.string);
 			break;
 		default:
 			fprintf(stderr, "Error: Unkown data type: %d\n", expr->type);

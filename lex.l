@@ -11,6 +11,7 @@ DIGIT      [0-9]
 [nN][iI][lL]       { return TOK_NIL; }
 {DIGIT}+\.{DIGIT}+ { return TOK_DECIMAL; }
 {DIGIT}+           { return TOK_INTEGER; }
+\"[^\"]*\"         { return TOK_STRING; }
 .+                 { return TOK_INVALID; }
 %%
 
