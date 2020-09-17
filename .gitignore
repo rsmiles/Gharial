@@ -1,0 +1,8 @@
+gharial
+*.o
+.*.swp
+*.yy.c
+*.yy.h
+*.tab.c
+*.tab.h
+
