@@ -4,7 +4,8 @@
 #define TRUE  1
 #define FALSE 0
 
-#define TYPE_NIL 0
+#define TYPE_NIL     0
+#define TYPE_INTEGER 1
 
 typedef struct datum {
 	int type;
@@ -13,9 +14,9 @@ typedef struct datum {
 	} value;
 } datum;
 
-extern datum NIL_VALUE;
+extern datum GH_NIL_VALUE;
 
-extern datum* input;
+datum* gh_integer(int value);
 
 datum* eval(datum *expr);
 
