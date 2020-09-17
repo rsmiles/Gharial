@@ -15,6 +15,13 @@ datum *gh_integer(int value) {
 	return i;
 }
 
+datum *gh_decimal(double value) {
+	datum *d = GC_MALLOC(sizeof(datum));
+	d->type = TYPE_DECIMAL;
+	d->value.decimal = value;
+	return d;
+}
+
 datum *eval(datum *expr) {
 	return expr;
 }
@@ -26,6 +33,9 @@ void print(datum *expr) {
 			break;
 		case TYPE_INTEGER:
 			printf("%d\n", expr->value.integer);
+			break;
+		case TYPE_DECIMAL:
+			printf("%f\n", expr->value.decimal);
 			break;
 		default:
 			fprintf(stderr, "Error: Unkown data type: %d\n", expr->type);
