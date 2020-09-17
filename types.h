@@ -6,11 +6,16 @@
 
 #define TYPE_NIL 0
 
-typedef struct datum{
+typedef struct datum {
 	int type;
-	union value{
+	union {
 		int integer;
-	}
+	} value;
 } datum;
 
+extern const datum NIL_VALUE;
+
+datum* gh_nil();
+
 #endif
+

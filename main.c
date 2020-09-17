@@ -1,15 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "types.h"
+
 #include "y.tab.h"
 
-#define TRUE  1
-#define FALSE 0
+const datum NIL_VALUE = { TYPE_NIL, { 0 } };
 
-typedef char byte;
+datum *gh_nil() {
+	return &NIL_VALUE;
+}
 
-int main(int argc, char **argv){
-	while ( !feof(stdin) ){
+int main(int argc, char **argv) {
+	while ( !feof(stdin) ) {
 		yyparse();
 	}
 	return 0;
