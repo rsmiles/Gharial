@@ -1,5 +1,7 @@
 %{
 #include <stdio.h>
+#include "gharial.h"
+
 int yyerror(char *ps, ...);
 int yylex();
 %}
@@ -19,8 +21,8 @@ program: expr program | /* empty */ ;
 
 expr: atom;
 
-atom: TOK_NIL { printf("nil\n"); }
-	| TOK_INVALID { printf("invalid\n"); };
+atom: TOK_NIL { ep(&NIL_VALUE); }
+	| TOK_INVALID { fprintf(stderr, "Error: invalid token\n"); };
 
 %%
 

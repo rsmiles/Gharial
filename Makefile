@@ -1,7 +1,7 @@
 .PHONY: clean
 
 CFLAGS=-std=c89 -pedantic -Wall #-Werror
-LDFLAGS=-ll
+LDFLAGS=-ll -lgc
 
 all: gharial
 

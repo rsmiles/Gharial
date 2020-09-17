@@ -1,5 +1,5 @@
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef GHARIAL_H
+#define GHARIAL_H
 
 #define TRUE  1
 #define FALSE 0
@@ -13,9 +13,15 @@ typedef struct datum {
 	} value;
 } datum;
 
-extern const datum NIL_VALUE;
+extern datum NIL_VALUE;
 
-datum* gh_nil();
+extern datum* input;
+
+datum* eval(datum *expr);
+
+void print();
+
+void ep(datum *expr);
 
 #endif
 

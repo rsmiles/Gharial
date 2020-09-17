@@ -1,20 +1,35 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <gc.h>
 
-#include "types.h"
+#include "gharial.h"
 
 #include "y.tab.h"
 
-const datum NIL_VALUE = { TYPE_NIL, { 0 } };
+datum NIL_VALUE = { TYPE_NIL, { 0 } };
 
-datum *gh_nil() {
-	return &NIL_VALUE;
+datum *input;
+
+datum *eval(datum *expr) {
+	return expr;
+}
+
+void print(datum *expr) {
+	switch (expr->type) {
+		case TYPE_NIL:
+			printf("NIL\n");
+			break;
+		default:
+			fprintf(stderr, "Error: Unkown data type: %d\n", expr->type);
+	}
+}
+
+void ep(datum *expr) {
+	print(eval(expr));
 }
 
 int main(int argc, char **argv) {
-	while ( !feof(stdin) ) {
-		yyparse();
-	}
+	yyparse();
 	return 0;
 }
 
