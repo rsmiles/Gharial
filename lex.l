@@ -2,7 +2,7 @@
 #include "y.tab.h"
 %}
 
-WHITESPACE [\s\t\n\r\f]
+WHITESPACE [ \t\n\r\f]
 DIGIT      [0-9]
 
 %%
