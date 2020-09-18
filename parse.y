@@ -18,6 +18,8 @@ extern char* yytext;
 %token <decimal>   TOK_DECIMAL
 %token <integer>   TOK_INTEGER
 %token <string>    TOK_STRING
+%token <character> TOK_OPENPAREN
+%token <character> TOK_CLOSEPAREN
 
 %start program
 
@@ -25,12 +27,14 @@ extern char* yytext;
 
 program: expr program | /* empty */ ;
 
-expr: atom;
+expr: atom | list;
 
 atom: TOK_NIL     { ep(&GH_NIL_VALUE); }
 	| TOK_DECIMAL { ep(gh_decimal(atof(yytext))); }
 	| TOK_INTEGER { ep(gh_integer(atoi(yytext))); }
 	| TOK_STRING  { ep(gh_string(yytext)); };
+
+list: TOK_OPENPAREN TOK_CLOSEPAREN { ep(&GH_NIL_VALUE); };
 
 %%
 

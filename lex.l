@@ -12,5 +12,7 @@ DIGIT      [0-9]
 {DIGIT}+\.{DIGIT}+ { return TOK_DECIMAL; }
 {DIGIT}+           { return TOK_INTEGER; }
 \"[^\"]*\"         { return TOK_STRING; }
+"("                { return TOK_OPENPAREN; }
+")"                { return TOK_CLOSEPAREN; }
 %%
 
