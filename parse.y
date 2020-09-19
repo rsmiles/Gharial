@@ -6,20 +6,27 @@
 int yyerror(char *ps, ...);
 int yylex();
 extern char* yytext;
+
 %}
 
-%union {
+%union{
+	struct datum *t_datum;
 	int integer;
 	double decimal;
+	char character;
 	char *string;
 }
 
-%token <integer>   TOK_NIL
-%token <decimal>   TOK_DECIMAL
-%token <integer>   TOK_INTEGER
-%token <string>    TOK_STRING
+
+
+%token <gh_datum> TOK_NIL
+%token <decimal> TOK_DECIMAL
+%token <integer> TOK_INTEGER
+%token <string>  TOK_STRING
 %token <character> TOK_OPENPAREN
 %token <character> TOK_CLOSEPAREN
+
+%type <t_datum> atom list expr
 
 %start program
 
@@ -27,14 +34,15 @@ extern char* yytext;
 
 program: expr program | /* empty */ ;
 
-expr: atom | list;
+expr: atom { ep($$); }
+	| list { ep($$); }
 
-atom: TOK_NIL     { ep(&GH_NIL_VALUE); }
-	| TOK_DECIMAL { ep(gh_decimal(atof(yytext))); }
-	| TOK_INTEGER { ep(gh_integer(atoi(yytext))); }
-	| TOK_STRING  { ep(gh_string(yytext)); };
+atom: TOK_NIL     { $$ = &GH_NIL_VALUE; }
+	| TOK_DECIMAL { $$ = gh_decimal(atof(yytext)); }
+	| TOK_INTEGER { $$ = gh_integer(atoi(yytext)); }
+	| TOK_STRING  { $$ = gh_string(yytext); };
 
-list: TOK_OPENPAREN TOK_CLOSEPAREN { ep(&GH_NIL_VALUE); };
+list: TOK_OPENPAREN TOK_CLOSEPAREN { $$ = &GH_NIL_VALUE; };
 
 %%
 
