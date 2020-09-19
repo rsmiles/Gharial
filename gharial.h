@@ -8,6 +8,7 @@
 #define TYPE_INTEGER 1
 #define TYPE_DECIMAL 2
 #define TYPE_STRING  3
+#define TYPE_CONS    4
 
 typedef struct datum {
 	int type;
@@ -15,6 +16,10 @@ typedef struct datum {
 		int integer;
 		double decimal;
 		char *string;
+		struct {
+			struct datum *car;
+			struct datum *cdr;
+		} cons;
 	} value;
 } datum;
 
@@ -26,9 +31,11 @@ datum* gh_decimal(double value);
 
 datum* gh_string(char *value);
 
+datum *gh_cons(datum *car, datum *cdr);
+
 datum* eval(datum *expr);
 
-void print();
+void print(datum *expr);
 
 void ep(datum *expr);
 

@@ -10,49 +10,73 @@
 
 datum GH_NIL_VALUE = { TYPE_NIL, { 0 } };
 
+void print_datum(datum *expr);
+
 datum *gh_integer(int value) {
-	datum *i = GC_MALLOC(sizeof(datum));
+	datum *i;
+	i = GC_MALLOC(sizeof(datum));
 	i->type = TYPE_INTEGER;
 	i->value.integer = value;
 	return i;
 }
 
 datum *gh_decimal(double value) {
-	datum *d = GC_MALLOC(sizeof(datum));
+	datum *d;
+	d = GC_MALLOC(sizeof(datum));
 	d->type = TYPE_DECIMAL;
 	d->value.decimal = value;
 	return d;
 }
 
 datum *gh_string(char* value) {
-	datum *s = GC_MALLOC(sizeof(datum));
+	datum *s;
+	s = GC_MALLOC(sizeof(datum));
 	s->type = TYPE_STRING;
 	s->value.string = GC_MALLOC(sizeof(char) * (strlen(value) + 1));
 	strcpy(s->value.string, value);
 	return s;
 }
 
+datum *gh_cons(datum *car, datum *cdr) {
+	datum *c;
+	c = GC_MALLOC(sizeof(datum));
+	c->value.cons.car = car;
+	c->value.cons.cdr = cdr;
+	return c;
+}
+
 datum *eval(datum *expr) {
 	return expr;
 }
 
-void print(datum *expr) {
+void print_datum(datum *expr) {
 	switch (expr->type) {
 		case TYPE_NIL:
-			printf("NIL\n");
+			printf("NIL");
 			break;
 		case TYPE_INTEGER:
-			printf("%d\n", expr->value.integer);
+			printf("%d", expr->value.integer);
 			break;
 		case TYPE_DECIMAL:
-			printf("%f\n", expr->value.decimal);
+			printf("%f", expr->value.decimal);
 			break;
 		case TYPE_STRING:
-			printf("%s\n", expr->value.string);
+			printf("%s", expr->value.string);
 			break;
+		case TYPE_CONS:
+			printf("(");
+			print_datum(expr->value.cons.car);
+			printf(" . ");
+			print_datum(expr->value.cons.cdr);
+			printf(")");
 		default:
 			fprintf(stderr, "Error: Unkown data type: %d\n", expr->type);
 	}
+}
+
+void print(datum *expr){
+	print_datum(expr);
+	printf("\n");
 }
 
 void ep(datum *expr) {
