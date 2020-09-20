@@ -25,24 +25,28 @@ extern char* yytext;
 %token <string>  TOK_STRING
 %token <character> TOK_OPENPAREN
 %token <character> TOK_CLOSEPAREN
+%token <character> TOK_DOT
 
 %type <t_datum> atom list expr
 
-%start program
+%start prog
 
 %%
 
-program: expr program | /* empty */ ;
+prog: exprs
 
-expr: atom { ep($$); }
-	| list { ep($$); }
+exprs: expr exprs | /* empty */ ;
+
+expr: atom { print(eval($$)); }
+	| list { print(eval($$)); };
 
 atom: TOK_NIL     { $$ = &GH_NIL_VALUE; }
 	| TOK_DECIMAL { $$ = gh_decimal(atof(yytext)); }
 	| TOK_INTEGER { $$ = gh_integer(atoi(yytext)); }
 	| TOK_STRING  { $$ = gh_string(yytext); };
 
-list: TOK_OPENPAREN TOK_CLOSEPAREN { $$ = &GH_NIL_VALUE; };
+list: TOK_OPENPAREN TOK_CLOSEPAREN { $$ = &GH_NIL_VALUE; }
+	| TOK_OPENPAREN expr TOK_DOT expr TOK_CLOSEPAREN { $$ = gh_cons($2, $4); };
 
 %%
 

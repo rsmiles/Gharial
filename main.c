@@ -40,6 +40,7 @@ datum *gh_string(char* value) {
 datum *gh_cons(datum *car, datum *cdr) {
 	datum *c;
 	c = GC_MALLOC(sizeof(datum));
+	c->type = TYPE_CONS;
 	c->value.cons.car = car;
 	c->value.cons.cdr = cdr;
 	return c;
@@ -69,6 +70,7 @@ void print_datum(datum *expr) {
 			printf(" . ");
 			print_datum(expr->value.cons.cdr);
 			printf(")");
+			break;
 		default:
 			fprintf(stderr, "Error: Unkown data type: %d\n", expr->type);
 	}
@@ -77,10 +79,6 @@ void print_datum(datum *expr) {
 void print(datum *expr){
 	print_datum(expr);
 	printf("\n");
-}
-
-void ep(datum *expr) {
-	print(eval(expr));
 }
 
 int main(int argc, char **argv) {

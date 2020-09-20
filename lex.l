@@ -14,6 +14,7 @@ DIGIT      [0-9]
 \"[^\"]*\"         { return TOK_STRING; }
 "("                { return TOK_OPENPAREN; }
 ")"                { return TOK_CLOSEPAREN; }
+"."                { return TOK_DOT; }
 
 %%
 
