@@ -37,6 +37,17 @@ datum *gh_string(char* value) {
 	return s;
 }
 
+datum *gh_substring(int start, int end, char *value) {
+	datum *s;
+	int len;
+	len = end - start + 1;
+	s = GC_MALLOC(sizeof(datum));
+	s->type = TYPE_STRING;
+	s->value.string = GC_MALLOC(sizeof(char) * (len + 1));
+	strncpy(s->value.string, value + start, len);
+	s->value.string[len] = '\0';
+	return s;
+}
 
 datum *gh_symbol(char* value) {
 	datum *s;

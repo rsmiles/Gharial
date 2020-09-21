@@ -33,6 +33,8 @@ datum *gh_decimal(double value);
 
 datum *gh_string(char *value);
 
+datum *gh_substring(int start, int end, char *value);
+
 datum *gh_symbol(char *value);
 
 datum *gh_cons(datum *car, datum *cdr);

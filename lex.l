@@ -15,6 +15,7 @@ SPECIAL    [+-*/]
 {DIGIT}+\.{DIGIT}+    { return TOK_DECIMAL; }
 {DIGIT}+              { return TOK_INTEGER; }
 \"[^\"]*[^\\]\"       { return TOK_STRING; }
+"\"\""                { return TOK_EMPTYSTRING; }
 "("                   { depth++; return TOK_OPENPAREN; }
 ")"                   { if (depth > 0 ) depth--; return TOK_CLOSEPAREN; }
 "."                   { return TOK_DOT; }
