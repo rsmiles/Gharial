@@ -5,6 +5,7 @@
 
 int yyerror(char *ps, ...);
 int yylex();
+extern int depth;
 extern char* yytext;
 
 %}
@@ -37,8 +38,8 @@ prog: exprs
 
 exprs: expr exprs | /* empty */ ;
 
-expr: atom { print(eval($$)); }
-	| list { print(eval($$)); };
+expr: atom { if (depth == 0) print(eval($$)); }
+	| list { if (depth == 0) print(eval($$)); };
 
 atom: TOK_NIL     { $$ = &GH_NIL_VALUE; }
 	| TOK_DECIMAL { $$ = gh_decimal(atof(yytext)); }
