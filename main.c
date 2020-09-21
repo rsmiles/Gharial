@@ -37,6 +37,16 @@ datum *gh_string(char* value) {
 	return s;
 }
 
+
+datum *gh_symbol(char* value) {
+	datum *s;
+	s = GC_MALLOC(sizeof(datum));
+	s->type = TYPE_SYMBOL;
+	s->value.symbol = GC_MALLOC(sizeof(char) * (strlen(value) + 1));
+	strcpy(s->value.symbol, value);
+	return s;
+}
+
 datum *gh_cons(datum *car, datum *cdr) {
 	datum *c;
 	c = GC_MALLOC(sizeof(datum));
@@ -62,7 +72,10 @@ void print_datum(datum *expr) {
 			printf("%f", expr->value.decimal);
 			break;
 		case TYPE_STRING:
-			printf("%s", expr->value.string);
+			printf("\"%s\"", expr->value.string);
+			break;
+		case TYPE_SYMBOL:
+			printf("%s", expr->value.symbol);
 			break;
 		case TYPE_CONS:
 			printf("(");
