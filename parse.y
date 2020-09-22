@@ -32,7 +32,7 @@ extern char* yytext;
 %token <string>    TOK_STRING
 %token <string>    TOK_SYMBOL
 
-%type <t_datum> atom list expr
+%type <t_datum> atom list expr dotted_body list_body
 
 %start prog
 
@@ -53,7 +53,14 @@ atom: TOK_NIL         { $$ = &GH_NIL_VALUE; }
 	| TOK_SYMBOL      { $$ = gh_symbol(yytext); };
 
 list: TOK_OPENPAREN TOK_CLOSEPAREN { $$ = &GH_NIL_VALUE; }
-	| TOK_OPENPAREN expr TOK_DOT expr TOK_CLOSEPAREN { $$ = gh_cons($2, $4); };
+	| TOK_OPENPAREN dotted_body TOK_CLOSEPAREN { $$ = $2; }
+	| TOK_OPENPAREN list_body TOK_CLOSEPAREN { $$ = $2; };
+
+dotted_body: expr TOK_DOT expr { $$ = gh_cons($1, $3); }
+		   | expr dotted_body { $$ = gh_cons($1, $2); };
+
+list_body: expr { $$ = gh_cons($1, &GH_NIL_VALUE); }
+		 | expr list_body { $$ = gh_cons($1, $2); };
 
 %%
 
