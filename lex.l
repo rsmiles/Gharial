@@ -1,12 +1,17 @@
 %{
+#include <stdio.h>
 #include "y.tab.h"
+int fileno(FILE *stream);
 int depth = 0;
 %}
+
+%option noinput
+%option nounput
 
 WHITESPACE [ \t\n\r\f]
 DIGIT      [0-9]
 LETTER     [A-Za-z]
-SPECIAL    [+-*/]
+SPECIAL    [\+\-\*\/]
 
 %%
 
@@ -19,7 +24,7 @@ SPECIAL    [+-*/]
 "("                   { depth++; return TOK_OPENPAREN; }
 ")"                   { if (depth > 0 ) depth--; return TOK_CLOSEPAREN; }
 "."                   { return TOK_DOT; }
-{LETTER}+             { return TOK_SYMBOL; }
+({LETTER}|{SPECIAL})+             { return TOK_SYMBOL; }
 
 %%
 
