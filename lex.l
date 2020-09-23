@@ -15,7 +15,8 @@ SPECIAL    [\+\-\*\/]
 
 %%
 
-{WHITESPACE}+         { }
+"#".*\n                { /* Ignore comments */ }
+{WHITESPACE}+         { /* Ignore whitespace */ }
 [nN][iI][lL]          { return TOK_NIL; }
 {DIGIT}+\.{DIGIT}+    { return TOK_DECIMAL; }
 {DIGIT}+              { return TOK_INTEGER; }
