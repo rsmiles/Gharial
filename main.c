@@ -72,6 +72,7 @@ datum *eval(datum *expr) {
 }
 
 void print_datum(datum *expr) {
+	datum *iterator;
 	switch (expr->type) {
 		case TYPE_NIL:
 			printf("NIL");
@@ -89,10 +90,22 @@ void print_datum(datum *expr) {
 			printf("%s", expr->value.symbol);
 			break;
 		case TYPE_CONS:
+			iterator = expr;
+	
 			printf("(");
-			print_datum(expr->value.cons.car);
-			printf(" . ");
-			print_datum(expr->value.cons.cdr);
+
+			print_datum(iterator->value.cons.car);
+			while(iterator->value.cons.cdr->type == TYPE_CONS) {
+				printf(" ");
+				iterator = iterator->value.cons.cdr;
+				print_datum(iterator->value.cons.car);
+			}
+
+			if (iterator->value.cons.cdr->type != TYPE_NIL) {
+				printf(" . ");
+				print_datum(iterator->value.cons.cdr);
+			}
+
 			printf(")");
 			break;
 		default:
