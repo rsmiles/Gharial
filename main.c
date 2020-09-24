@@ -18,12 +18,14 @@ int length(datum *list);
 
 void print_datum(datum *expr);
 
-datum *gh_cfunc(datum *(*addr)(datum **locals));
+datum *gh_cfunc(datum *(*addr)(datum **locals), datum *args);
 
 datum *symbol_loc(datum *table, char *symbol);
 datum *symbol_get(datum *table, char *symbol);
 void  symbol_set(datum **table, char *symbol, datum *value);
 void  symbol_unset(datum **table, char *symbol);
+
+datum *call(datum* func, datum *args);
 
 datum *globals = &GH_NIL_VALUE;
 
@@ -105,8 +107,7 @@ datum *gh_eval(datum *expr) {
 			gh_assert(expr->value.cons.car->type == TYPE_SYMBOL, "Not a function");
 			symbol = expr->value.cons.car->value.symbol;
 			value = symbol_get(globals, symbol);
-			gh_assert(value->type == TYPE_CFUNC, "Not a function");
-			return value->value.cfunc(&expr->value.cons.cdr);
+			return call(value, expr->value.cons.cdr);
 			break;
 		case TYPE_SYMBOL:
 			symbol = expr->value.symbol;
@@ -224,23 +225,49 @@ datum *gh_set(datum **locals) {
 	char *symbol;
 	datum *value;
 
-	printf("gh_set\n");
 	symbol = symbol_get(*locals, "symbol")->value.symbol;
 	value = symbol_get(*locals, "value");
 
 	symbol_set(&globals, symbol, value);
-	return &GH_NIL_VALUE;
+	return value;
 }
 
-datum *gh_cfunc(datum *(*addr)(datum **)) {
+datum *gh_cfunc(datum *(*addr)(datum **), datum *args) {
 	datum *cf = new_datum(sizeof(datum));
 	cf->type = TYPE_CFUNC;
-	cf->value.cfunc = addr;
+	cf->value.cfunc.func = addr;
+	cf->value.cfunc.args = args;
 	return cf;
 }
 
+datum *call(datum *func, datum *args) {
+	datum *arglist;
+	datum *sym_iterator;
+	datum *args_iterator;
+
+	gh_assert(func->type == TYPE_CFUNC, "Not a function");
+
+	arglist = &GH_NIL_VALUE;
+	sym_iterator = func->value.cfunc.args;
+	args_iterator = args;
+
+	while (sym_iterator->type != TYPE_NIL && args_iterator != TYPE_NIL) {
+		datum *current_sym;
+		datum *current_arg;
+
+		current_sym = sym_iterator->value.cons.car;
+		current_arg = args_iterator->value.cons.car;
+
+		symbol_set(&arglist, current_sym->value.symbol, current_arg);
+
+		sym_iterator = sym_iterator->value.cons.cdr;
+		args_iterator = args_iterator->value.cons.cdr;
+	}
+	return func->value.cfunc.func(&arglist);
+}
+
 int main(int argc, char **argv) {
-	symbol_set(&globals, "set", gh_cfunc(&gh_set));
+	symbol_set(&globals, "set", gh_cfunc(&gh_set, gh_cons(gh_symbol("symbol"), gh_cons(gh_symbol("value"), &GH_NIL_VALUE))));
 	yyparse();
 	return 0;
 }

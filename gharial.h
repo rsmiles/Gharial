@@ -19,7 +19,10 @@ typedef struct datum {
 		double decimal;
 		char *string;
 		char *symbol;
-		struct datum *(*cfunc)(struct datum **);
+		struct {
+			struct datum *(*func)(struct datum **);
+			struct datum *args;
+		} cfunc;
 		struct {
 			struct datum *car;
 			struct datum *cdr;
