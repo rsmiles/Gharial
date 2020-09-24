@@ -10,6 +10,7 @@
 #define TYPE_STRING  3
 #define TYPE_SYMBOL  4
 #define TYPE_CONS    5
+#define TYPE_CFUNC   6
 
 typedef struct datum {
 	int type;
@@ -18,10 +19,12 @@ typedef struct datum {
 		double decimal;
 		char *string;
 		char *symbol;
+		struct datum *(*cfunc)(struct datum **);
 		struct {
 			struct datum *car;
 			struct datum *cdr;
 		} cons;
+		
 	} value;
 } datum;
 
@@ -39,11 +42,11 @@ datum *gh_symbol(char *value);
 
 datum *gh_cons(datum *car, datum *cdr);
 
-datum *eval(datum *expr);
+int gh_assert(int cond, char *mesg);
 
-void print(datum *expr);
+datum *gh_eval(datum *expr);
 
-void ep(datum *expr);
+void gh_print(datum *expr);
 
 #endif
 

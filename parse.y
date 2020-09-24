@@ -20,8 +20,6 @@ extern char* yytext;
 	char *symbol;
 }
 
-
-
 %token <gh_datum>  TOK_NIL
 %token <decimal>   TOK_DECIMAL
 %token <integer>   TOK_INTEGER
@@ -42,8 +40,8 @@ prog: exprs
 
 exprs: expr exprs | /* empty */ ;
 
-expr: atom { if (depth == 0) print(eval($$)); }
-	| list { if (depth == 0) print(eval($$)); };
+expr: atom { if (depth == 0) gh_print(gh_eval($$)); }
+	| list { if (depth == 0) gh_print(gh_eval($$)); };
 
 atom: TOK_NIL         { $$ = &GH_NIL_VALUE; }
 	| TOK_DECIMAL     { $$ = gh_decimal(atof(yytext)); }
