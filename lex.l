@@ -15,7 +15,7 @@ SPECIAL    [\+\-\*\/]
 
 %%
 
-"#".*\n               { /* Ignore comments */ }
+"#".*$                { /* Ignore comments */ }
 {WHITESPACE}+         { /* Ignore whitespace */ }
 "'"                   { return TOK_QUOTE; }
 [nN][iI][lL]          { return TOK_NIL; }

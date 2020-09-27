@@ -1,7 +1,11 @@
+#define _POSIX_C_SOURCE 1
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <unistd.h>
 
 #include <gc.h>
 
@@ -288,9 +292,16 @@ datum *eval_form(datum *form, datum *args) {
 	return form->value.c_code.func(&arglist);
 }
 
+void prompt() {
+	if (isatty(fileno(stdin))) {
+		printf("$ ");
+	}
+}
+
 int main(int argc, char **argv) {
 	symbol_set(&globals, "set", gh_cform(&gh_set, gh_cons(gh_symbol("symbol"), gh_cons(gh_symbol("value"), &GH_NIL_VALUE))));
 	symbol_set(&globals, "quote", gh_cform(&gh_quote, gh_cons(gh_symbol("expr"), &GH_NIL_VALUE)));
+	prompt();
 	yyparse();
 	return 0;
 }

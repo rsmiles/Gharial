@@ -51,5 +51,7 @@ datum *gh_eval(datum *expr);
 
 void gh_print(datum *expr);
 
+void prompt();
+
 #endif
 

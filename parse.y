@@ -41,10 +41,10 @@ prog: exprs
 
 exprs: expr exprs | /* empty */ ;
 
-expr: atom { if (depth == 0) gh_print(gh_eval($$)); }
-	| list { if (depth == 0) gh_print(gh_eval($$)); }
-	| TOK_QUOTE atom { $$ = gh_cons(gh_symbol("quote"), gh_cons($2, &GH_NIL_VALUE)); if (depth == 0) gh_print(gh_eval($$)); }
-	| TOK_QUOTE list { $$ = gh_cons(gh_symbol("quote"), gh_cons($2, &GH_NIL_VALUE)); if (depth == 0) gh_print(gh_eval($$)); };
+expr: atom { if (depth == 0) { gh_print(gh_eval($$)); prompt(); } }
+	| list { if (depth == 0) { gh_print(gh_eval($$)); prompt(); } }
+	| TOK_QUOTE atom { $$ = gh_cons(gh_symbol("quote"), gh_cons($2, &GH_NIL_VALUE)); if (depth == 0) { gh_print(gh_eval($$)); prompt(); } }
+	| TOK_QUOTE list { $$ = gh_cons(gh_symbol("quote"), gh_cons($2, &GH_NIL_VALUE)); if (depth == 0) { gh_print(gh_eval($$)); prompt(); } };
 
 atom: TOK_NIL         { $$ = &GH_NIL_VALUE; }
 	| TOK_DECIMAL     { $$ = gh_decimal(atof(yytext)); }
