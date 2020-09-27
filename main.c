@@ -15,6 +15,7 @@ datum *new_datum();
 
 void print_datum(datum *expr);
 
+datum *gh_cform(datum *(*addr)(datum **locals), datum *args);
 datum *gh_cfunc(datum *(*addr)(datum **locals), datum *args);
 
 datum *symbol_loc(datum *table, char *symbol);
@@ -22,7 +23,11 @@ datum *symbol_get(datum *table, char *symbol);
 void  symbol_set(datum **table, char *symbol, datum *value);
 void  symbol_unset(datum **table, char *symbol);
 
-datum *call(datum* func, datum *args);
+datum *eval_form(datum* func, datum *args);
+
+datum *gh_set(datum **locals);
+
+datum *gh_quote(datum **locals);
 
 datum *globals = &GH_NIL_VALUE;
 
@@ -72,8 +77,8 @@ datum *gh_symbol(char* value) {
 	datum *s;
 	s = new_datum();
 	s->type = TYPE_SYMBOL;
-	s->value.symbol = GC_MALLOC(sizeof(char) * (strlen(value) + 1));
-	strcpy(s->value.symbol, value);
+	s->value.string = GC_MALLOC(sizeof(char) * (strlen(value) + 1));
+	strcpy(s->value.string, value);
 	return s;
 }
 
@@ -95,10 +100,6 @@ int gh_assert(int cond, char *mesg) {
 	}
 }
 
-datum *gh_set(datum **locals);
-
-datum *gh_quote(datum **locals);
-
 datum *gh_eval(datum *expr) {
 	char  *symbol;
 	datum *value;
@@ -106,12 +107,12 @@ datum *gh_eval(datum *expr) {
 	switch (expr->type) {
 		case TYPE_CONS:
 			gh_assert(expr->value.cons.car->type == TYPE_SYMBOL, "Not a function");
-			symbol = expr->value.cons.car->value.symbol;
+			symbol = expr->value.cons.car->value.string;
 			value = symbol_get(globals, symbol);
-			return call(value, expr->value.cons.cdr);
+			return eval_form(value, expr->value.cons.cdr);
 			break;
 		case TYPE_SYMBOL:
-			symbol = expr->value.symbol;
+			symbol = expr->value.string;
 			value = symbol_get(globals, symbol);
 			gh_assert(value != NULL, "Undefined variable");
 			return value;
@@ -136,7 +137,7 @@ void print_datum(datum *expr) {
 			printf("\"%s\"", expr->value.string);
 			break;
 		case TYPE_SYMBOL:
-			printf("%s", expr->value.symbol);
+			printf("%s", expr->value.string);
 			break;
 		case TYPE_CFUNC:
 			printf("<c_function>");
@@ -178,7 +179,7 @@ datum *symbol_loc(datum *table, char *symbol) {
 		datum *current;
 
 		current = iterator->value.cons.car;
-		if (strcmp(current->value.cons.car->value.symbol, symbol) == 0)
+		if (strcmp(current->value.cons.car->value.string, symbol) == 0)
 			return current;
 		iterator = iterator->value.cons.cdr;
 	}
@@ -213,7 +214,7 @@ void symbol_unset(datum **table, char *symbol) {
 		datum *current = NULL;
 		prev = current;
 		current = iterator->value.cons.car;
-		if (current->value.cons.car->value.symbol == symbol) {
+		if (current->value.cons.car->value.string == symbol) {
 			if (prev) {
 				prev->value.cons.cdr = iterator->value.cons.cdr;
 			} else
@@ -223,14 +224,14 @@ void symbol_unset(datum **table, char *symbol) {
 }
 
 datum *gh_set(datum **locals) {
-	char *symbol;
+	datum *symbol;
 	datum *value;
 
-	symbol = symbol_get(*locals, "symbol")->value.symbol;
-	value = symbol_get(*locals, "value");
+	symbol = symbol_get(*locals, "symbol");
+	value = gh_eval(symbol_get(*locals, "value"));
 
-	symbol_set(&globals, symbol, value);
-	return value;
+	symbol_set(&globals, symbol->value.string, value);
+	return symbol;
 }
 
 datum *gh_quote(datum **locals) {
@@ -243,20 +244,28 @@ datum *gh_quote(datum **locals) {
 datum *gh_cfunc(datum *(*addr)(datum **), datum *args) {
 	datum *cf = new_datum(sizeof(datum));
 	cf->type = TYPE_CFUNC;
-	cf->value.cfunc.func = addr;
-	cf->value.cfunc.args = args;
+	cf->value.c_code.func = addr;
+	cf->value.c_code.args = args;
 	return cf;
 }
 
-datum *call(datum *func, datum *args) {
+datum *gh_cform(datum *(*addr)(datum **), datum *args) {
+	datum *cf = new_datum(sizeof(datum));
+	cf->type = TYPE_CFORM;
+	cf->value.c_code.func = addr;
+	cf->value.c_code.args = args;
+	return cf;
+}
+
+datum *eval_form(datum *form, datum *args) {
 	datum *arglist;
 	datum *sym_iterator;
 	datum *args_iterator;
 
-	gh_assert(func->type == TYPE_CFUNC, "Not a function");
+	gh_assert(form->type == TYPE_CFUNC || form->type == TYPE_CFORM, "Not a function, macro or special form");
 
 	arglist = &GH_NIL_VALUE;
-	sym_iterator = func->value.cfunc.args;
+	sym_iterator = form->value.c_code.args;
 	args_iterator = args;
 
 
@@ -267,17 +276,21 @@ datum *call(datum *func, datum *args) {
 		current_sym = sym_iterator->value.cons.car;
 		current_arg = args_iterator->value.cons.car;
 
-		symbol_set(&arglist, current_sym->value.symbol, current_arg);
+		if (form->type == TYPE_CFORM)
+			symbol_set(&arglist, current_sym->value.string, current_arg);
+		else
+			symbol_set(&arglist, current_sym->value.string, gh_eval(current_arg));
+			
 
 		sym_iterator = sym_iterator->value.cons.cdr;
 		args_iterator = args_iterator->value.cons.cdr;
 	}
-	return func->value.cfunc.func(&arglist);
+	return form->value.c_code.func(&arglist);
 }
 
 int main(int argc, char **argv) {
-	symbol_set(&globals, "set", gh_cfunc(&gh_set, gh_cons(gh_symbol("symbol"), gh_cons(gh_symbol("value"), &GH_NIL_VALUE))));
-	symbol_set(&globals, "quote", gh_cfunc(&gh_quote, gh_cons(gh_symbol("expr"), &GH_NIL_VALUE)));
+	symbol_set(&globals, "set", gh_cform(&gh_set, gh_cons(gh_symbol("symbol"), gh_cons(gh_symbol("value"), &GH_NIL_VALUE))));
+	symbol_set(&globals, "quote", gh_cform(&gh_quote, gh_cons(gh_symbol("expr"), &GH_NIL_VALUE)));
 	yyparse();
 	return 0;
 }

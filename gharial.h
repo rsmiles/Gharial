@@ -10,7 +10,8 @@
 #define TYPE_STRING  3
 #define TYPE_SYMBOL  4
 #define TYPE_CONS    5
-#define TYPE_CFUNC   6
+#define TYPE_CFORM   6
+#define TYPE_CFUNC   7
 
 typedef struct datum {
 	int type;
@@ -18,11 +19,10 @@ typedef struct datum {
 		int integer;
 		double decimal;
 		char *string;
-		char *symbol;
 		struct {
 			struct datum *(*func)(struct datum **);
 			struct datum *args;
-		} cfunc;
+		} c_code;
 		struct {
 			struct datum *car;
 			struct datum *cdr;
