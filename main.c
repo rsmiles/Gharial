@@ -13,9 +13,6 @@ datum GH_NIL_VALUE = { TYPE_NIL, { 0 } };
 
 datum *new_datum();
 
-
-int length(datum *list);
-
 void print_datum(datum *expr);
 
 datum *gh_cfunc(datum *(*addr)(datum **locals), datum *args);
@@ -97,6 +94,10 @@ int gh_assert(int cond, char *mesg) {
 		return TRUE;
 	}
 }
+
+datum *gh_set(datum **locals);
+
+datum *gh_quote(datum **locals);
 
 datum *gh_eval(datum *expr) {
 	char  *symbol;
@@ -232,6 +233,13 @@ datum *gh_set(datum **locals) {
 	return value;
 }
 
+datum *gh_quote(datum **locals) {
+	datum *expr;
+
+	expr = symbol_get(*locals, "expr");
+	return expr;
+}
+
 datum *gh_cfunc(datum *(*addr)(datum **), datum *args) {
 	datum *cf = new_datum(sizeof(datum));
 	cf->type = TYPE_CFUNC;
@@ -251,6 +259,7 @@ datum *call(datum *func, datum *args) {
 	sym_iterator = func->value.cfunc.args;
 	args_iterator = args;
 
+
 	while (sym_iterator->type != TYPE_NIL && args_iterator != TYPE_NIL) {
 		datum *current_sym;
 		datum *current_arg;
@@ -268,6 +277,7 @@ datum *call(datum *func, datum *args) {
 
 int main(int argc, char **argv) {
 	symbol_set(&globals, "set", gh_cfunc(&gh_set, gh_cons(gh_symbol("symbol"), gh_cons(gh_symbol("value"), &GH_NIL_VALUE))));
+	symbol_set(&globals, "quote", gh_cfunc(&gh_quote, gh_cons(gh_symbol("expr"), &GH_NIL_VALUE)));
 	yyparse();
 	return 0;
 }

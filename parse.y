@@ -26,6 +26,7 @@ extern char* yytext;
 %token <character> TOK_OPENPAREN
 %token <character> TOK_CLOSEPAREN
 %token <character> TOK_DOT
+%token <character> TOK_QUOTE
 %token <string>    TOK_EMPTYSTRING
 %token <string>    TOK_STRING
 %token <string>    TOK_SYMBOL
@@ -41,7 +42,9 @@ prog: exprs
 exprs: expr exprs | /* empty */ ;
 
 expr: atom { if (depth == 0) gh_print(gh_eval($$)); }
-	| list { if (depth == 0) gh_print(gh_eval($$)); };
+	| list { if (depth == 0) gh_print(gh_eval($$)); }
+	| TOK_QUOTE atom { $$ = gh_cons(gh_symbol("quote"), gh_cons($2, &GH_NIL_VALUE)); if (depth == 0) gh_print(gh_eval($$)); }
+	| TOK_QUOTE list { $$ = gh_cons(gh_symbol("quote"), gh_cons($2, &GH_NIL_VALUE)); if (depth == 0) gh_print(gh_eval($$)); };
 
 atom: TOK_NIL         { $$ = &GH_NIL_VALUE; }
 	| TOK_DECIMAL     { $$ = gh_decimal(atof(yytext)); }
