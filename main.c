@@ -244,7 +244,9 @@ datum *do_unquotes(datum *expr) {
 		current = iterator->value.cons.car;
 		if (current->type == TYPE_SYMBOL) {
 			if (strcmp(current->value.string, "unquote") == 0) {
-				iterator = gh_eval(iterator);
+				return gh_eval(iterator);
+			} else if (strcmp(current->value.string, "quote") == 0) {
+				return iterator;
 			}
 		} else if (current->type == TYPE_CONS) {
 			iterator->value.cons.car = do_unquotes(iterator->value.cons.car);
