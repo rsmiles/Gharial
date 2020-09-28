@@ -27,11 +27,15 @@ datum *symbol_get(datum *table, char *symbol);
 void  symbol_set(datum **table, char *symbol, datum *value);
 void  symbol_unset(datum **table, char *symbol);
 
+datum *do_unquotes(datum *expr);
+
 datum *eval_form(datum* func, datum *args);
 
 datum *gh_set(datum **locals);
 
 datum *gh_quote(datum **locals);
+
+datum *gh_unquote(datum **locals);
 
 datum *globals = &GH_NIL_VALUE;
 
@@ -143,6 +147,9 @@ void print_datum(datum *expr) {
 		case TYPE_SYMBOL:
 			printf("%s", expr->value.string);
 			break;
+		case TYPE_CFORM:
+			printf("<c_form>");
+			break;
 		case TYPE_CFUNC:
 			printf("<c_function>");
 			break;
@@ -227,6 +234,26 @@ void symbol_unset(datum **table, char *symbol) {
 	}
 }
 
+datum *do_unquotes(datum *expr) {
+	datum *iterator;
+	datum *current;
+
+	iterator = expr;
+
+	while (iterator->type == TYPE_CONS) {
+		current = iterator->value.cons.car;
+		if (current->type == TYPE_SYMBOL) {
+			if (strcmp(current->value.string, "unquote") == 0) {
+				iterator = gh_eval(iterator);
+			}
+		} else if (current->type == TYPE_CONS) {
+			iterator->value.cons.car = do_unquotes(iterator->value.cons.car);
+		}
+		iterator = iterator->value.cons.cdr;
+	}
+	return expr;
+}
+
 datum *gh_set(datum **locals) {
 	datum *symbol;
 	datum *value;
@@ -242,7 +269,14 @@ datum *gh_quote(datum **locals) {
 	datum *expr;
 
 	expr = symbol_get(*locals, "expr");
-	return expr;
+	return do_unquotes(expr);
+}
+
+datum *gh_unquote(datum **locals) {
+	datum *expr;
+
+	expr = symbol_get(*locals, "expr");
+	return gh_eval(expr);
 }
 
 datum *gh_cfunc(datum *(*addr)(datum **), datum *args) {
@@ -301,6 +335,7 @@ void prompt() {
 int main(int argc, char **argv) {
 	symbol_set(&globals, "set", gh_cform(&gh_set, gh_cons(gh_symbol("symbol"), gh_cons(gh_symbol("value"), &GH_NIL_VALUE))));
 	symbol_set(&globals, "quote", gh_cform(&gh_quote, gh_cons(gh_symbol("expr"), &GH_NIL_VALUE)));
+	symbol_set(&globals, "unquote", gh_cform(&gh_unquote, gh_cons(gh_symbol("expr"), &GH_NIL_VALUE)));
 	prompt();
 	yyparse();
 	return 0;

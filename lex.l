@@ -18,6 +18,7 @@ SPECIAL    [\+\-\*\/]
 "#".*$                { /* Ignore comments */ }
 {WHITESPACE}+         { /* Ignore whitespace */ }
 "'"                   { return TOK_QUOTE; }
+","                   { return TOK_UNQUOTE; }
 [nN][iI][lL]          { return TOK_NIL; }
 {DIGIT}+\.{DIGIT}+    { return TOK_DECIMAL; }
 {DIGIT}+              { return TOK_INTEGER; }

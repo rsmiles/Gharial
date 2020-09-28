@@ -27,6 +27,7 @@ extern char* yytext;
 %token <character> TOK_CLOSEPAREN
 %token <character> TOK_DOT
 %token <character> TOK_QUOTE
+%token <character> TOK_UNQUOTE
 %token <string>    TOK_EMPTYSTRING
 %token <string>    TOK_STRING
 %token <string>    TOK_SYMBOL
@@ -44,7 +45,9 @@ exprs: expr exprs | /* empty */ ;
 expr: atom { if (depth == 0) { gh_print(gh_eval($$)); prompt(); } }
 	| list { if (depth == 0) { gh_print(gh_eval($$)); prompt(); } }
 	| TOK_QUOTE atom { $$ = gh_cons(gh_symbol("quote"), gh_cons($2, &GH_NIL_VALUE)); if (depth == 0) { gh_print(gh_eval($$)); prompt(); } }
-	| TOK_QUOTE list { $$ = gh_cons(gh_symbol("quote"), gh_cons($2, &GH_NIL_VALUE)); if (depth == 0) { gh_print(gh_eval($$)); prompt(); } };
+	| TOK_QUOTE list { $$ = gh_cons(gh_symbol("quote"), gh_cons($2, &GH_NIL_VALUE)); if (depth == 0) { gh_print(gh_eval($$)); prompt(); } }
+	| TOK_UNQUOTE atom { $$ = gh_cons(gh_symbol("unquote"), gh_cons($2, &GH_NIL_VALUE)); if (depth == 0) { gh_print(gh_eval($$)); prompt(); } }
+	| TOK_UNQUOTE list { $$ = gh_cons(gh_symbol("unquote"), gh_cons($2, &GH_NIL_VALUE)); if (depth == 0) { gh_print(gh_eval($$)); prompt(); } };
 
 atom: TOK_NIL         { $$ = &GH_NIL_VALUE; }
 	| TOK_DECIMAL     { $$ = gh_decimal(atof(yytext)); }
