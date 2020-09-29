@@ -43,7 +43,7 @@ datum *gh_substring(int start, int end, char *value);
 
 datum *gh_symbol(char *value);
 
-datum *gh_cons(datum *car, datum *cdr);
+datum *cons(datum *car, datum *cdr);
 
 int gh_assert(int cond, char *mesg);
 

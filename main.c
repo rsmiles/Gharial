@@ -37,6 +37,8 @@ datum *gh_quote(datum **locals);
 
 datum *gh_unquote(datum **locals);
 
+datum *gh_cons(datum **locals);
+
 datum *gh_car(datum **locals);
 
 datum *gh_cdr(datum **locals);
@@ -94,7 +96,7 @@ datum *gh_symbol(char* value) {
 	return s;
 }
 
-datum *gh_cons(datum *car, datum *cdr) {
+datum *cons(datum *car, datum *cdr) {
 	datum *c;
 	c = new_datum();
 	c->type = TYPE_CONS;
@@ -216,7 +218,7 @@ void symbol_set(datum **table, char *symbol, datum *value) {
 	if (loc) {
 		loc->value.cons.cdr = value;
 	} else {
-		*table = gh_cons(gh_cons(gh_symbol(symbol), value), *table);
+		*table = cons(cons(gh_symbol(symbol), value), *table);
 	}
 }
 
@@ -280,6 +282,15 @@ datum *gh_unquote(datum **locals) {
 
 	expr = symbol_get(*locals, "expr");
 	return gh_eval(expr);
+}
+
+datum *gh_cons(datum **locals) {
+	datum *car;
+	datum *cdr;
+
+	car = symbol_get(*locals, "car");
+	cdr = symbol_get(*locals, "cdr");
+	return cons(car, cdr);
 }
 
 datum *gh_car(datum **locals) {
@@ -354,11 +365,12 @@ void prompt() {
 }
 
 int main(int argc, char **argv) {
-	symbol_set(&globals, "set", gh_cform(&gh_set, gh_cons(gh_symbol("symbol"), gh_cons(gh_symbol("value"), &GH_NIL_VALUE))));
-	symbol_set(&globals, "quote", gh_cform(&gh_quote, gh_cons(gh_symbol("expr"), &GH_NIL_VALUE)));
-	symbol_set(&globals, "unquote", gh_cform(&gh_unquote, gh_cons(gh_symbol("expr"), &GH_NIL_VALUE)));
-	symbol_set(&globals, "car", gh_cfunc(&gh_car, gh_cons(gh_symbol("pair"), &GH_NIL_VALUE)));
-	symbol_set(&globals, "cdr", gh_cfunc(&gh_cdr, gh_cons(gh_symbol("pair"), &GH_NIL_VALUE)));
+	symbol_set(&globals, "set", gh_cform(&gh_set, cons(gh_symbol("symbol"), cons(gh_symbol("value"), &GH_NIL_VALUE))));
+	symbol_set(&globals, "quote", gh_cform(&gh_quote, cons(gh_symbol("expr"), &GH_NIL_VALUE)));
+	symbol_set(&globals, "unquote", gh_cform(&gh_unquote, cons(gh_symbol("expr"), &GH_NIL_VALUE)));
+	symbol_set(&globals, "cons", gh_cfunc(&gh_cons, cons(gh_symbol("car"), cons(gh_symbol("cdr"), &GH_NIL_VALUE))));
+	symbol_set(&globals, "car", gh_cfunc(&gh_car, cons(gh_symbol("pair"), &GH_NIL_VALUE)));
+	symbol_set(&globals, "cdr", gh_cfunc(&gh_cdr, cons(gh_symbol("pair"), &GH_NIL_VALUE)));
 	prompt();
 	yyparse();
 	return 0;
