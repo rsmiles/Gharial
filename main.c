@@ -27,6 +27,8 @@ datum *symbol_get(datum *table, char *symbol);
 void  symbol_set(datum **table, char *symbol, datum *value);
 void  symbol_unset(datum **table, char *symbol);
 
+datum *reverse(datum *lst);
+
 datum *do_unquotes(datum *expr);
 
 datum *eval_form(datum* func, datum *args);
@@ -42,6 +44,8 @@ datum *gh_cons(datum **locals);
 datum *gh_car(datum **locals);
 
 datum *gh_cdr(datum **locals);
+
+datum *gh_reverse(datum **locals);
 
 datum *globals = &GH_NIL_VALUE;
 
@@ -259,6 +263,21 @@ datum *do_unquotes(datum *expr) {
 	return expr;
 }
 
+datum *reverse(datum *lst) {
+	datum *reversed;
+	datum *iterator;
+
+	reversed = &GH_NIL_VALUE;
+	iterator = lst;
+
+	while (iterator->type == TYPE_CONS) {
+		reversed = cons(iterator->value.cons.car, reversed);
+		iterator = iterator->value.cons.cdr;
+	}
+
+	return reversed;
+}
+
 datum *gh_set(datum **locals) {
 	datum *symbol;
 	datum *value;
@@ -309,6 +328,14 @@ datum *gh_cdr(datum **locals) {
 	gh_assert(pair->type == TYPE_CONS, "Not a pair or list");
 
 	return pair->value.cons.cdr;
+}
+
+datum *gh_reverse(datum **locals) {
+	datum *lst;
+
+	lst = symbol_get(*locals, "lst");
+
+	return reverse(lst);
 }
 
 datum *gh_cfunc(datum *(*addr)(datum **), datum *args) {
@@ -371,6 +398,7 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "cons", gh_cfunc(&gh_cons, cons(gh_symbol("car"), cons(gh_symbol("cdr"), &GH_NIL_VALUE))));
 	symbol_set(&globals, "car", gh_cfunc(&gh_car, cons(gh_symbol("pair"), &GH_NIL_VALUE)));
 	symbol_set(&globals, "cdr", gh_cfunc(&gh_cdr, cons(gh_symbol("pair"), &GH_NIL_VALUE)));
+	symbol_set(&globals, "reverse", gh_cfunc(&gh_reverse, cons(gh_symbol("lst"), &GH_NIL_VALUE)));
 	prompt();
 	yyparse();
 	return 0;
