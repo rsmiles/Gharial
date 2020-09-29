@@ -37,6 +37,10 @@ datum *gh_quote(datum **locals);
 
 datum *gh_unquote(datum **locals);
 
+datum *gh_car(datum **locals);
+
+datum *gh_cdr(datum **locals);
+
 datum *globals = &GH_NIL_VALUE;
 
 datum *new_datum() {
@@ -243,11 +247,8 @@ datum *do_unquotes(datum *expr) {
 	while (iterator->type == TYPE_CONS) {
 		current = iterator->value.cons.car;
 		if (current->type == TYPE_SYMBOL) {
-			if (strcmp(current->value.string, "unquote") == 0) {
+			if (strcmp(current->value.string, "unquote") == 0)
 				return gh_eval(iterator);
-			} else if (strcmp(current->value.string, "quote") == 0) {
-				return iterator;
-			}
 		} else if (current->type == TYPE_CONS) {
 			iterator->value.cons.car = do_unquotes(iterator->value.cons.car);
 		}
@@ -279,6 +280,24 @@ datum *gh_unquote(datum **locals) {
 
 	expr = symbol_get(*locals, "expr");
 	return gh_eval(expr);
+}
+
+datum *gh_car(datum **locals) {
+	datum *pair;
+
+	pair = symbol_get(*locals, "pair");
+	gh_assert(pair->type == TYPE_CONS, "Not a pair or list");
+
+	return pair->value.cons.car;
+}
+
+datum *gh_cdr(datum **locals) {
+	datum *pair;
+
+	pair = symbol_get(*locals, "pair");
+	gh_assert(pair->type == TYPE_CONS, "Not a pair or list");
+
+	return pair->value.cons.cdr;
 }
 
 datum *gh_cfunc(datum *(*addr)(datum **), datum *args) {
@@ -338,6 +357,8 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "set", gh_cform(&gh_set, gh_cons(gh_symbol("symbol"), gh_cons(gh_symbol("value"), &GH_NIL_VALUE))));
 	symbol_set(&globals, "quote", gh_cform(&gh_quote, gh_cons(gh_symbol("expr"), &GH_NIL_VALUE)));
 	symbol_set(&globals, "unquote", gh_cform(&gh_unquote, gh_cons(gh_symbol("expr"), &GH_NIL_VALUE)));
+	symbol_set(&globals, "car", gh_cfunc(&gh_car, gh_cons(gh_symbol("pair"), &GH_NIL_VALUE)));
+	symbol_set(&globals, "cdr", gh_cfunc(&gh_cdr, gh_cons(gh_symbol("pair"), &GH_NIL_VALUE)));
 	prompt();
 	yyparse();
 	return 0;
