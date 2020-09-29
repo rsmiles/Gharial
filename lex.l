@@ -19,6 +19,7 @@ SPECIAL    [\+\-\*\/]
 {WHITESPACE}+         { /* Ignore whitespace */ }
 "'"                   { return TOK_QUOTE; }
 ","                   { return TOK_UNQUOTE; }
+[tT]                  { return TOK_TRUE; }
 [nN][iI][lL]          { return TOK_NIL; }
 {DIGIT}+\.{DIGIT}+    { return TOK_DECIMAL; }
 {DIGIT}+              { return TOK_INTEGER; }
@@ -27,7 +28,7 @@ SPECIAL    [\+\-\*\/]
 "("                   { depth++; return TOK_OPENPAREN; }
 ")"                   { if (depth > 0 ) depth--; return TOK_CLOSEPAREN; }
 "."                   { return TOK_DOT; }
-({LETTER}|{SPECIAL})+             { return TOK_SYMBOL; }
+({LETTER}|{SPECIAL})+ { return TOK_SYMBOL; }
 
 %%
 

@@ -21,6 +21,7 @@ extern char* yytext;
 }
 
 %token <gh_datum>  TOK_NIL
+%token <gh_datum>  TOK_TRUE
 %token <decimal>   TOK_DECIMAL
 %token <integer>   TOK_INTEGER
 %token <character> TOK_OPENPAREN
@@ -50,6 +51,7 @@ expr: atom
 	| TOK_UNQUOTE expr { $$ = cons(gh_symbol("unquote"), cons($2, &GH_NIL_VALUE)); };
 
 atom: TOK_NIL         { $$ = &GH_NIL_VALUE; }
+	| TOK_TRUE        { $$ = &GH_TRUE_VALUE; }
 	| TOK_DECIMAL     { $$ = gh_decimal(atof(yytext)); }
 	| TOK_INTEGER     { $$ = gh_integer(atoi(yytext)); }
 	| TOK_EMPTYSTRING { $$ = gh_string(""); }

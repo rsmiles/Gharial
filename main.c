@@ -14,6 +14,7 @@
 #include "y.tab.h"
 
 datum GH_NIL_VALUE = { TYPE_NIL, { 0 } };
+datum GH_TRUE_VALUE = { TYPE_TRUE, { 0 } };
 
 datum *new_datum();
 
@@ -26,6 +27,8 @@ datum *symbol_loc(datum *table, char *symbol);
 datum *symbol_get(datum *table, char *symbol);
 void  symbol_set(datum **table, char *symbol, datum *value);
 void  symbol_unset(datum **table, char *symbol);
+
+datum *eval_arglist(datum *args);
 
 datum *reverse(datum *lst);
 
@@ -46,6 +49,8 @@ datum *gh_car(datum **locals);
 datum *gh_cdr(datum **locals);
 
 datum *gh_reverse(datum **locals);
+
+datum *gh_list(datum **locals);
 
 datum *globals = &GH_NIL_VALUE;
 
@@ -100,6 +105,10 @@ datum *gh_symbol(char* value) {
 	return s;
 }
 
+datum *gh_list(datum **locals){
+	return symbol_get(*locals, "args");
+}
+
 datum *cons(datum *car, datum *cdr) {
 	datum *c;
 	c = new_datum();
@@ -144,6 +153,9 @@ void print_datum(datum *expr) {
 	switch (expr->type) {
 		case TYPE_NIL:
 			printf("NIL");
+			break;
+		case TYPE_TRUE:
+			printf("T");
 			break;
 		case TYPE_INTEGER:
 			printf("%d", expr->value.integer);
@@ -354,6 +366,17 @@ datum *gh_cform(datum *(*addr)(datum **), datum *args) {
 	return cf;
 }
 
+datum *eval_arglist(datum *args) {
+	datum *iterator;
+
+	iterator = args;
+	while (iterator->type != TYPE_NIL) {
+		iterator->value.cons.car = gh_eval(iterator->value.cons.car);
+		iterator = iterator->value.cons.cdr;
+	}
+	return args;
+}
+
 datum *eval_form(datum *form, datum *args) {
 	datum *arglist;
 	datum *sym_iterator;
@@ -366,22 +389,32 @@ datum *eval_form(datum *form, datum *args) {
 	args_iterator = args;
 
 
-	while (sym_iterator->type != TYPE_NIL && args_iterator != TYPE_NIL) {
+	while (sym_iterator->type == TYPE_CONS) {
 		datum *current_sym;
 		datum *current_arg;
 
 		current_sym = sym_iterator->value.cons.car;
 		current_arg = args_iterator->value.cons.car;
 
-		if (form->type == TYPE_CFORM)
-			symbol_set(&arglist, current_sym->value.string, current_arg);
-		else
-			symbol_set(&arglist, current_sym->value.string, gh_eval(current_arg));
+		if (current_sym->type == TYPE_SYMBOL) {
+
+			if (form->type == TYPE_CFORM)
+				symbol_set(&arglist, current_sym->value.string, current_arg);
+			else
+				symbol_set(&arglist, current_sym->value.string, gh_eval(current_arg));
 			
+			args_iterator = args_iterator->value.cons.cdr;
+		}
 
 		sym_iterator = sym_iterator->value.cons.cdr;
-		args_iterator = args_iterator->value.cons.cdr;
 	}
+	if (sym_iterator->type != TYPE_NIL) {
+		if (form->type == TYPE_CFORM)
+			symbol_set(&arglist, sym_iterator->value.string, args_iterator);
+		 else 
+			symbol_set(&arglist, sym_iterator->value.string, eval_arglist(args_iterator));
+	}
+
 	return form->value.c_code.func(&arglist);
 }
 
@@ -399,6 +432,7 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "car", gh_cfunc(&gh_car, cons(gh_symbol("pair"), &GH_NIL_VALUE)));
 	symbol_set(&globals, "cdr", gh_cfunc(&gh_cdr, cons(gh_symbol("pair"), &GH_NIL_VALUE)));
 	symbol_set(&globals, "reverse", gh_cfunc(&gh_reverse, cons(gh_symbol("lst"), &GH_NIL_VALUE)));
+	symbol_set(&globals, "list", gh_cfunc(&gh_list, cons(&GH_NIL_VALUE, gh_symbol("args"))));
 	prompt();
 	yyparse();
 	return 0;

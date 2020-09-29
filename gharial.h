@@ -5,13 +5,14 @@
 #define FALSE 0
 
 #define TYPE_NIL     0
-#define TYPE_INTEGER 1
-#define TYPE_DECIMAL 2
-#define TYPE_STRING  3
-#define TYPE_SYMBOL  4
-#define TYPE_CONS    5
-#define TYPE_CFORM   6
-#define TYPE_CFUNC   7
+#define TYPE_TRUE    1
+#define TYPE_INTEGER 2
+#define TYPE_DECIMAL 3
+#define TYPE_STRING  4
+#define TYPE_SYMBOL  5
+#define TYPE_CONS    6
+#define TYPE_CFORM   7
+#define TYPE_CFUNC   8
 
 typedef struct datum {
 	int type;
@@ -32,6 +33,7 @@ typedef struct datum {
 } datum;
 
 extern datum GH_NIL_VALUE;
+extern datum GH_TRUE_VALUE;
 
 datum *gh_integer(int value);
 
