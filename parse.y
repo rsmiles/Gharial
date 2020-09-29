@@ -32,22 +32,22 @@ extern char* yytext;
 %token <string>    TOK_STRING
 %token <string>    TOK_SYMBOL
 
-%type <t_datum> atom list expr dotted_body list_body
+%type <t_datum> atom list expr term dotted_body list_body
 
 %start prog
 
 %%
 
-prog: exprs
+prog: terms;
 
-exprs: expr exprs | /* empty */ ;
+terms: term terms| /* empty */ ;
 
-expr: atom { if (depth == 0) { gh_print(gh_eval($$)); prompt(); } }
-	| list { if (depth == 0) { gh_print(gh_eval($$)); prompt(); } }
-	| TOK_QUOTE atom { $$ = cons(gh_symbol("quote"), cons($2, &GH_NIL_VALUE)); if (depth == 0) { gh_print(gh_eval($$)); prompt(); } }
-	| TOK_QUOTE list { $$ = cons(gh_symbol("quote"), cons($2, &GH_NIL_VALUE)); if (depth == 0) { gh_print(gh_eval($$)); prompt(); } }
-	| TOK_UNQUOTE atom { $$ = cons(gh_symbol("unquote"), cons($2, &GH_NIL_VALUE)); if (depth == 0) { gh_print(gh_eval($$)); prompt(); } }
-	| TOK_UNQUOTE list { $$ = cons(gh_symbol("unquote"), cons($2, &GH_NIL_VALUE)); if (depth == 0) { gh_print(gh_eval($$)); prompt(); } };
+term: expr { if (depth == 0) { gh_print(gh_eval($$)); prompt(); } };
+
+expr: atom
+	| list
+	| TOK_QUOTE expr { $$ = cons(gh_symbol("quote"), cons($2, &GH_NIL_VALUE)); }
+	| TOK_UNQUOTE expr { $$ = cons(gh_symbol("unquote"), cons($2, &GH_NIL_VALUE)); };
 
 atom: TOK_NIL         { $$ = &GH_NIL_VALUE; }
 	| TOK_DECIMAL     { $$ = gh_decimal(atof(yytext)); }
