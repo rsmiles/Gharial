@@ -339,10 +339,8 @@ datum *symbol_loc(datum *table, char *symbol) {
 datum *symbol_get(datum *table, char *symbol) {
 	datum *loc;
 	loc = symbol_loc(table, symbol);
-	if (loc)
-		return loc->value.cons.cdr;
-	else
-		return loc;
+	gh_assert(loc != NULL, "Unbound variable");
+	return loc->value.cons.cdr;
 }
 
 void symbol_set(datum **table, char *symbol, datum *value) {
@@ -551,8 +549,7 @@ datum *eval_form(datum *form, datum *args) {
 	sym_iterator = form->value.c_code.args;
 	args_iterator = args;
 
-
-	while (sym_iterator->type == TYPE_CONS) {
+	while (sym_iterator->type == TYPE_CONS && args_iterator->type == TYPE_CONS) {
 		datum *current_sym;
 		datum *current_arg;
 
