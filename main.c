@@ -32,6 +32,8 @@ datum *eval_arglist(datum *args);
 
 datum *reverse(datum *lst);
 
+datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *list);
+
 datum *do_unquotes(datum *expr);
 
 datum *eval_form(datum* func, datum *args);
@@ -52,12 +54,52 @@ datum *gh_reverse(datum **locals);
 
 datum *gh_list(datum **locals);
 
+datum *gh_plus(datum **locals);
+
 datum *globals = &GH_NIL_VALUE;
 
 datum *new_datum() {
 	datum *d = GC_MALLOC(sizeof(datum));
 	gh_assert(d != NULL, "Out of memory!");
 	return d;
+}
+
+datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *lst) {
+	datum *iterator;
+	datum *result;
+
+	gh_assert(lst->type == TYPE_CONS || lst->type == TYPE_NIL, "Not a list");
+
+	iterator = lst;
+	result = init;
+
+	while (iterator->type == TYPE_CONS) {
+		result = func(result, iterator->value.cons.car);
+		iterator = iterator->value.cons.cdr;
+	}
+
+	gh_assert(iterator->type == TYPE_NIL, "Not a proper list");
+
+	return result;
+}
+
+datum *add2(datum *a, datum *b) {
+	int result_type;
+
+	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "Not a number");
+	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "Not a number");
+
+	if (a->type == TYPE_DECIMAL || b->type == TYPE_DECIMAL)
+		result_type = TYPE_DECIMAL;
+	else
+		result_type = TYPE_INTEGER;
+
+	if (result_type == TYPE_INTEGER)
+		return gh_integer(a->value.integer + b->value.integer);
+	else {
+		return gh_decimal((a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal)
+							+ (b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal));
+	}
 }
 
 datum *gh_integer(int value) {
@@ -350,6 +392,14 @@ datum *gh_reverse(datum **locals) {
 	return reverse(lst);
 }
 
+datum *gh_plus(datum **locals) {
+	datum *args;
+
+	args = symbol_get(*locals, "args");
+
+	return fold(&add2, gh_integer(0), args);
+}
+
 datum *gh_cfunc(datum *(*addr)(datum **), datum *args) {
 	datum *cf = new_datum(sizeof(datum));
 	cf->type = TYPE_CFUNC;
@@ -433,6 +483,7 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "cdr", gh_cfunc(&gh_cdr, cons(gh_symbol("pair"), &GH_NIL_VALUE)));
 	symbol_set(&globals, "reverse", gh_cfunc(&gh_reverse, cons(gh_symbol("lst"), &GH_NIL_VALUE)));
 	symbol_set(&globals, "list", gh_cfunc(&gh_list, cons(&GH_NIL_VALUE, gh_symbol("args"))));
+	symbol_set(&globals, "+", gh_cfunc(&gh_plus, cons(&GH_NIL_VALUE, gh_symbol("args"))));
 	prompt();
 	yyparse();
 	return 0;
