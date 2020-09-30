@@ -1,9 +1,11 @@
-#define _POSIX_C_SOURCE 1
+#define _POSIX_C_SOURCE 200112L
 
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <math.h>
 
 #include <unistd.h>
 
@@ -34,6 +36,16 @@ datum *reverse(datum *lst);
 
 datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *list);
 
+datum *add2(datum *a, datum *b);
+
+datum *sub2(datum *a, datum *b);
+
+datum *mul2(datum *a, datum *b);
+
+datum *div2(datum *a, datum *b);
+
+datum *dpow(datum *a, datum *b);
+
 datum *do_unquotes(datum *expr);
 
 datum *eval_form(datum* func, datum *args);
@@ -54,7 +66,15 @@ datum *gh_reverse(datum **locals);
 
 datum *gh_list(datum **locals);
 
-datum *gh_plus(datum **locals);
+datum *gh_add(datum **locals);
+
+datum *gh_sub(datum **locals);
+
+datum *gh_mul(datum **locals);
+
+datum *gh_div(datum **locals);
+
+datum *gh_pow(datum **locals);
 
 datum *globals = &GH_NIL_VALUE;
 
@@ -97,9 +117,64 @@ datum *add2(datum *a, datum *b) {
 	if (result_type == TYPE_INTEGER)
 		return gh_integer(a->value.integer + b->value.integer);
 	else {
-		return gh_decimal((a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal)
-							+ (b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal));
+		return gh_decimal((a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal) +
+							(b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal));
 	}
+}
+
+datum *sub2(datum *a, datum *b) {
+	int result_type;
+
+	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "Not a number");
+	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "Not a number");
+
+	if (a->type == TYPE_DECIMAL || b->type == TYPE_DECIMAL)
+		result_type = TYPE_DECIMAL;
+	else
+		result_type = TYPE_INTEGER;
+
+	if (result_type == TYPE_INTEGER)
+		return gh_integer(a->value.integer - b->value.integer);
+	else {
+		return gh_decimal((a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal) -
+							(b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal));
+	}
+
+}
+
+datum *mul2(datum *a, datum *b) {
+	int result_type;
+
+	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "Not a number");
+	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "Not a number");
+
+	if (a->type == TYPE_DECIMAL || b->type == TYPE_DECIMAL)
+		result_type = TYPE_DECIMAL;
+	else
+		result_type = TYPE_INTEGER;
+
+	if (result_type == TYPE_INTEGER)
+		return gh_integer(a->value.integer * b->value.integer);
+	else {
+		return gh_decimal((a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal) *
+							(b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal));
+	}
+}
+
+datum *div2(datum *a, datum *b) {
+	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "Not a number");
+	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "Not a number");
+
+	return gh_decimal((a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal) /
+						(b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal));
+}
+
+datum *dpow(datum *a, datum *b) {
+	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "Not a number");
+	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "Not a number");
+
+	return gh_decimal(pow(a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal,
+						b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal));
 }
 
 datum *gh_integer(int value) {
@@ -392,12 +467,50 @@ datum *gh_reverse(datum **locals) {
 	return reverse(lst);
 }
 
-datum *gh_plus(datum **locals) {
+datum *gh_add(datum **locals) {
 	datum *args;
 
 	args = symbol_get(*locals, "args");
 
 	return fold(&add2, gh_integer(0), args);
+}
+
+datum *gh_sub(datum **locals) {
+	datum *first;
+	datum *rest;
+
+	first = symbol_get(*locals, "first");
+	rest = symbol_get(*locals, "rest");
+
+	return fold(&sub2, first, rest);
+}
+
+datum *gh_mul(datum **locals) {
+	datum *args;
+
+	args = symbol_get(*locals, "args");
+
+	return fold(&mul2, gh_integer(1), args);
+}
+
+datum *gh_div(datum **locals) {
+	datum *first;
+	datum *rest;
+
+	first = symbol_get(*locals, "first");
+	rest = symbol_get(*locals, "rest");
+
+	return fold(&div2, first, rest);
+}
+
+datum *gh_pow(datum **locals) {
+	datum *a;
+	datum *b;
+
+	a = symbol_get(*locals, "a");
+	b = symbol_get(*locals, "b");
+
+	return(dpow(a, b));
 }
 
 datum *gh_cfunc(datum *(*addr)(datum **), datum *args) {
@@ -483,7 +596,11 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "cdr", gh_cfunc(&gh_cdr, cons(gh_symbol("pair"), &GH_NIL_VALUE)));
 	symbol_set(&globals, "reverse", gh_cfunc(&gh_reverse, cons(gh_symbol("lst"), &GH_NIL_VALUE)));
 	symbol_set(&globals, "list", gh_cfunc(&gh_list, cons(&GH_NIL_VALUE, gh_symbol("args"))));
-	symbol_set(&globals, "+", gh_cfunc(&gh_plus, cons(&GH_NIL_VALUE, gh_symbol("args"))));
+	symbol_set(&globals, "+", gh_cfunc(&gh_add, cons(&GH_NIL_VALUE, gh_symbol("args"))));
+	symbol_set(&globals, "-", gh_cfunc(&gh_sub, cons(gh_symbol("first"), gh_symbol("rest"))));
+	symbol_set(&globals, "*", gh_cfunc(&gh_mul, cons(&GH_NIL_VALUE, gh_symbol("args"))));
+	symbol_set(&globals, "/", gh_cfunc(&gh_div, cons(gh_symbol("first"), gh_symbol("rest"))));
+	symbol_set(&globals, "^", gh_cfunc(&gh_pow, cons(gh_symbol("a"), cons(gh_symbol("b"), &GH_NIL_VALUE))));
 	prompt();
 	yyparse();
 	return 0;
