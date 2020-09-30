@@ -13,6 +13,7 @@
 #define TYPE_CONS    6
 #define TYPE_CFORM   7
 #define TYPE_CFUNC   8
+#define TYPE_FUNC    9
 
 typedef struct datum {
 	int type;
@@ -22,12 +23,16 @@ typedef struct datum {
 		char *string;
 		struct {
 			struct datum *(*func)(struct datum **);
-			struct datum *args;
+			struct datum *lambda_list;
 		} c_code;
 		struct {
 			struct datum *car;
 			struct datum *cdr;
 		} cons;
+		struct {
+			struct datum *lambda_list;
+			struct datum *body;
+		} func;
 		
 	} value;
 } datum;

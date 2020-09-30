@@ -515,7 +515,7 @@ datum *gh_cfunc(datum *(*addr)(datum **), datum *args) {
 	datum *cf = new_datum(sizeof(datum));
 	cf->type = TYPE_CFUNC;
 	cf->value.c_code.func = addr;
-	cf->value.c_code.args = args;
+	cf->value.c_code.lambda_list = args;
 	return cf;
 }
 
@@ -523,7 +523,7 @@ datum *gh_cform(datum *(*addr)(datum **), datum *args) {
 	datum *cf = new_datum(sizeof(datum));
 	cf->type = TYPE_CFORM;
 	cf->value.c_code.func = addr;
-	cf->value.c_code.args = args;
+	cf->value.c_code.lambda_list = args;
 	return cf;
 }
 
@@ -546,7 +546,7 @@ datum *eval_form(datum *form, datum *args) {
 	gh_assert(form->type == TYPE_CFUNC || form->type == TYPE_CFORM, "Not a function, macro or special form");
 
 	arglist = &GH_NIL_VALUE;
-	sym_iterator = form->value.c_code.args;
+	sym_iterator = form->value.c_code.lambda_list;
 	args_iterator = args;
 
 	while (sym_iterator->type == TYPE_CONS && args_iterator->type == TYPE_CONS) {
