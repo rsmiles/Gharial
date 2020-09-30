@@ -76,6 +76,8 @@ datum *gh_div(datum **locals);
 
 datum *gh_pow(datum **locals);
 
+datum *gh_lambda(datum **locals);
+
 datum *globals = &GH_NIL_VALUE;
 
 datum *new_datum() {
@@ -244,6 +246,21 @@ int gh_assert(int cond, char *mesg) {
 	}
 }
 
+datum *gh_lambda(datum **locals) {
+	datum *lambda_list;
+	datum *body;
+	datum *func;
+
+	lambda_list = symbol_get(*locals, "lambda-list");
+	body = symbol_get(*locals, "body");
+
+	func = GC_MALLOC(sizeof(datum));
+	func->type = TYPE_FUNC;
+	func->value.func.lambda_list = lambda_list;
+	func->value.func.body = body;
+	return func;	
+}
+
 datum *gh_eval(datum *expr) {
 	char  *symbol;
 	datum *value;
@@ -291,6 +308,9 @@ void print_datum(datum *expr) {
 			break;
 		case TYPE_CFUNC:
 			printf("<c_function>");
+			break;
+		case TYPE_FUNC:
+			printf("<function>");
 			break;
 		case TYPE_CONS:
 			iterator = expr;
@@ -598,6 +618,7 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "*", gh_cfunc(&gh_mul, cons(&GH_NIL_VALUE, gh_symbol("args"))));
 	symbol_set(&globals, "/", gh_cfunc(&gh_div, cons(gh_symbol("first"), gh_symbol("rest"))));
 	symbol_set(&globals, "^", gh_cfunc(&gh_pow, cons(gh_symbol("a"), cons(gh_symbol("b"), &GH_NIL_VALUE))));
+	symbol_set(&globals, "lambda", gh_cform(&gh_lambda, cons(gh_symbol("lambda-list"), gh_symbol("body"))));
 	prompt();
 	yyparse();
 	return 0;
