@@ -40,6 +40,14 @@ datum *reverse(datum *lst);
 
 datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *list);
 
+datum *map(datum *(*func)(datum *x), datum *lst);
+
+datum *zip(datum *lst1, datum *lst2);
+
+datum *car(datum *pair);
+
+datum *cdr(datum *pair);
+
 datum *add2(datum *a, datum *b);
 
 datum *sub2(datum *a, datum *b);
@@ -65,9 +73,12 @@ datum *gh_cons(datum **locals);
 datum *gh_car(datum **locals);
 
 datum *gh_cdr(datum **locals);
+
 datum *gh_reverse(datum **locals);
 
 datum *gh_list(datum **locals);
+
+datum *gh_equal(datum **locals);
 
 datum *gh_add(datum **locals);
 
@@ -82,6 +93,10 @@ datum *gh_pow(datum **locals);
 datum *gh_lambda(datum **locals);
 
 datum *gh_cond(datum **locals);
+
+datum *gh_loop(datum **locals);
+
+datum *gh_recur(datum **locals);
 
 datum *globals = &GH_NIL_VALUE;
 datum *locals = &GH_NIL_VALUE;
@@ -108,6 +123,20 @@ datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *lst) {
 	gh_assert(iterator->type == TYPE_NIL, "Not a proper list");
 
 	return result;
+}
+
+datum *map(datum *(*func)(datum *x), datum *lst) {
+	datum *new_lst = &GH_NIL_VALUE;
+	datum *iterator;
+
+	iterator = lst;
+
+	while (iterator->type != TYPE_NIL) {
+		new_lst = cons(func(iterator->value.cons.car), new_lst);
+		iterator = iterator->value.cons.cdr;
+	}
+
+	return reverse(new_lst);
 }
 
 datum *combine(datum *lst1, datum *lst2) {
@@ -245,6 +274,14 @@ datum *cons(datum *car, datum *cdr) {
 	return c;
 }
 
+datum *car(datum *pair) {
+	return pair->value.cons.car;
+}
+
+datum *cdr(datum *pair) {
+	return pair->value.cons.cdr;
+}
+
 int gh_assert(int cond, char *mesg) {
 	if ( ! cond ) {
 		fprintf(stderr, "ERROR: %s\n", mesg);
@@ -284,6 +321,89 @@ datum *gh_cond(datum **locals) {
 		iterator = iterator->value.cons.cdr;
 	}
 	return &GH_NIL_VALUE;
+}
+
+datum *translate_binding(datum *let_binding) {
+	datum *iterator;
+	datum *first;
+	datum *second;
+
+	iterator = let_binding;
+	first = iterator->value.cons.car;
+	iterator = iterator->value.cons.cdr;
+	second = iterator->value.cons.car;
+
+	return cons(first, second);
+}
+
+datum *zip(datum *lst1, datum *lst2) {
+	datum *iterator1;
+	datum *iterator2;
+	datum *result;
+
+	iterator1 = lst1;
+	iterator2 = lst2;
+	result = &GH_NIL_VALUE;
+
+	while (iterator1->type != TYPE_NIL && iterator2->type != TYPE_NIL) {
+		datum *val1;
+		datum *val2;
+
+		val1 = iterator1->value.cons.car;
+		val2 = iterator2->value.cons.car;
+
+		result = cons(cons(val1, val2), result);
+
+		iterator1 = lst1->value.cons.cdr;
+		iterator2 = lst2->value.cons.cdr;
+	}
+
+	return result;
+}
+
+datum *gh_loop(datum **locals) {
+	datum *bindings;
+	datum *body;
+	datum *iterator;
+	datum *new_locals;
+	datum *result;
+	datum *translated_bindings;
+
+	bindings = var_get(*locals, "bindings");
+	body = var_get(*locals, "body");
+
+	translated_bindings = map(&translate_binding, bindings);
+	new_locals = combine(translated_bindings, *locals);
+
+	result = &GH_NIL_VALUE;
+
+	iterator = body;
+	while (iterator->type != TYPE_NIL) {
+		result = eval(iterator->value.cons.car, &new_locals);
+		if (result->type == TYPE_RECUR) {
+			datum *recur_bindings;
+
+			recur_bindings = zip(map(&car, translated_bindings), result->value.recur.bindings);
+			new_locals = combine(recur_bindings, *locals);
+			iterator = body;
+			continue;
+		}
+		iterator = iterator->value.cons.cdr;
+	}
+
+	return result;
+}
+
+datum *gh_recur(datum **locals) {
+	datum *bindings;
+	datum *rec;
+
+	bindings = var_get(*locals, "bindings");
+	rec = new_datum();
+	rec->type = TYPE_RECUR;
+	rec->value.recur.bindings = bindings;
+
+	return rec;
 }
 
 datum *eval(datum *expr, datum **locals) {
@@ -523,6 +643,26 @@ datum *gh_reverse(datum **locals) {
 	return reverse(lst);
 }
 
+datum *gh_equal(datum **locals) {
+	datum *a;
+	datum *b;
+	int result;
+
+	a = var_get(*locals, "a");
+	b = var_get(*locals, "b");
+
+	if ((a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL) &&
+		(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL)) {
+		result = (float)(a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal) ==
+					(float)(b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal);
+	}
+
+	if (result == TRUE)
+		return &GH_TRUE_VALUE;
+	else
+		return &GH_NIL_VALUE;
+}
+
 datum *gh_add(datum **locals) {
 	datum *args;
 
@@ -670,6 +810,7 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "cdr", gh_cfunc(&gh_cdr, cons(gh_symbol("pair"), &GH_NIL_VALUE)));
 	symbol_set(&globals, "reverse", gh_cfunc(&gh_reverse, cons(gh_symbol("lst"), &GH_NIL_VALUE)));
 	symbol_set(&globals, "list", gh_cfunc(&gh_list, cons(&GH_NIL_VALUE, gh_symbol("args"))));
+	symbol_set(&globals, "=", gh_cfunc(&gh_equal, cons(gh_symbol("a"), cons(gh_symbol("b"), &GH_NIL_VALUE))));
 	symbol_set(&globals, "+", gh_cfunc(&gh_add, cons(&GH_NIL_VALUE, gh_symbol("args"))));
 	symbol_set(&globals, "-", gh_cfunc(&gh_sub, cons(gh_symbol("first"), gh_symbol("rest"))));
 	symbol_set(&globals, "*", gh_cfunc(&gh_mul, cons(&GH_NIL_VALUE, gh_symbol("args"))));

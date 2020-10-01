@@ -14,6 +14,7 @@
 #define TYPE_CFORM   7
 #define TYPE_CFUNC   8
 #define TYPE_FUNC    9
+#define TYPE_RECUR   10
 
 typedef struct datum {
 	int type;
@@ -33,6 +34,9 @@ typedef struct datum {
 			struct datum *lambda_list;
 			struct datum *body;
 		} func;
+		struct {
+			struct datum *bindings;
+		} recur;
 		
 	} value;
 } datum;
