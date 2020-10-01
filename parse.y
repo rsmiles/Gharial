@@ -43,7 +43,7 @@ prog: terms;
 
 terms: term terms| /* empty */ ;
 
-term: expr { if (depth == 0) { gh_print(gh_eval($$)); prompt(); } };
+term: expr { if (depth == 0) { gh_print(eval($$, &locals)); prompt(); } };
 
 expr: atom
 	| list

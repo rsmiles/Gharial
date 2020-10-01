@@ -39,6 +39,7 @@ typedef struct datum {
 
 extern datum GH_NIL_VALUE;
 extern datum GH_TRUE_VALUE;
+extern datum *locals;
 
 datum *gh_integer(int value);
 
@@ -54,7 +55,7 @@ datum *cons(datum *car, datum *cdr);
 
 int gh_assert(int cond, char *mesg);
 
-datum *gh_eval(datum *expr);
+datum *eval(datum *expr, datum **locals);
 
 void gh_print(datum *expr);
 

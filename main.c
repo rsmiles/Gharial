@@ -30,7 +30,11 @@ datum *symbol_get(datum *table, char *symbol);
 void  symbol_set(datum **table, char *symbol, datum *value);
 void  symbol_unset(datum **table, char *symbol);
 
-datum *eval_arglist(datum *args);
+datum *combine(datum *lst1, datum *lst2);
+
+datum *var_get(datum *locals, char *symbol);
+
+datum *eval_arglist(datum *args, datum **locals);
 
 datum *reverse(datum *lst);
 
@@ -46,9 +50,9 @@ datum *div2(datum *a, datum *b);
 
 datum *dpow(datum *a, datum *b);
 
-datum *do_unquotes(datum *expr);
+datum *do_unquotes(datum *expr, datum **locals);
 
-datum *eval_form(datum* func, datum *args);
+datum *eval_form(datum* func, datum *args, datum **locals);
 
 datum *gh_set(datum **locals);
 
@@ -61,7 +65,6 @@ datum *gh_cons(datum **locals);
 datum *gh_car(datum **locals);
 
 datum *gh_cdr(datum **locals);
-
 datum *gh_reverse(datum **locals);
 
 datum *gh_list(datum **locals);
@@ -79,7 +82,7 @@ datum *gh_pow(datum **locals);
 datum *gh_lambda(datum **locals);
 
 datum *globals = &GH_NIL_VALUE;
-
+datum *locals = &GH_NIL_VALUE;
 datum *new_datum() {
 	datum *d = GC_MALLOC(sizeof(datum));
 	gh_assert(d != NULL, "Out of memory!");
@@ -96,13 +99,17 @@ datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *lst) {
 	result = init;
 
 	while (iterator->type == TYPE_CONS) {
-		result = func(result, iterator->value.cons.car);
+		result = func(iterator->value.cons.car, result);
 		iterator = iterator->value.cons.cdr;
 	}
 
 	gh_assert(iterator->type == TYPE_NIL, "Not a proper list");
 
 	return result;
+}
+
+datum *combine(datum *lst1, datum *lst2) {
+	return fold(&cons, lst2, lst1);
 }
 
 datum *add2(datum *a, datum *b) {
@@ -225,9 +232,8 @@ datum *gh_symbol(char* value) {
 }
 
 datum *gh_list(datum **locals){
-	return symbol_get(*locals, "args");
+	return var_get(*locals, "args");
 }
-
 datum *cons(datum *car, datum *cdr) {
 	datum *c;
 	c = new_datum();
@@ -251,8 +257,8 @@ datum *gh_lambda(datum **locals) {
 	datum *body;
 	datum *func;
 
-	lambda_list = symbol_get(*locals, "lambda-list");
-	body = symbol_get(*locals, "body");
+	lambda_list = var_get(*locals, "lambda-list");
+	body = var_get(*locals, "body");
 
 	func = GC_MALLOC(sizeof(datum));
 	func->type = TYPE_FUNC;
@@ -261,20 +267,20 @@ datum *gh_lambda(datum **locals) {
 	return func;	
 }
 
-datum *gh_eval(datum *expr) {
+datum *eval(datum *expr, datum **locals) {
 	char  *symbol;
 	datum *value;
 
 	switch (expr->type) {
 		case TYPE_CONS:
-			gh_assert(expr->value.cons.car->type == TYPE_SYMBOL, "Not a function");
-			symbol = expr->value.cons.car->value.string;
-			value = symbol_get(globals, symbol);
-			return eval_form(value, expr->value.cons.cdr);
+			value = eval(expr->value.cons.car, locals);
+
+			gh_assert(value->type == TYPE_FUNC || value->type == TYPE_CFUNC || value->type == TYPE_CFORM, "Not a function, macro, or special form");
+			return eval_form(value, expr->value.cons.cdr, locals);
 			break;
 		case TYPE_SYMBOL:
 			symbol = expr->value.string;
-			value = symbol_get(globals, symbol);
+			value = var_get(*locals, symbol);
 			gh_assert(value != NULL, "Undefined variable");
 			return value;
 		default:
@@ -345,7 +351,7 @@ datum *symbol_loc(datum *table, char *symbol) {
 	datum *iterator;
 
 	iterator = table;
-	while (iterator->type != TYPE_NIL) {
+	while (iterator->type == TYPE_CONS) {
 		datum *current;
 
 		current = iterator->value.cons.car;
@@ -359,8 +365,21 @@ datum *symbol_loc(datum *table, char *symbol) {
 datum *symbol_get(datum *table, char *symbol) {
 	datum *loc;
 	loc = symbol_loc(table, symbol);
-	gh_assert(loc != NULL, "Unbound variable");
-	return loc->value.cons.cdr;
+	if (loc == NULL)
+		return NULL;
+	else
+		return loc->value.cons.cdr;
+}
+
+datum *var_get(datum *locals, char *symbol) {
+	datum *var;
+
+	var = symbol_get(locals, symbol);
+	if (var == NULL) {
+		var = symbol_get(globals, symbol);
+		gh_assert(var != NULL, "Unbound variable");
+	}
+	return var;
 }
 
 void symbol_set(datum **table, char *symbol, datum *value) {
@@ -391,7 +410,7 @@ void symbol_unset(datum **table, char *symbol) {
 	}
 }
 
-datum *do_unquotes(datum *expr) {
+datum *do_unquotes(datum *expr, datum **locals) {
 	datum *iterator;
 	datum *current;
 
@@ -401,9 +420,9 @@ datum *do_unquotes(datum *expr) {
 		current = iterator->value.cons.car;
 		if (current->type == TYPE_SYMBOL) {
 			if (strcmp(current->value.string, "unquote") == 0)
-				return gh_eval(iterator);
+				return eval(iterator, locals);
 		} else if (current->type == TYPE_CONS) {
-			iterator->value.cons.car = do_unquotes(iterator->value.cons.car);
+			iterator->value.cons.car = do_unquotes(iterator->value.cons.car, locals);
 		}
 		iterator = iterator->value.cons.cdr;
 	}
@@ -429,8 +448,8 @@ datum *gh_set(datum **locals) {
 	datum *symbol;
 	datum *value;
 
-	symbol = symbol_get(*locals, "symbol");
-	value = gh_eval(symbol_get(*locals, "value"));
+	symbol = var_get(*locals, "symbol");
+	value = eval(var_get(*locals, "value"), locals);
 
 	symbol_set(&globals, symbol->value.string, value);
 	return symbol;
@@ -439,30 +458,30 @@ datum *gh_set(datum **locals) {
 datum *gh_quote(datum **locals) {
 	datum *expr;
 
-	expr = symbol_get(*locals, "expr");
-	return do_unquotes(expr);
+	expr = var_get(*locals, "expr");
+	return do_unquotes(expr, locals);
 }
 
 datum *gh_unquote(datum **locals) {
 	datum *expr;
 
-	expr = symbol_get(*locals, "expr");
-	return gh_eval(expr);
+	expr = var_get(*locals, "expr");
+	return eval(expr, locals);
 }
 
 datum *gh_cons(datum **locals) {
 	datum *car;
 	datum *cdr;
 
-	car = symbol_get(*locals, "car");
-	cdr = symbol_get(*locals, "cdr");
+	car = var_get(*locals, "car");
+	cdr = var_get(*locals, "cdr");
 	return cons(car, cdr);
 }
 
 datum *gh_car(datum **locals) {
 	datum *pair;
 
-	pair = symbol_get(*locals, "pair");
+	pair = var_get(*locals, "pair");
 	gh_assert(pair->type == TYPE_CONS, "Not a pair or list");
 
 	return pair->value.cons.car;
@@ -471,7 +490,7 @@ datum *gh_car(datum **locals) {
 datum *gh_cdr(datum **locals) {
 	datum *pair;
 
-	pair = symbol_get(*locals, "pair");
+	pair = var_get(*locals, "pair");
 	gh_assert(pair->type == TYPE_CONS, "Not a pair or list");
 
 	return pair->value.cons.cdr;
@@ -480,7 +499,7 @@ datum *gh_cdr(datum **locals) {
 datum *gh_reverse(datum **locals) {
 	datum *lst;
 
-	lst = symbol_get(*locals, "lst");
+	lst = var_get(*locals, "lst");
 
 	return reverse(lst);
 }
@@ -488,7 +507,7 @@ datum *gh_reverse(datum **locals) {
 datum *gh_add(datum **locals) {
 	datum *args;
 
-	args = symbol_get(*locals, "args");
+	args = var_get(*locals, "args");
 
 	return fold(&add2, gh_integer(0), args);
 }
@@ -497,8 +516,8 @@ datum *gh_sub(datum **locals) {
 	datum *first;
 	datum *rest;
 
-	first = symbol_get(*locals, "first");
-	rest = symbol_get(*locals, "rest");
+	first = var_get(*locals, "first");
+	rest = var_get(*locals, "rest");
 
 	return fold(&sub2, first, rest);
 }
@@ -506,7 +525,7 @@ datum *gh_sub(datum **locals) {
 datum *gh_mul(datum **locals) {
 	datum *args;
 
-	args = symbol_get(*locals, "args");
+	args = var_get(*locals, "args");
 
 	return fold(&mul2, gh_integer(1), args);
 }
@@ -515,8 +534,8 @@ datum *gh_div(datum **locals) {
 	datum *first;
 	datum *rest;
 
-	first = symbol_get(*locals, "first");
-	rest = symbol_get(*locals, "rest");
+	first = var_get(*locals, "first");
+	rest = var_get(*locals, "rest");
 
 	return fold(&div2, first, rest);
 }
@@ -525,8 +544,8 @@ datum *gh_pow(datum **locals) {
 	datum *a;
 	datum *b;
 
-	a = symbol_get(*locals, "a");
-	b = symbol_get(*locals, "b");
+	a = var_get(*locals, "a");
+	b = var_get(*locals, "b");
 
 	return(dpow(a, b));
 }
@@ -547,26 +566,29 @@ datum *gh_cform(datum *(*addr)(datum **), datum *args) {
 	return cf;
 }
 
-datum *eval_arglist(datum *args) {
+datum *eval_arglist(datum *args, datum **locals) {
 	datum *iterator;
 
 	iterator = args;
 	while (iterator->type != TYPE_NIL) {
-		iterator->value.cons.car = gh_eval(iterator->value.cons.car);
+		iterator->value.cons.car = eval(iterator->value.cons.car, locals);
 		iterator = iterator->value.cons.cdr;
 	}
 	return args;
 }
 
-datum *eval_form(datum *form, datum *args) {
+datum *eval_form(datum *form, datum *args, datum **locals) {
 	datum *arglist;
 	datum *sym_iterator;
 	datum *args_iterator;
 
-	gh_assert(form->type == TYPE_CFUNC || form->type == TYPE_CFORM, "Not a function, macro or special form");
+	gh_assert(form->type == TYPE_CFUNC || form->type == TYPE_CFORM || form->type == TYPE_FUNC, "Not a function, macro or special form");
 
 	arglist = &GH_NIL_VALUE;
-	sym_iterator = form->value.c_code.lambda_list;
+	if (form->type == TYPE_CFUNC || form->type == TYPE_CFORM)
+		sym_iterator = form->value.c_code.lambda_list;
+	else
+		sym_iterator = form->value.func.lambda_list;
 	args_iterator = args;
 
 	while (sym_iterator->type == TYPE_CONS && args_iterator->type == TYPE_CONS) {
@@ -581,7 +603,7 @@ datum *eval_form(datum *form, datum *args) {
 			if (form->type == TYPE_CFORM)
 				symbol_set(&arglist, current_sym->value.string, current_arg);
 			else
-				symbol_set(&arglist, current_sym->value.string, gh_eval(current_arg));
+				symbol_set(&arglist, current_sym->value.string, eval(current_arg, locals));
 			
 			args_iterator = args_iterator->value.cons.cdr;
 		}
@@ -591,11 +613,27 @@ datum *eval_form(datum *form, datum *args) {
 	if (sym_iterator->type != TYPE_NIL) {
 		if (form->type == TYPE_CFORM)
 			symbol_set(&arglist, sym_iterator->value.string, args_iterator);
-		 else 
-			symbol_set(&arglist, sym_iterator->value.string, eval_arglist(args_iterator));
+		else
+			symbol_set(&arglist, sym_iterator->value.string, eval_arglist(args_iterator, locals));
 	}
 
-	return form->value.c_code.func(&arglist);
+	if (form->type == TYPE_CFUNC || form->type == TYPE_CFORM)
+		return form->value.c_code.func(&arglist);
+	else {
+		datum *iterator;
+		datum *new_locals;
+		datum *result;
+
+		new_locals = combine(arglist, *locals);
+		iterator = form->value.func.body;
+
+		while (iterator->type == TYPE_CONS) {
+			result = eval(iterator->value.cons.car, &new_locals);
+			iterator = iterator->value.cons.cdr;
+		}
+
+		return result;
+	}
 }
 
 void prompt() {
