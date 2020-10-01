@@ -81,6 +81,8 @@ datum *gh_pow(datum **locals);
 
 datum *gh_lambda(datum **locals);
 
+datum *gh_cond(datum **locals);
+
 datum *globals = &GH_NIL_VALUE;
 datum *locals = &GH_NIL_VALUE;
 datum *new_datum() {
@@ -265,6 +267,23 @@ datum *gh_lambda(datum **locals) {
 	func->value.func.lambda_list = lambda_list;
 	func->value.func.body = body;
 	return func;	
+}
+
+datum *gh_cond(datum **locals) {
+	datum *iterator;
+
+	iterator = var_get(*locals, "conditions");
+
+	while (iterator->type != TYPE_NIL) {
+		datum *current_cond;
+
+		current_cond = iterator->value.cons.car;
+		if (eval(current_cond->value.cons.car, locals)->type != TYPE_NIL)
+			return eval(current_cond->value.cons.cdr->value.cons.car, locals);
+
+		iterator = iterator->value.cons.cdr;
+	}
+	return &GH_NIL_VALUE;
 }
 
 datum *eval(datum *expr, datum **locals) {
@@ -657,6 +676,7 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "/", gh_cfunc(&gh_div, cons(gh_symbol("first"), gh_symbol("rest"))));
 	symbol_set(&globals, "^", gh_cfunc(&gh_pow, cons(gh_symbol("a"), cons(gh_symbol("b"), &GH_NIL_VALUE))));
 	symbol_set(&globals, "lambda", gh_cform(&gh_lambda, cons(gh_symbol("lambda-list"), gh_symbol("body"))));
+	symbol_set(&globals, "cond", gh_cform(&gh_cond, cons(&GH_NIL_VALUE, gh_symbol("conditions"))));
 	prompt();
 	yyparse();
 	return 0;
