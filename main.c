@@ -729,13 +729,15 @@ datum *gh_cform(datum *(*addr)(datum **), datum *args) {
 
 datum *eval_arglist(datum *args, datum **locals) {
 	datum *iterator;
+	datum *argscopy;
 
-	iterator = args;
+	argscopy = reverse(reverse(args));	
+	iterator = argscopy;
 	while (iterator->type != TYPE_NIL) {
 		iterator->value.cons.car = eval(iterator->value.cons.car, locals);
 		iterator = iterator->value.cons.cdr;
 	}
-	return args;
+	return argscopy;
 }
 
 datum *eval_form(datum *form, datum *args, datum **locals) {
