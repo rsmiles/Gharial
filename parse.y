@@ -26,6 +26,10 @@ extern char* yytext;
 %token <integer>   TOK_INTEGER
 %token <character> TOK_OPENPAREN
 %token <character> TOK_CLOSEPAREN
+%token <character> TOK_OPENSQUARE
+%token <character> TOK_CLOSESQUARE
+%token <character> TOK_OPENCURLY
+%token <character> TOK_CLOSECURLY
 %token <character> TOK_DOT
 %token <character> TOK_QUOTE
 %token <character> TOK_UNQUOTE
@@ -58,9 +62,15 @@ atom: TOK_NIL         { $$ = &GH_NIL_VALUE; }
 	| TOK_STRING      { $$ = gh_substring(1, strlen(yytext) - 2, yytext); }
 	| TOK_SYMBOL      { $$ = gh_symbol(yytext); };
 
-list: TOK_OPENPAREN TOK_CLOSEPAREN { $$ = &GH_NIL_VALUE; }
-	| TOK_OPENPAREN dotted_body TOK_CLOSEPAREN { $$ = $2; }
-	| TOK_OPENPAREN list_body TOK_CLOSEPAREN { $$ = $2; };
+list: TOK_OPENPAREN TOK_CLOSEPAREN               { $$ = &GH_NIL_VALUE; }
+	| TOK_OPENPAREN dotted_body TOK_CLOSEPAREN   { $$ = $2; }
+	| TOK_OPENPAREN list_body TOK_CLOSEPAREN     { $$ = $2; }
+    | TOK_OPENSQUARE TOK_CLOSESQUARE             { $$ = &GH_NIL_VALUE; }
+	| TOK_OPENSQUARE dotted_body TOK_CLOSESQUARE { $$ = $2; }
+	| TOK_OPENSQUARE list_body TOK_CLOSESQUARE   { $$ = $2; }
+    | TOK_OPENCURLY TOK_CLOSECURLY              { $$ = &GH_NIL_VALUE; }
+	| TOK_OPENCURLY dotted_body TOK_CLOSECURLY   { $$ = $2; }
+	| TOK_OPENCURLY list_body TOK_CLOSECURLY     { $$ = $2; };
 
 dotted_body: expr TOK_DOT expr { $$ = cons($1, $3); }
 		   | expr dotted_body { $$ = cons($1, $2); };

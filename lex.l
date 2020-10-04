@@ -27,6 +27,10 @@ SPECIAL    [\+\-\*\/\^=]
 "\"\""                { return TOK_EMPTYSTRING; }
 "("                   { depth++; return TOK_OPENPAREN; }
 ")"                   { if (depth > 0 ) depth--; return TOK_CLOSEPAREN; }
+"["                   { depth++; return TOK_OPENSQUARE; }
+"]"                   { if (depth > 0 ) depth--; return TOK_CLOSESQUARE; }
+"{"                   { depth++; return TOK_OPENCURLY; }
+"}"                   { if (depth > 0 ) depth--; return TOK_CLOSECURLY; }
 "."                   { return TOK_DOT; }
 ({LETTER}|{SPECIAL})+ { return TOK_SYMBOL; }
 
