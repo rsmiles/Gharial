@@ -62,6 +62,8 @@ datum *do_unquotes(datum *expr, datum **locals);
 
 datum *eval_form(datum* func, datum *args, datum **locals);
 
+void gh_print(datum *expr);
+
 datum *gh_set(datum **locals);
 
 datum *gh_quote(datum **locals);
@@ -401,7 +403,7 @@ datum *gh_recur(datum **locals) {
 	bindings = var_get(*locals, "bindings");
 	rec = new_datum();
 	rec->type = TYPE_RECUR;
-	rec->value.recur.bindings = bindings;
+	rec->value.recur.bindings = eval_arglist(bindings, locals);
 
 	return rec;
 }
@@ -776,9 +778,11 @@ datum *eval_form(datum *form, datum *args, datum **locals) {
 			symbol_set(&arglist, sym_iterator->value.string, eval_arglist(args_iterator, locals));
 	}
 
-	if (form->type == TYPE_CFUNC || form->type == TYPE_CFORM)
-		return form->value.c_code.func(&arglist);
-	else {
+	if (form->type == TYPE_CFUNC || form->type == TYPE_CFORM) {
+		datum *new_locals;
+		new_locals = combine(arglist, *locals);
+		return form->value.c_code.func(&new_locals);
+	} else {
 		datum *iterator;
 		datum *new_locals;
 		datum *result;
@@ -818,6 +822,8 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "^", gh_cfunc(&gh_pow, cons(gh_symbol("a"), cons(gh_symbol("b"), &GH_NIL_VALUE))));
 	symbol_set(&globals, "lambda", gh_cform(&gh_lambda, cons(gh_symbol("lambda-list"), gh_symbol("body"))));
 	symbol_set(&globals, "cond", gh_cform(&gh_cond, cons(&GH_NIL_VALUE, gh_symbol("conditions"))));
+	symbol_set(&globals, "loop", gh_cform(&gh_loop, cons(gh_symbol("bindings"), gh_symbol("body"))));
+	symbol_set(&globals, "recur", gh_cform(&gh_recur, cons(&GH_NIL_VALUE, gh_symbol("bindings"))));
 	prompt();
 	yyparse();
 	return 0;
