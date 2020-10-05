@@ -15,8 +15,7 @@
 
 #include "y.tab.h"
 
-datum GH_NIL_VALUE = { TYPE_NIL, { 0 } };
-datum GH_TRUE_VALUE = { TYPE_TRUE, { 0 } };
+datum GH_NIL_VALUE = { TYPE_NIL, { 0 } }; datum GH_TRUE_VALUE = { TYPE_TRUE, { 0 } };
 
 datum *new_datum();
 
@@ -99,6 +98,8 @@ datum *gh_cond(datum **locals);
 datum *gh_loop(datum **locals);
 
 datum *gh_recur(datum **locals);
+
+datum *gh_let(datum **locals);
 
 datum *globals = &GH_NIL_VALUE;
 datum *locals = &GH_NIL_VALUE;
@@ -406,6 +407,32 @@ datum *gh_recur(datum **locals) {
 	rec->value.recur.bindings = eval_arglist(bindings, locals);
 
 	return rec;
+}
+
+datum *gh_let(datum **locals) {
+	datum *bindings;
+	datum *body;
+	datum *iterator;
+	datum *new_locals;
+	datum *result;
+	datum *translated_bindings;
+
+	bindings = var_get(*locals, "bindings");
+	body = var_get(*locals, "body");
+
+	translated_bindings = map(&translate_binding, bindings);
+	new_locals = combine(translated_bindings, *locals);
+
+	result = &GH_NIL_VALUE;
+
+	iterator = body;
+	while (iterator->type != TYPE_NIL) {
+		result = eval(iterator->value.cons.car, &new_locals);
+		iterator = iterator->value.cons.cdr;
+	}
+
+	return result;
+
 }
 
 datum *eval(datum *expr, datum **locals) {
@@ -826,6 +853,7 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "cond", gh_cform(&gh_cond, cons(&GH_NIL_VALUE, gh_symbol("conditions"))));
 	symbol_set(&globals, "loop", gh_cform(&gh_loop, cons(gh_symbol("bindings"), gh_symbol("body"))));
 	symbol_set(&globals, "recur", gh_cform(&gh_recur, cons(&GH_NIL_VALUE, gh_symbol("bindings"))));
+	symbol_set(&globals, "let", gh_cform(&gh_let, cons(gh_symbol("bindings"), gh_symbol("body"))));
 	prompt();
 	yyparse();
 	return 0;
