@@ -14,7 +14,8 @@
 #define TYPE_CFORM   7
 #define TYPE_CFUNC   8
 #define TYPE_FUNC    9
-#define TYPE_RECUR   10
+#define TYPE_MACRO   10
+#define TYPE_RECUR   11
 
 typedef struct datum {
 	int type;

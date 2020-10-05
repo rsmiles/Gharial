@@ -93,6 +93,8 @@ datum *gh_pow(datum **locals);
 
 datum *gh_lambda(datum **locals);
 
+datum *gh_macro(datum **locals);
+
 datum *gh_cond(datum **locals);
 
 datum *gh_loop(datum **locals);
@@ -325,6 +327,32 @@ datum *gh_lambda(datum **locals) {
 	return func;	
 }
 
+datum *gh_macro(datum **locals) {
+	datum *lambda_list;
+	datum *body;
+	datum *mac;
+	datum *iterator;
+
+	lambda_list = var_get(*locals, "#lambda-list");
+	body = var_get(*locals, "#body");
+
+	iterator = lambda_list;
+
+	while (iterator->type == TYPE_CONS) {
+		gh_assert(iterator->value.cons.car->type == TYPE_SYMBOL, "Non-symbol in lambda list");
+		iterator = iterator->value.cons.cdr;
+	}
+
+	gh_assert(iterator->type == TYPE_NIL || iterator->type == TYPE_SYMBOL, "Non-symbol in lambda list");
+
+	mac = new_datum(sizeof(datum));
+	mac->type = TYPE_MACRO;
+	mac->value.func.lambda_list = lambda_list;
+	mac->value.func.body = body;
+	mac->value.func.closure = locals;
+	return mac;	
+}
+
 datum *gh_cond(datum **locals) {
 	datum *iterator;
 
@@ -502,6 +530,11 @@ void print_datum(datum *expr) {
 		case TYPE_FUNC:
 			printf("<function>");
 			break;
+		case TYPE_MACRO:
+			printf("<macro>");
+			break;
+		case TYPE_RECUR:
+			printf("<recur_object>");
 		case TYPE_CONS:
 			iterator = expr;
 	
