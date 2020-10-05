@@ -234,8 +234,7 @@ datum *gh_integer(int value) {
 	return i;
 }
 
-datum *gh_decimal(double value) {
-	datum *d;
+datum *gh_decimal(double value) { datum *d;
 	d = new_datum();
 	d->type = TYPE_DECIMAL;
 	d->value.decimal = value;
@@ -323,7 +322,6 @@ datum *gh_lambda(datum **locals) {
 	func->type = TYPE_FUNC;
 	func->value.func.lambda_list = lambda_list;
 	func->value.func.body = body;
-	func->value.func.closure = locals;
 	return func;	
 }
 
@@ -349,7 +347,6 @@ datum *gh_macro(datum **locals) {
 	mac->type = TYPE_MACRO;
 	mac->value.func.lambda_list = lambda_list;
 	mac->value.func.body = body;
-	mac->value.func.closure = locals;
 	return mac;	
 }
 
@@ -875,14 +872,15 @@ datum *eval_form(datum *form, datum *args, datum **locals) {
 
 		case TYPE_FUNC:
 		case TYPE_MACRO:
-			new_locals = combine(arglist, combine(*locals, *form->value.func.closure));
-			iterator = form->value.func.body;
+			new_locals = combine(arglist, *locals);
 
+			iterator = form->value.func.body;
 			while (iterator->type == TYPE_CONS) {
 				result = eval(iterator->value.cons.car, &new_locals);
 				iterator = iterator->value.cons.cdr;
 			}
 			break;
+
 		default:
 			gh_assert(TRUE, "Unkown form type");
 	}
