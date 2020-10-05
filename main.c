@@ -165,8 +165,8 @@ datum *add2(datum *a, datum *b) {
 	if (result_type == TYPE_INTEGER)
 		return gh_integer(a->value.integer + b->value.integer);
 	else {
-		return gh_decimal((a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal) +
-							(b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal));
+		return gh_decimal((b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal) +
+							(a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal));
 	}
 }
 
@@ -182,10 +182,10 @@ datum *sub2(datum *a, datum *b) {
 		result_type = TYPE_INTEGER;
 
 	if (result_type == TYPE_INTEGER)
-		return gh_integer(a->value.integer - b->value.integer);
+		return gh_integer(b->value.integer - a->value.integer);
 	else {
-		return gh_decimal((a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal) -
-							(b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal));
+		return gh_decimal((b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal) -
+							(a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal));
 	}
 
 }
@@ -204,8 +204,8 @@ datum *mul2(datum *a, datum *b) {
 	if (result_type == TYPE_INTEGER)
 		return gh_integer(a->value.integer * b->value.integer);
 	else {
-		return gh_decimal((a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal) *
-							(b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal));
+		return gh_decimal((b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal) *
+							(a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal));
 	}
 }
 
@@ -213,8 +213,8 @@ datum *div2(datum *a, datum *b) {
 	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "Not a number");
 	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "Not a number");
 
-	return gh_decimal((a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal) /
-						(b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal));
+	return gh_decimal((b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal) /
+						(a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal));
 }
 
 datum *dpow(datum *a, datum *b) {
