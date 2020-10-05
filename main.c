@@ -298,11 +298,20 @@ datum *gh_lambda(datum **locals) {
 	datum *lambda_list;
 	datum *body;
 	datum *func;
+	datum *iterator;
 
 	lambda_list = var_get(*locals, "lambda-list");
 	body = var_get(*locals, "body");
 
-	func = GC_MALLOC(sizeof(datum));
+	iterator = lambda_list;
+
+	while (iterator->type == TYPE_CONS) {
+		gh_assert(iterator->value.cons.car->type == TYPE_SYMBOL, "Non-symbol in lambda list");
+	}
+
+	gh_assert(iterator->type == TYPE_NIL || iterator->type == TYPE_SYMBOL, "Non-symbol in lambda list");
+
+	func = new_datum(sizeof(datum));
 	func->type = TYPE_FUNC;
 	func->value.func.lambda_list = lambda_list;
 	func->value.func.body = body;
