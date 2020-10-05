@@ -33,6 +33,7 @@ typedef struct datum {
 		struct {
 			struct datum *lambda_list;
 			struct datum *body;
+			struct datum **closure;
 		} func;
 		struct {
 			struct datum *bindings;

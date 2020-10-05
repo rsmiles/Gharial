@@ -143,7 +143,12 @@ datum *map(datum *(*func)(datum *x), datum *lst) {
 }
 
 datum *combine(datum *lst1, datum *lst2) {
-	return fold(&cons, lst2, lst1);
+	if (lst1->type == TYPE_NIL)
+		return lst2;
+	else if (lst2->type == TYPE_NIL)
+		return lst1;
+	else
+		return fold(&cons, lst2, lst1);
 }
 
 datum *add2(datum *a, datum *b) {
@@ -266,7 +271,7 @@ datum *gh_symbol(char* value) {
 }
 
 datum *gh_list(datum **locals){
-	return var_get(*locals, "args");
+	return var_get(*locals, "#args");
 }
 datum *cons(datum *car, datum *cdr) {
 	datum *c;
@@ -300,13 +305,14 @@ datum *gh_lambda(datum **locals) {
 	datum *func;
 	datum *iterator;
 
-	lambda_list = var_get(*locals, "lambda-list");
-	body = var_get(*locals, "body");
+	lambda_list = var_get(*locals, "#lambda-list");
+	body = var_get(*locals, "#body");
 
 	iterator = lambda_list;
 
 	while (iterator->type == TYPE_CONS) {
 		gh_assert(iterator->value.cons.car->type == TYPE_SYMBOL, "Non-symbol in lambda list");
+		iterator = iterator->value.cons.cdr;
 	}
 
 	gh_assert(iterator->type == TYPE_NIL || iterator->type == TYPE_SYMBOL, "Non-symbol in lambda list");
@@ -315,13 +321,14 @@ datum *gh_lambda(datum **locals) {
 	func->type = TYPE_FUNC;
 	func->value.func.lambda_list = lambda_list;
 	func->value.func.body = body;
+	func->value.func.closure = locals;
 	return func;	
 }
 
 datum *gh_cond(datum **locals) {
 	datum *iterator;
 
-	iterator = var_get(*locals, "conditions");
+	iterator = var_get(*locals, "#conditions");
 
 	while (iterator->type != TYPE_NIL) {
 		datum *current_cond;
@@ -381,8 +388,8 @@ datum *gh_loop(datum **locals) {
 	datum *result;
 	datum *translated_bindings;
 
-	bindings = var_get(*locals, "bindings");
-	body = var_get(*locals, "body");
+	bindings = var_get(*locals, "#bindings");
+	body = var_get(*locals, "#body");
 
 	translated_bindings = map(&translate_binding, bindings);
 	new_locals = combine(translated_bindings, *locals);
@@ -410,7 +417,7 @@ datum *gh_recur(datum **locals) {
 	datum *bindings;
 	datum *rec;
 
-	bindings = var_get(*locals, "bindings");
+	bindings = var_get(*locals, "#bindings");
 	rec = new_datum();
 	rec->type = TYPE_RECUR;
 	rec->value.recur.bindings = eval_arglist(bindings, locals);
@@ -426,8 +433,8 @@ datum *gh_let(datum **locals) {
 	datum *result;
 	datum *translated_bindings;
 
-	bindings = var_get(*locals, "bindings");
-	body = var_get(*locals, "body");
+	bindings = var_get(*locals, "#bindings");
+	body = var_get(*locals, "#body");
 
 	translated_bindings = map(&translate_binding, bindings);
 	new_locals = combine(translated_bindings, *locals);
@@ -624,25 +631,31 @@ datum *reverse(datum *lst) {
 datum *gh_set(datum **locals) {
 	datum *symbol;
 	datum *value;
+	datum *loc;
 
-	symbol = var_get(*locals, "symbol");
-	value = eval(var_get(*locals, "value"), locals);
+	symbol = var_get(*locals, "#symbol");
+	value = eval(var_get(*locals, "#value"), locals);
 
-	symbol_set(&globals, symbol->value.string, value);
+	loc = symbol_loc(*locals, symbol->value.string);
+	if (loc)
+		loc->value.cons.cdr = eval(value, locals);
+	else
+		symbol_set(&globals, symbol->value.string, value);
+
 	return symbol;
 }
 
 datum *gh_quote(datum **locals) {
 	datum *expr;
 
-	expr = var_get(*locals, "expr");
+	expr = var_get(*locals, "#expr");
 	return do_unquotes(expr, locals);
 }
 
 datum *gh_unquote(datum **locals) {
 	datum *expr;
 
-	expr = var_get(*locals, "expr");
+	expr = var_get(*locals, "#expr");
 	return eval(expr, locals);
 }
 
@@ -650,15 +663,15 @@ datum *gh_cons(datum **locals) {
 	datum *car;
 	datum *cdr;
 
-	car = var_get(*locals, "car");
-	cdr = var_get(*locals, "cdr");
+	car = var_get(*locals, "#car");
+	cdr = var_get(*locals, "#cdr");
 	return cons(car, cdr);
 }
 
 datum *gh_car(datum **locals) {
 	datum *pair;
 
-	pair = var_get(*locals, "pair");
+	pair = var_get(*locals, "#pair");
 	gh_assert(pair->type == TYPE_CONS, "Not a pair or list");
 
 	return pair->value.cons.car;
@@ -667,7 +680,7 @@ datum *gh_car(datum **locals) {
 datum *gh_cdr(datum **locals) {
 	datum *pair;
 
-	pair = var_get(*locals, "pair");
+	pair = var_get(*locals, "#pair");
 	gh_assert(pair->type == TYPE_CONS, "Not a pair or list");
 
 	return pair->value.cons.cdr;
@@ -676,7 +689,7 @@ datum *gh_cdr(datum **locals) {
 datum *gh_reverse(datum **locals) {
 	datum *lst;
 
-	lst = var_get(*locals, "lst");
+	lst = var_get(*locals, "#lst");
 
 	return reverse(lst);
 }
@@ -686,8 +699,8 @@ datum *gh_equal(datum **locals) {
 	datum *b;
 	int result;
 
-	a = var_get(*locals, "a");
-	b = var_get(*locals, "b");
+	a = var_get(*locals, "#a");
+	b = var_get(*locals, "#b");
 
 	if ((a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL) &&
 		(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL)) {
@@ -704,7 +717,7 @@ datum *gh_equal(datum **locals) {
 datum *gh_add(datum **locals) {
 	datum *args;
 
-	args = var_get(*locals, "args");
+	args = var_get(*locals, "#args");
 
 	return fold(&add2, gh_integer(0), args);
 }
@@ -713,8 +726,8 @@ datum *gh_sub(datum **locals) {
 	datum *first;
 	datum *rest;
 
-	first = var_get(*locals, "first");
-	rest = var_get(*locals, "rest");
+	first = var_get(*locals, "#first");
+	rest = var_get(*locals, "#rest");
 
 	return fold(&sub2, first, rest);
 }
@@ -722,7 +735,7 @@ datum *gh_sub(datum **locals) {
 datum *gh_mul(datum **locals) {
 	datum *args;
 
-	args = var_get(*locals, "args");
+	args = var_get(*locals, "#args");
 
 	return fold(&mul2, gh_integer(1), args);
 }
@@ -731,8 +744,8 @@ datum *gh_div(datum **locals) {
 	datum *first;
 	datum *rest;
 
-	first = var_get(*locals, "first");
-	rest = var_get(*locals, "rest");
+	first = var_get(*locals, "#first");
+	rest = var_get(*locals, "#rest");
 
 	return fold(&div2, first, rest);
 }
@@ -741,8 +754,8 @@ datum *gh_pow(datum **locals) {
 	datum *a;
 	datum *b;
 
-	a = var_get(*locals, "a");
-	b = var_get(*locals, "b");
+	a = var_get(*locals, "#a");
+	b = var_get(*locals, "#b");
 
 	return(dpow(a, b));
 }
@@ -825,7 +838,7 @@ datum *eval_form(datum *form, datum *args, datum **locals) {
 		datum *new_locals;
 		datum *result;
 
-		new_locals = combine(arglist, *locals);
+		new_locals = combine(arglist, combine(*locals, *form->value.func.closure));
 		iterator = form->value.func.body;
 
 		while (iterator->type == TYPE_CONS) {
@@ -844,25 +857,25 @@ void prompt() {
 }
 
 int main(int argc, char **argv) {
-	symbol_set(&globals, "set", gh_cform(&gh_set, cons(gh_symbol("symbol"), cons(gh_symbol("value"), &GH_NIL_VALUE))));
-	symbol_set(&globals, "quote", gh_cform(&gh_quote, cons(gh_symbol("expr"), &GH_NIL_VALUE)));
-	symbol_set(&globals, "unquote", gh_cform(&gh_unquote, cons(gh_symbol("expr"), &GH_NIL_VALUE)));
-	symbol_set(&globals, "cons", gh_cfunc(&gh_cons, cons(gh_symbol("car"), cons(gh_symbol("cdr"), &GH_NIL_VALUE))));
-	symbol_set(&globals, "car", gh_cfunc(&gh_car, cons(gh_symbol("pair"), &GH_NIL_VALUE)));
-	symbol_set(&globals, "cdr", gh_cfunc(&gh_cdr, cons(gh_symbol("pair"), &GH_NIL_VALUE)));
-	symbol_set(&globals, "reverse", gh_cfunc(&gh_reverse, cons(gh_symbol("lst"), &GH_NIL_VALUE)));
-	symbol_set(&globals, "list", gh_cfunc(&gh_list, cons(&GH_NIL_VALUE, gh_symbol("args"))));
-	symbol_set(&globals, "=", gh_cfunc(&gh_equal, cons(gh_symbol("a"), cons(gh_symbol("b"), &GH_NIL_VALUE))));
-	symbol_set(&globals, "+", gh_cfunc(&gh_add, cons(&GH_NIL_VALUE, gh_symbol("args"))));
-	symbol_set(&globals, "-", gh_cfunc(&gh_sub, cons(gh_symbol("first"), gh_symbol("rest"))));
-	symbol_set(&globals, "*", gh_cfunc(&gh_mul, cons(&GH_NIL_VALUE, gh_symbol("args"))));
-	symbol_set(&globals, "/", gh_cfunc(&gh_div, cons(gh_symbol("first"), gh_symbol("rest"))));
-	symbol_set(&globals, "^", gh_cfunc(&gh_pow, cons(gh_symbol("a"), cons(gh_symbol("b"), &GH_NIL_VALUE))));
-	symbol_set(&globals, "lambda", gh_cform(&gh_lambda, cons(gh_symbol("lambda-list"), gh_symbol("body"))));
-	symbol_set(&globals, "cond", gh_cform(&gh_cond, cons(&GH_NIL_VALUE, gh_symbol("conditions"))));
-	symbol_set(&globals, "loop", gh_cform(&gh_loop, cons(gh_symbol("bindings"), gh_symbol("body"))));
-	symbol_set(&globals, "recur", gh_cform(&gh_recur, cons(&GH_NIL_VALUE, gh_symbol("bindings"))));
-	symbol_set(&globals, "let", gh_cform(&gh_let, cons(gh_symbol("bindings"), gh_symbol("body"))));
+	symbol_set(&globals, "set", gh_cform(&gh_set, cons(gh_symbol("#symbol"), cons(gh_symbol("#value"), &GH_NIL_VALUE))));
+	symbol_set(&globals, "quote", gh_cform(&gh_quote, cons(gh_symbol("#expr"), &GH_NIL_VALUE)));
+	symbol_set(&globals, "unquote", gh_cform(&gh_unquote, cons(gh_symbol("#expr"), &GH_NIL_VALUE)));
+	symbol_set(&globals, "cons", gh_cfunc(&gh_cons, cons(gh_symbol("#car"), cons(gh_symbol("#cdr"), &GH_NIL_VALUE))));
+	symbol_set(&globals, "car", gh_cfunc(&gh_car, cons(gh_symbol("#pair"), &GH_NIL_VALUE)));
+	symbol_set(&globals, "cdr", gh_cfunc(&gh_cdr, cons(gh_symbol("#pair"), &GH_NIL_VALUE)));
+	symbol_set(&globals, "reverse", gh_cfunc(&gh_reverse, cons(gh_symbol("#lst"), &GH_NIL_VALUE)));
+	symbol_set(&globals, "list", gh_cfunc(&gh_list, cons(&GH_NIL_VALUE, gh_symbol("#args"))));
+	symbol_set(&globals, "=", gh_cfunc(&gh_equal, cons(gh_symbol("#a"), cons(gh_symbol("#b"), &GH_NIL_VALUE))));
+	symbol_set(&globals, "+", gh_cfunc(&gh_add, cons(&GH_NIL_VALUE, gh_symbol("#args"))));
+	symbol_set(&globals, "-", gh_cfunc(&gh_sub, cons(gh_symbol("#first"), gh_symbol("#rest"))));
+	symbol_set(&globals, "*", gh_cfunc(&gh_mul, cons(&GH_NIL_VALUE, gh_symbol("#args"))));
+	symbol_set(&globals, "/", gh_cfunc(&gh_div, cons(gh_symbol("#first"), gh_symbol("#rest"))));
+	symbol_set(&globals, "^", gh_cfunc(&gh_pow, cons(gh_symbol("#a"), cons(gh_symbol("#b"), &GH_NIL_VALUE))));
+	symbol_set(&globals, "lambda", gh_cform(&gh_lambda, cons(gh_symbol("#lambda-list"), gh_symbol("#body"))));
+	symbol_set(&globals, "cond", gh_cform(&gh_cond, cons(&GH_NIL_VALUE, gh_symbol("#conditions"))));
+	symbol_set(&globals, "loop", gh_cform(&gh_loop, cons(gh_symbol("#bindings"), gh_symbol("#body"))));
+	symbol_set(&globals, "recur", gh_cform(&gh_recur, cons(&GH_NIL_VALUE, gh_symbol("#bindings"))));
+	symbol_set(&globals, "let", gh_cform(&gh_let, cons(gh_symbol("#bindings"), gh_symbol("#body"))));
 	prompt();
 	yyparse();
 	return 0;
