@@ -487,7 +487,7 @@ datum *eval(datum *expr, datum **locals) {
 		case TYPE_CONS:
 			value = eval(expr->value.cons.car, locals);
 
-			gh_assert(value->type == TYPE_FUNC || value->type == TYPE_CFUNC || value->type == TYPE_CFORM, "Not a function, macro, or special form");
+			gh_assert(value->type == TYPE_FUNC || value->type == TYPE_CFUNC || value->type == TYPE_CFORM || value->type == TYPE_MACRO, "Not a function, macro, or special form");
 			return eval_form(value, expr->value.cons.cdr, locals);
 			break;
 		case TYPE_SYMBOL:
@@ -826,8 +826,9 @@ datum *eval_form(datum *form, datum *args, datum **locals) {
 	datum *arglist;
 	datum *sym_iterator;
 	datum *args_iterator;
+	datum *result;
 
-	gh_assert(form->type == TYPE_CFUNC || form->type == TYPE_CFORM || form->type == TYPE_FUNC, "Not a function, macro or special form");
+	gh_assert(form->type == TYPE_CFUNC || form->type == TYPE_CFORM || form->type == TYPE_FUNC || form->type == TYPE_MACRO, "Not a function, macro or special form");
 
 	arglist = &GH_NIL_VALUE;
 	if (form->type == TYPE_CFUNC || form->type == TYPE_CFORM)
@@ -845,7 +846,7 @@ datum *eval_form(datum *form, datum *args, datum **locals) {
 
 		if (current_sym->type == TYPE_SYMBOL) {
 
-			if (form->type == TYPE_CFORM)
+			if (form->type == TYPE_CFORM || form->type == TYPE_MACRO)
 				symbol_set(&arglist, current_sym->value.string, current_arg);
 			else
 				symbol_set(&arglist, current_sym->value.string, eval(current_arg, locals));
@@ -856,31 +857,41 @@ datum *eval_form(datum *form, datum *args, datum **locals) {
 		sym_iterator = sym_iterator->value.cons.cdr;
 	}
 	if (sym_iterator->type != TYPE_NIL) {
-		if (form->type == TYPE_CFORM)
+		if (form->type == TYPE_CFORM || form->type == TYPE_MACRO)
 			symbol_set(&arglist, sym_iterator->value.string, args_iterator);
 		else
 			symbol_set(&arglist, sym_iterator->value.string, eval_arglist(args_iterator, locals));
 	}
 
-	if (form->type == TYPE_CFUNC || form->type == TYPE_CFORM) {
+	switch (form->type) {
 		datum *new_locals;
-		new_locals = combine(arglist, *locals);
-		return form->value.c_code.func(&new_locals);
-	} else {
 		datum *iterator;
-		datum *new_locals;
-		datum *result;
 
-		new_locals = combine(arglist, combine(*locals, *form->value.func.closure));
-		iterator = form->value.func.body;
+		case TYPE_CFUNC:
+		case TYPE_CFORM:
+			new_locals = combine(arglist, *locals);
+			return form->value.c_code.func(&new_locals);
+			break;
 
-		while (iterator->type == TYPE_CONS) {
-			result = eval(iterator->value.cons.car, &new_locals);
-			iterator = iterator->value.cons.cdr;
-		}
+		case TYPE_FUNC:
+		case TYPE_MACRO:
+			new_locals = combine(arglist, combine(*locals, *form->value.func.closure));
+			iterator = form->value.func.body;
 
-		return result;
+			while (iterator->type == TYPE_CONS) {
+				result = eval(iterator->value.cons.car, &new_locals);
+				iterator = iterator->value.cons.cdr;
+			}
+			break;
+		default:
+			gh_assert(TRUE, "Unkown form type");
 	}
+
+	if (form->type == TYPE_MACRO) {
+		return eval(result, locals);
+	}
+	else
+		return result;
 }
 
 void prompt() {
@@ -905,6 +916,7 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "/", gh_cfunc(&gh_div, cons(gh_symbol("#first"), gh_symbol("#rest"))));
 	symbol_set(&globals, "^", gh_cfunc(&gh_pow, cons(gh_symbol("#a"), cons(gh_symbol("#b"), &GH_NIL_VALUE))));
 	symbol_set(&globals, "lambda", gh_cform(&gh_lambda, cons(gh_symbol("#lambda-list"), gh_symbol("#body"))));
+	symbol_set(&globals, "macro", gh_cform(&gh_macro, cons(gh_symbol("#lambda-list"), gh_symbol("#body"))));
 	symbol_set(&globals, "cond", gh_cform(&gh_cond, cons(&GH_NIL_VALUE, gh_symbol("#conditions"))));
 	symbol_set(&globals, "loop", gh_cform(&gh_loop, cons(gh_symbol("#bindings"), gh_symbol("#body"))));
 	symbol_set(&globals, "recur", gh_cform(&gh_recur, cons(&GH_NIL_VALUE, gh_symbol("#bindings"))));
