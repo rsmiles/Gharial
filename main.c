@@ -107,9 +107,13 @@ datum *gh_recur(datum **locals);
 
 datum *gh_let(datum **locals);
 
+datum *gh_eof_objectp(datum **locals);
+
 datum *gh_open(datum **locals);
 
 datum *gh_close(datum **locals);
+
+datum *gh_read(datum **locals);
 
 datum *globals = &GH_NIL_VALUE;
 datum *locals = &GH_NIL_VALUE;
@@ -387,6 +391,17 @@ datum *gh_cond(datum **locals) {
 	return &GH_NIL_VALUE;
 }
 
+datum *gh_eof_objectp(datum **locals) {
+	datum *expr;
+
+	expr = var_get(*locals, "#expr");
+
+	if (expr->type == TYPE_EOF)
+		return &GH_TRUE_VALUE;
+	else 
+		return &GH_NIL_VALUE;
+}
+
 datum *gh_open(datum **locals) {
 	datum *path;
 	datum *mode;
@@ -422,6 +437,19 @@ datum *gh_close(datum **locals) {
 	gh_assert(result == 0, "Error closing file");
 
 	return &GH_TRUE_VALUE;
+}
+
+datum *gh_read(datum **locals) {
+	datum *file;
+
+	file = var_get(*locals, "#file");
+	if (file->type == TYPE_CONS) {
+		file = file->value.cons.car;
+		gh_assert(file->type == TYPE_FILE, "read call on non-file");
+	} else 
+		gh_assert(file->type == TYPE_NIL, "read call on non-file");
+
+	return &GH_EOF_VALUE;
 }
 
 datum *translate_binding(datum *let_binding) {
@@ -963,6 +991,13 @@ void prompt() {
 }
 
 int main(int argc, char **argv) {
+	symbol_set(&globals, "*STDIN*", gh_file(stdin));
+	symbol_set(&globals, "*STDOUT*", gh_file(stdout));
+	symbol_set(&globals, "*STDERR*", gh_file(stderr));
+	symbol_set(&globals, "*input-file*", symbol_get(globals, "*STDIN*"));
+	symbol_set(&globals, "*output-file*", symbol_get(globals, "*STDOUT*"));
+	symbol_set(&globals, "*error-file*", symbol_get(globals, "*STDERR*"));
+
 	symbol_set(&globals, "set", gh_cform(&gh_set, cons(gh_symbol("#symbol"), cons(gh_symbol("#value"), &GH_NIL_VALUE))));
 	symbol_set(&globals, "quote", gh_cform(&gh_quote, cons(gh_symbol("#expr"), &GH_NIL_VALUE)));
 	symbol_set(&globals, "unquote", gh_cform(&gh_unquote, cons(gh_symbol("#expr"), &GH_NIL_VALUE)));
@@ -983,8 +1018,11 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "loop", gh_cform(&gh_loop, cons(gh_symbol("#bindings"), gh_symbol("#body"))));
 	symbol_set(&globals, "recur", gh_cform(&gh_recur, cons(&GH_NIL_VALUE, gh_symbol("#bindings"))));
 	symbol_set(&globals, "let", gh_cform(&gh_let, cons(gh_symbol("#bindings"), gh_symbol("#body"))));
+	symbol_set(&globals, "eof-object?", gh_cfunc(&gh_eof_objectp, cons(gh_symbol("#expr"), &GH_NIL_VALUE)));
 	symbol_set(&globals, "open", gh_cfunc(&gh_open, cons(gh_symbol("#fname"), gh_symbol("#mode"))));
 	symbol_set(&globals, "close", gh_cfunc(&gh_close, cons(gh_symbol("#file"), &GH_NIL_VALUE)));
+	symbol_set(&globals, "read", gh_cfunc(&gh_read, gh_symbol("#file")));
+	
 	prompt();
 	yyparse();
 	return 0;

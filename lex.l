@@ -11,7 +11,7 @@ int depth = 0;
 WHITESPACE [ \t\n\r\f]
 DIGIT      [0-9]
 LETTER     [A-Za-z]
-SPECIAL    [\+\-\*\/\^=]
+SPECIAL    [\+\-\*\/\^=\?]
 
 %%
 
