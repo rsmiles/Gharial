@@ -1,6 +1,8 @@
 #ifndef GHARIAL_H
 #define GHARIAL_H
 
+#include <stdio.h>
+
 #define TRUE  1
 #define FALSE 0
 
@@ -16,6 +18,8 @@
 #define TYPE_FUNC    9
 #define TYPE_MACRO   10
 #define TYPE_RECUR   11
+#define TYPE_FILE    12
+#define TYPE_EOF     13
 
 typedef struct datum {
 	int type;
@@ -23,6 +27,7 @@ typedef struct datum {
 		int integer;
 		double decimal;
 		char *string;
+		FILE *file;
 		struct {
 			struct datum *(*func)(struct datum **);
 			struct datum *lambda_list;

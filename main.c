@@ -15,7 +15,9 @@
 
 #include "y.tab.h"
 
-datum GH_NIL_VALUE = { TYPE_NIL, { 0 } }; datum GH_TRUE_VALUE = { TYPE_TRUE, { 0 } };
+datum GH_NIL_VALUE = { TYPE_NIL, { 0 } };
+datum GH_TRUE_VALUE = { TYPE_TRUE, { 0 } };
+datum GH_EOF_VALUE = { TYPE_EOF, { 0 } };
 
 datum *new_datum();
 
@@ -61,6 +63,8 @@ datum *do_unquotes(datum *expr, datum **locals);
 
 datum *eval_form(datum* func, datum *args, datum **locals);
 
+datum *gh_file(FILE *fptr);
+
 void gh_print(datum *expr);
 
 datum *gh_set(datum **locals);
@@ -103,8 +107,13 @@ datum *gh_recur(datum **locals);
 
 datum *gh_let(datum **locals);
 
+datum *gh_open(datum **locals);
+
+datum *gh_close(datum **locals);
+
 datum *globals = &GH_NIL_VALUE;
 datum *locals = &GH_NIL_VALUE;
+
 datum *new_datum() {
 	datum *d = GC_MALLOC(sizeof(datum));
 	gh_assert(d != NULL, "Out of memory!");
@@ -271,9 +280,20 @@ datum *gh_symbol(char* value) {
 	return s;
 }
 
+datum *gh_file(FILE *fptr) {
+	datum *f;
+
+	f = new_datum();
+	f->type = TYPE_FILE;
+	f->value.file = fptr;
+
+	return f;
+}
+
 datum *gh_list(datum **locals){
 	return var_get(*locals, "#args");
 }
+
 datum *cons(datum *car, datum *cdr) {
 	datum *c;
 	c = new_datum();
@@ -365,6 +385,43 @@ datum *gh_cond(datum **locals) {
 		iterator = iterator->value.cons.cdr;
 	}
 	return &GH_NIL_VALUE;
+}
+
+datum *gh_open(datum **locals) {
+	datum *path;
+	datum *mode;
+	FILE *fptr;
+
+	path = var_get(*locals, "#fname");
+	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "Non string or symbol passed as file name");
+
+	mode = var_get(*locals, "#mode");
+
+	if (mode->type == TYPE_NIL) {
+		mode = gh_string("a+");
+	} else {
+		mode = mode->value.cons.car;
+	}
+
+	gh_assert(mode->type == TYPE_STRING || mode->type == TYPE_SYMBOL, "Non string or symbol passed as file mode");
+
+	fptr = fopen(path->value.string, mode->value.string);
+	gh_assert(fptr != NULL, "Could not open file");
+
+	return gh_file(fptr);
+}
+
+datum *gh_close(datum **locals) {
+	datum *file;
+	int result;
+
+	file = var_get(*locals, "#file");
+	gh_assert(file->type == TYPE_FILE, "Attempt to close a non-file");
+
+	result = fclose(file->value.file);
+	gh_assert(result == 0, "Error closing file");
+
+	return &GH_TRUE_VALUE;
 }
 
 datum *translate_binding(datum *let_binding) {
@@ -532,6 +589,13 @@ void print_datum(datum *expr) {
 			break;
 		case TYPE_RECUR:
 			printf("<recur_object>");
+			break;
+		case TYPE_FILE:
+			printf("<file>");
+			break;
+		case TYPE_EOF:
+			printf("<EOF>");
+			break;
 		case TYPE_CONS:
 			iterator = expr;
 	
@@ -919,6 +983,8 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "loop", gh_cform(&gh_loop, cons(gh_symbol("#bindings"), gh_symbol("#body"))));
 	symbol_set(&globals, "recur", gh_cform(&gh_recur, cons(&GH_NIL_VALUE, gh_symbol("#bindings"))));
 	symbol_set(&globals, "let", gh_cform(&gh_let, cons(gh_symbol("#bindings"), gh_symbol("#body"))));
+	symbol_set(&globals, "open", gh_cfunc(&gh_open, cons(gh_symbol("#fname"), gh_symbol("#mode"))));
+	symbol_set(&globals, "close", gh_cfunc(&gh_close, cons(gh_symbol("#file"), &GH_NIL_VALUE)));
 	prompt();
 	yyparse();
 	return 0;
