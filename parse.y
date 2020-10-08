@@ -48,12 +48,16 @@ prog: terms;
 
 terms: term terms| /* empty */ ;
 
-term: expr {  
+term: expr {
+				datum *result;
 				if (depth == 0) {
 					gh_input = $$;
 					if (repl) {
-						gh_print(stdout, eval($$, &locals));
-						prompt();
+						result = eval($$, &locals);
+						if (!silent) {
+							gh_print(stdout, result);
+							prompt();
+						}
 					}
 					YYACCEPT;
 				}

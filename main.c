@@ -1,5 +1,4 @@
 #define _POSIX_C_SOURCE 200112L
-
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +30,7 @@ datum *symbol_loc(datum *table, char *symbol);
 datum *symbol_get(datum *table, char *symbol);
 void  symbol_set(datum **table, char *symbol, datum *value);
 void  symbol_unset(datum **table, char *symbol);
+void load(char *path);
 
 datum *combine(datum *lst1, datum *lst2);
 
@@ -116,7 +116,10 @@ datum *gh_read(datum **locals);
 
 datum *gh_write(datum **locals);
 
+datum *gh_load(datum **locals);
+
 int repl = TRUE;
+int silent = FALSE;
 datum *gh_input;
 datum *globals = &GH_NIL_VALUE;
 datum *locals = &GH_NIL_VALUE;
@@ -443,7 +446,7 @@ datum *gh_close(datum **locals) {
 
 datum *gh_read(datum **locals) {
 	datum *file;
-	datum *oldfile;
+	FILE *oldyyin;
 
 	file = var_get(*locals, "#file");
 	if (file->type == TYPE_CONS) {
@@ -455,12 +458,12 @@ datum *gh_read(datum **locals) {
 	}
 
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
-	oldfile = var_get(*locals, "input-file");
+	oldyyin = yyin;
 	yyin = file->value.file;
 	repl = FALSE;
 	yyparse();
 	repl = TRUE;
-	yyin = oldfile->value.file;
+	yyin = oldyyin;
 	yypop_buffer_state();
 	return gh_input;
 }
@@ -482,6 +485,17 @@ datum *gh_write(datum **locals) {
 
 	gh_print(file->value.file, expr);
 	return expr;
+}
+
+datum *gh_load(datum **locals) {
+	datum *path;
+
+	path = var_get(*locals, "#path");
+	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "Invalid path passed to load");
+
+	load(path->value.string);
+	
+	return &GH_TRUE_VALUE;
 }
 
 datum *translate_binding(datum *let_binding) {
@@ -746,6 +760,29 @@ void symbol_unset(datum **table, char *symbol) {
 				*table = iterator->value.cons.cdr;
 		}
 	}
+}
+
+void load(char *path) {
+	FILE *file;
+	FILE *oldyyin;
+	int oldsilent;
+	
+	file = fopen(path, "r");
+	gh_assert(file != NULL, "Could not open file");
+
+	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
+	oldyyin = yyin;
+	yyin = file;
+	oldsilent = silent;
+	silent = TRUE;
+	while(!feof(yyin)) {
+		yyparse();
+	}
+	silent = oldsilent;
+	yypop_buffer_state();
+	yyin = oldyyin;
+
+	fclose(file);
 }
 
 datum *do_unquotes(datum *expr, datum **locals) {
@@ -1056,7 +1093,9 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "close", gh_cfunc(&gh_close, cons(gh_symbol("#file"), &GH_NIL_VALUE)));
 	symbol_set(&globals, "read", gh_cfunc(&gh_read, gh_symbol("#file")));
 	symbol_set(&globals, "write", gh_cfunc(&gh_write, cons(gh_symbol("#expr"), gh_symbol("#file"))));
-	
+	symbol_set(&globals, "load", gh_cfunc(&gh_load, cons(gh_symbol("#path"), &GH_NIL_VALUE)));
+
+
 	prompt();
 	while(!feof(stdin)) {
 		yyparse();

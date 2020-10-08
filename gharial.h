@@ -49,6 +49,7 @@ typedef struct datum {
 } datum;
 
 extern int repl;
+extern int silent;
 extern FILE *yyin;
 extern datum GH_NIL_VALUE;
 extern datum GH_TRUE_VALUE;
