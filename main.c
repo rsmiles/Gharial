@@ -22,7 +22,7 @@ datum GH_EOF_VALUE = { TYPE_EOF, { 0 } };
 
 datum *new_datum();
 
-void print_datum(datum *expr);
+void print_datum(FILE *file, datum *expr);
 
 datum *gh_cform(datum *(*addr)(datum **locals), datum *args);
 datum *gh_cfunc(datum *(*addr)(datum **locals), datum *args);
@@ -65,8 +65,6 @@ datum *do_unquotes(datum *expr, datum **locals);
 datum *eval_form(datum* func, datum *args, datum **locals);
 
 datum *gh_file(FILE *fptr);
-
-void gh_print(datum *expr);
 
 datum *gh_set(datum **locals);
 
@@ -116,6 +114,8 @@ datum *gh_close(datum **locals);
 
 datum *gh_read(datum **locals);
 
+datum *gh_write(datum **locals);
+
 int repl = TRUE;
 datum *gh_input;
 datum *globals = &GH_NIL_VALUE;
@@ -123,7 +123,6 @@ datum *locals = &GH_NIL_VALUE;
 
 datum *new_datum() {
 	datum *d = GC_MALLOC(sizeof(datum));
-	gh_assert(d != NULL, "Out of memory!");
 	return d;
 }
 
@@ -466,6 +465,25 @@ datum *gh_read(datum **locals) {
 	return gh_input;
 }
 
+datum *gh_write(datum **locals) {
+	datum *expr;
+	datum *file;
+
+	expr = var_get(*locals, "#expr");
+
+	file = var_get(*locals, "#file");
+	if (file->type == TYPE_CONS) {
+		file = file->value.cons.car;
+		gh_assert(file->type == TYPE_FILE, "read call on non-file");
+	} else { 
+		gh_assert(file->type == TYPE_NIL, "read call on non-file");
+		file = var_get(*locals, "output-file");
+	}
+
+	gh_print(file->value.file, expr);
+	return expr;
+}
+
 datum *translate_binding(datum *let_binding) {
 	datum *iterator;
 	datum *first;
@@ -596,75 +614,75 @@ datum *eval(datum *expr, datum **locals) {
 	}
 }
 
-void print_datum(datum *expr) {
+void print_datum(FILE *file, datum *expr) {
 	datum *iterator;
 	switch (expr->type) {
 		case TYPE_NIL:
-			printf("NIL");
+			fprintf(file, "NIL");
 			break;
 		case TYPE_TRUE:
-			printf("T");
+			fprintf(file, "T");
 			break;
 		case TYPE_INTEGER:
-			printf("%d", expr->value.integer);
+			fprintf(file, "%d", expr->value.integer);
 			break;
 		case TYPE_DECIMAL:
-			printf("%f", expr->value.decimal);
+			fprintf(file, "%f", expr->value.decimal);
 			break;
 		case TYPE_STRING:
-			printf("\"%s\"", expr->value.string);
+			fprintf(file, "\"%s\"", expr->value.string);
 			break;
 		case TYPE_SYMBOL:
-			printf("%s", expr->value.string);
+			fprintf(file, "%s", expr->value.string);
 			break;
 		case TYPE_CFORM:
-			printf("<c_form>");
+			fprintf(file, "<c_form>");
 			break;
 		case TYPE_CFUNC:
-			printf("<c_function>");
+			fprintf(file, "<c_function>");
 			break;
 		case TYPE_FUNC:
-			printf("<function>");
+			fprintf(file, "<function>");
 			break;
 		case TYPE_MACRO:
-			printf("<macro>");
+			fprintf(file, "<macro>");
 			break;
 		case TYPE_RECUR:
-			printf("<recur_object>");
+			fprintf(file, "<recur_object>");
 			break;
 		case TYPE_FILE:
-			printf("<file>");
+			fprintf(file, "<file>");
 			break;
 		case TYPE_EOF:
-			printf("<EOF>");
+			fprintf(file, "<EOF>");
 			break;
 		case TYPE_CONS:
 			iterator = expr;
 	
-			printf("(");
+			fprintf(file, "(");
 
-			print_datum(iterator->value.cons.car);
+			print_datum(file, iterator->value.cons.car);
 			while(iterator->value.cons.cdr->type == TYPE_CONS) {
-				printf(" ");
+				fprintf(file, " ");
 				iterator = iterator->value.cons.cdr;
-				print_datum(iterator->value.cons.car);
+				print_datum(file, iterator->value.cons.car);
 			}
 
 			if (iterator->value.cons.cdr->type != TYPE_NIL) {
-				printf(" . ");
-				print_datum(iterator->value.cons.cdr);
+				fprintf(file, " . ");
+				print_datum(file, iterator->value.cons.cdr);
 			}
 
-			printf(")");
+			fprintf(file, ")");
 			break;
 		default:
 			fprintf(stderr, "Error: Unkown data type: %d\n", expr->type);
 	}
 }
 
-void gh_print(datum *expr){
-	print_datum(expr);
-	printf("\n");
+void gh_print(FILE *file, datum *expr){
+	print_datum(file, expr);
+	fprintf(file, "\n");
 }
 
 datum *symbol_loc(datum *table, char *symbol) {
@@ -1037,6 +1055,7 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "open", gh_cfunc(&gh_open, cons(gh_symbol("#fname"), gh_symbol("#mode"))));
 	symbol_set(&globals, "close", gh_cfunc(&gh_close, cons(gh_symbol("#file"), &GH_NIL_VALUE)));
 	symbol_set(&globals, "read", gh_cfunc(&gh_read, gh_symbol("#file")));
+	symbol_set(&globals, "write", gh_cfunc(&gh_write, cons(gh_symbol("#expr"), gh_symbol("#file"))));
 	
 	prompt();
 	while(!feof(stdin)) {

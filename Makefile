@@ -8,7 +8,7 @@ all: gharial
 gharial: main.o parse.o lex.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-main.o: main.c parse.o
+main.o: main.c parse.o lex.o
 	$(CC) $(CFLAGS) -c -o $@ main.c
 
 parse.o: parse.y

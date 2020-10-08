@@ -70,9 +70,9 @@ datum *cons(datum *car, datum *cdr);
 
 int gh_assert(int cond, char *mesg);
 
-datum *eval(datum *expr, datum **locals);
+void gh_print(FILE *file, datum *expr);
 
-void gh_print(datum *expr);
+datum *eval(datum *expr, datum **locals);
 
 void prompt();
 

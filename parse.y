@@ -52,7 +52,7 @@ term: expr {
 				if (depth == 0) {
 					gh_input = $$;
 					if (repl) {
-						gh_print(eval($$, &locals));
+						gh_print(stdout, eval($$, &locals));
 						prompt();
 					}
 					YYACCEPT;
