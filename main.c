@@ -770,12 +770,12 @@ void load(char *path) {
 	file = fopen(path, "r");
 	gh_assert(file != NULL, "Could not open file");
 
-	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
 	oldyyin = yyin;
 	yyin = file;
+	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
 	oldsilent = silent;
 	silent = TRUE;
-	while(!feof(yyin)) {
+	while(!feof(file)) {
 		yyparse();
 	}
 	silent = oldsilent;
@@ -1095,11 +1095,16 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "write", gh_cfunc(&gh_write, cons(gh_symbol("#expr"), gh_symbol("#file"))));
 	symbol_set(&globals, "load", gh_cfunc(&gh_load, cons(gh_symbol("#path"), &GH_NIL_VALUE)));
 
+	load("init.ghar");
 
 	prompt();
-	while(!feof(stdin)) {
+	yyin = stdin;
+	while(!feof(yyin)) {
+		yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
 		yyparse();
+		yypop_buffer_state();
 	}
+	printf("\n");
 
 	return 0;
 }
