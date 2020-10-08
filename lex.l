@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
 #include "y.tab.h"
+#include "gharial.h"
 int fileno(FILE *stream);
 int depth = 0;
 %}
@@ -33,6 +34,7 @@ SPECIAL    [\+\-\*\/\^=\?]
 "}"                   { if (depth > 0 ) depth--; return TOK_CLOSECURLY; }
 "."                   { return TOK_DOT; }
 ({LETTER}|{SPECIAL})+ { return TOK_SYMBOL; }
+<<EOF>>               { if (!repl) return TOK_EOF; else yyterminate();}
 
 %%
 

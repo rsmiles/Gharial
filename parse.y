@@ -22,6 +22,7 @@ extern char* yytext;
 
 %token <gh_datum>  TOK_NIL
 %token <gh_datum>  TOK_TRUE
+%token <gh_datum>  TOK_EOF
 %token <decimal>   TOK_DECIMAL
 %token <integer>   TOK_INTEGER
 %token <character> TOK_OPENPAREN
@@ -47,7 +48,16 @@ prog: terms;
 
 terms: term terms| /* empty */ ;
 
-term: expr { if (depth == 0) { gh_print(eval($$, &locals)); prompt(); } };
+term: expr {  
+				if (depth == 0) {
+					gh_input = $$;
+					if (repl) {
+						gh_print(eval($$, &locals));
+						prompt();
+					}
+					YYACCEPT;
+				}
+			};
 
 expr: atom
 	| list
@@ -56,6 +66,7 @@ expr: atom
 
 atom: TOK_NIL         { $$ = &GH_NIL_VALUE; }
 	| TOK_TRUE        { $$ = &GH_TRUE_VALUE; }
+	| TOK_EOF         { $$ = &GH_EOF_VALUE; }
 	| TOK_DECIMAL     { $$ = gh_decimal(atof(yytext)); }
 	| TOK_INTEGER     { $$ = gh_integer(atoi(yytext)); }
 	| TOK_EMPTYSTRING { $$ = gh_string(""); }

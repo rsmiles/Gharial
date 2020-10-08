@@ -14,6 +14,7 @@
 #include "gharial.h"
 
 #include "y.tab.h"
+#include "lex.yy.h"
 
 datum GH_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum GH_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -115,6 +116,8 @@ datum *gh_close(datum **locals);
 
 datum *gh_read(datum **locals);
 
+int repl = TRUE;
+datum *gh_input;
 datum *globals = &GH_NIL_VALUE;
 datum *locals = &GH_NIL_VALUE;
 
@@ -441,15 +444,26 @@ datum *gh_close(datum **locals) {
 
 datum *gh_read(datum **locals) {
 	datum *file;
+	datum *oldfile;
 
 	file = var_get(*locals, "#file");
 	if (file->type == TYPE_CONS) {
 		file = file->value.cons.car;
 		gh_assert(file->type == TYPE_FILE, "read call on non-file");
-	} else 
+	} else { 
 		gh_assert(file->type == TYPE_NIL, "read call on non-file");
+		file = var_get(*locals, "input-file");
+	}
 
-	return &GH_EOF_VALUE;
+	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
+	oldfile = var_get(*locals, "input-file");
+	yyin = file->value.file;
+	repl = FALSE;
+	yyparse();
+	repl = TRUE;
+	yyin = oldfile->value.file;
+	yypop_buffer_state();
+	return gh_input;
 }
 
 datum *translate_binding(datum *let_binding) {
@@ -924,6 +938,7 @@ datum *eval_form(datum *form, datum *args, datum **locals) {
 		sym_iterator = form->value.c_code.lambda_list;
 	else
 		sym_iterator = form->value.func.lambda_list;
+
 	args_iterator = args;
 
 	while (sym_iterator->type == TYPE_CONS && args_iterator->type == TYPE_CONS) {
@@ -994,9 +1009,9 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "*STDIN*", gh_file(stdin));
 	symbol_set(&globals, "*STDOUT*", gh_file(stdout));
 	symbol_set(&globals, "*STDERR*", gh_file(stderr));
-	symbol_set(&globals, "*input-file*", symbol_get(globals, "*STDIN*"));
-	symbol_set(&globals, "*output-file*", symbol_get(globals, "*STDOUT*"));
-	symbol_set(&globals, "*error-file*", symbol_get(globals, "*STDERR*"));
+	symbol_set(&globals, "input-file", symbol_get(globals, "*STDIN*"));
+	symbol_set(&globals, "output-file", symbol_get(globals, "*STDOUT*"));
+	symbol_set(&globals, "error-file", symbol_get(globals, "*STDERR*"));
 
 	symbol_set(&globals, "set", gh_cform(&gh_set, cons(gh_symbol("#symbol"), cons(gh_symbol("#value"), &GH_NIL_VALUE))));
 	symbol_set(&globals, "quote", gh_cform(&gh_quote, cons(gh_symbol("#expr"), &GH_NIL_VALUE)));
@@ -1024,7 +1039,10 @@ int main(int argc, char **argv) {
 	symbol_set(&globals, "read", gh_cfunc(&gh_read, gh_symbol("#file")));
 	
 	prompt();
-	yyparse();
+	while(!feof(stdin)) {
+		yyparse();
+	}
+
 	return 0;
 }
 
