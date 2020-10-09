@@ -53,7 +53,7 @@ term: expr {
 				if (depth == 0) {
 					gh_input = $$;
 					if (repl) {
-						result = eval($$, &locals);
+						result = gh_eval($$, &locals);
 						if (!silent) {
 							gh_print(stdout, result);
 							prompt();
@@ -65,33 +65,33 @@ term: expr {
 
 expr: atom
 	| list
-	| TOK_QUOTE expr { $$ = cons(gh_symbol("quote"), cons($2, &GH_NIL_VALUE)); }
-	| TOK_UNQUOTE expr { $$ = cons(gh_symbol("unquote"), cons($2, &GH_NIL_VALUE)); };
+	| TOK_QUOTE expr { $$ = gh_cons(gh_symbol("quote"), gh_cons($2, &LANG_NIL_VALUE)); }
+	| TOK_UNQUOTE expr { $$ = gh_cons(gh_symbol("unquote"), gh_cons($2, &LANG_NIL_VALUE)); };
 
-atom: TOK_NIL         { $$ = &GH_NIL_VALUE; }
-	| TOK_TRUE        { $$ = &GH_TRUE_VALUE; }
-	| TOK_EOF         { $$ = &GH_EOF_VALUE; }
+atom: TOK_NIL         { $$ = &LANG_NIL_VALUE; }
+	| TOK_TRUE        { $$ = &LANG_TRUE_VALUE; }
+	| TOK_EOF         { $$ = &LANG_EOF_VALUE; }
 	| TOK_DECIMAL     { $$ = gh_decimal(atof(yytext)); }
 	| TOK_INTEGER     { $$ = gh_integer(atoi(yytext)); }
 	| TOK_EMPTYSTRING { $$ = gh_string(""); }
 	| TOK_STRING      { $$ = gh_substring(1, strlen(yytext) - 2, yytext); }
 	| TOK_SYMBOL      { $$ = gh_symbol(yytext); };
 
-list: TOK_OPENPAREN TOK_CLOSEPAREN               { $$ = &GH_NIL_VALUE; }
+list: TOK_OPENPAREN TOK_CLOSEPAREN               { $$ = &LANG_NIL_VALUE; }
 	| TOK_OPENPAREN dotted_body TOK_CLOSEPAREN   { $$ = $2; }
 	| TOK_OPENPAREN list_body TOK_CLOSEPAREN     { $$ = $2; }
-    | TOK_OPENSQUARE TOK_CLOSESQUARE             { $$ = &GH_NIL_VALUE; }
+    | TOK_OPENSQUARE TOK_CLOSESQUARE             { $$ = &LANG_NIL_VALUE; }
 	| TOK_OPENSQUARE dotted_body TOK_CLOSESQUARE { $$ = $2; }
 	| TOK_OPENSQUARE list_body TOK_CLOSESQUARE   { $$ = $2; }
-    | TOK_OPENCURLY TOK_CLOSECURLY              { $$ = &GH_NIL_VALUE; }
+    | TOK_OPENCURLY TOK_CLOSECURLY              { $$ = &LANG_NIL_VALUE; }
 	| TOK_OPENCURLY dotted_body TOK_CLOSECURLY   { $$ = $2; }
 	| TOK_OPENCURLY list_body TOK_CLOSECURLY     { $$ = $2; };
 
-dotted_body: expr TOK_DOT expr { $$ = cons($1, $3); }
-		   | expr dotted_body { $$ = cons($1, $2); };
+dotted_body: expr TOK_DOT expr { $$ = gh_cons($1, $3); }
+		   | expr dotted_body { $$ = gh_cons($1, $2); };
 
-list_body: expr { $$ = cons($1, &GH_NIL_VALUE); }
-		 | expr list_body { $$ = cons($1, $2); };
+list_body: expr { $$ = gh_cons($1, &LANG_NIL_VALUE); }
+		 | expr list_body { $$ = gh_cons($1, $2); };
 
 %%
 

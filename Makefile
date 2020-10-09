@@ -5,16 +5,19 @@ LDFLAGS=-ll -lm -lgc
 
 all: gharial
 
-gharial: main.o parse.o lex.o
+gharial: main.o lib.o parse.o lex.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-main.o: main.c parse.o lex.o
-	$(CC) $(CFLAGS) -c -o $@ main.c
+main.o: main.c gharial.h lib.o parse.o lex.o
+	$(CC) $(CFLAGS) -c -o $@ $<
 
-parse.o: parse.y
+lib.o: lib.c gharial.h parse.o lex.o
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+parse.o: parse.y gharial.h
 	yacc --defines $<; $(CC) $(CFLAGS) -c -o $@ y.tab.c
 
-lex.o: lex.l parse.o
+lex.o: lex.l parse.o gharial.h
 	lex --header-file=lex.yy.h $<; $(CC) $(CFLAGS) -c -o $@ lex.yy.c
 
 clean:
