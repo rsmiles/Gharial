@@ -16,7 +16,7 @@ SPECIAL    [\+\-\*\/\^=\?]
 
 %%
 
-"#".*$                { /* Ignore comments */ }
+(#|;).*$              { /* Ignore comments */ }
 {WHITESPACE}+         { /* Ignore whitespace */ }
 ['`]                  { return TOK_QUOTE; }
 ","                   { return TOK_UNQUOTE; }
