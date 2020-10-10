@@ -61,7 +61,8 @@ term: expr {
 					}
 					YYACCEPT;
 				}
-			};
+			}
+	| error { gh_eval(gh_exception("SYNTAX-ERROR", "Syntax error",-1), &globals); YYACCEPT; };
 
 expr: atom
 	| list
@@ -96,7 +97,8 @@ list_body: expr { $$ = gh_cons($1, &LANG_NIL_VALUE); }
 %%
 
 int yyerror(char *ps, ...){
-	printf("%s\n", ps);
+	/* Just print the prompt, since generating the correct exception is done above */
+	prompt();
 	return 0;
 }
 

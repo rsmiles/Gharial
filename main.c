@@ -52,6 +52,7 @@ void init_builtins() {
 }
 
 int main(int argc, char **argv) {
+	yylineno = 0;
 	init_io();
 	init_builtins();
 

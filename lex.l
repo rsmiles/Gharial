@@ -8,16 +8,18 @@ int depth = 0;
 
 %option noinput
 %option nounput
+%option yylineno
 
-WHITESPACE [ \t\n\r\f]
+WHITESPACE [ \t\r\f]
 DIGIT      [0-9]
 LETTER     [A-Za-z]
-SPECIAL    [\+\-\*\/\^=\?]
+SPECIAL    [\+\-\*\/\^=\?\!]
 
 %%
 
 (#|;).*$              { /* Ignore comments */ }
 {WHITESPACE}+         { /* Ignore whitespace */ }
+\n                    { }
 ['`]                  { return TOK_QUOTE; }
 ","                   { return TOK_UNQUOTE; }
 [tT]                  { return TOK_TRUE; }

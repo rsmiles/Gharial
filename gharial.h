@@ -22,6 +22,13 @@
 #define TYPE_EOF       13
 #define TYPE_EXCEPTION 14
 
+#define gh_assert(test, type, description) \
+	do { \
+		if (test) \
+			; \
+		else return gh_eval(gh_exception(type, description, -1), &globals); \
+	} while(0);
+
 typedef struct datum {
 	int type;
 	union {
@@ -53,6 +60,7 @@ typedef struct datum {
 		struct {
 			char *type;
 			char *description;
+			int lineno;
 		} exception;
 		
 	} value;
@@ -60,6 +68,7 @@ typedef struct datum {
 
 extern int repl;
 extern int silent;
+extern int yylineno;
 extern FILE *yyin;
 extern datum LANG_NIL_VALUE;
 extern datum LANG_TRUE_VALUE;
@@ -90,9 +99,9 @@ datum *gh_file(FILE *fptr);
 
 datum *gh_cons(datum *car, datum *cdr);
 
-int gh_assert(int cond, char *mesg);
-
 void gh_print(FILE *file, datum *expr);
+
+void print_exception(FILE *file, datum *expr);
 
 datum *gh_eval(datum *expr, datum **locals);
 
@@ -106,7 +115,7 @@ datum *gh_cform(datum *(*addr)(datum **locals), datum *args);
 
 datum *gh_cfunc(datum *(*addr)(datum **locals), datum *args);
 
-void gh_load(char *path);
+datum* gh_load(char *path);
 
 datum *combine(datum *lst1, datum *lst2);
 
@@ -196,7 +205,7 @@ char *typestring(datum *obj);
 
 char *string_append(char *str1, char *str2);
 
-datum *gh_exception(char *type, char *description);
+datum *gh_exception(char *type, char *description, int lineno);
 
 #endif
 
