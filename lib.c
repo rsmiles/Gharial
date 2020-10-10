@@ -567,6 +567,8 @@ void print_datum(FILE *file, datum *expr) {
 		case TYPE_EOF:
 			fprintf(file, "<EOF>");
 			break;
+		case TYPE_EXCEPTION:
+			fprintf(file, "<exception>");
 		case TYPE_CONS:
 			iterator = expr;
 	
@@ -950,4 +952,88 @@ datum *eval_form(datum *form, datum *args, datum **locals) {
 	else
 		return result;
 }
+
+char *typestring(datum *obj) {
+	switch (obj->type) {
+		case TYPE_NIL:
+			return "NIL";
+			break;
+		case TYPE_TRUE:
+			return "T";
+			break;
+		case TYPE_INTEGER:
+			return "INTEGER";
+			break;
+		case TYPE_DECIMAL:
+			return "DECIMAL";
+			break;
+		case TYPE_SYMBOL:
+			return "SYMBOL";
+			break;
+		case TYPE_CONS:
+			return "CONS";
+			break;
+		case TYPE_CFORM:
+			return "C FORM";
+			break;
+		case TYPE_CFUNC:
+			return "C FUNCION";
+			break;
+		case TYPE_FUNC:
+			return "FUNCTION";
+			break;
+		case TYPE_MACRO:
+			return "MACRO";
+			break;
+		case TYPE_RECUR:
+			return "RECUR";
+			break;
+		case TYPE_FILE:
+			return "FILE";
+			break;
+		case TYPE_EOF:
+			return "END OF FILE";
+			break;
+		case TYPE_EXCEPTION:
+			return "EXCEPTION";
+			break;
+		default:
+			return "UNKOWN";
+	}
+}
+
+char *string_append(char *str1, char *str2) {
+	int len1;
+	int len2;
+	char *result;
+
+	len1 = strlen(str1) + 1;
+	len2 = strlen(str2) + 1;
+
+	result = GC_MALLOC(sizeof(char) * (len1 + len2));
+	gh_assert(result != NULL, "Out of memory!");
+
+	strcpy(result, str1);
+	strcpy(result + len1, str2);
+
+	return result;
+}
+
+datum *gh_exception(char *type, char *description) {
+	datum *ex;
+
+	ex = new_datum();
+	ex->type = TYPE_EXCEPTION;
+
+	ex->value.exception.type = GC_MALLOC(sizeof (char) * (strlen(type) + 1));
+	gh_assert(ex->value.exception.type != NULL, "Out of memory!");
+	strcpy(ex->value.exception.type, type);
+	
+	ex->value.exception.description = GC_MALLOC(sizeof (char) * (strlen(description) + 1));
+	gh_assert(ex->value.exception.description != NULL, "Out of memory!");
+	strcpy(ex->value.exception.description, description);
+
+	return ex;
+}
+
 
