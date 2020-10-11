@@ -358,9 +358,9 @@ datum *lang_read(datum **locals) {
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
 	oldyyin = yyin;
 	yyin = file->value.file;
-	repl = FALSE;
+	eval_flag = FALSE;
 	yyparse();
-	repl = TRUE;
+	eval_flag = TRUE;
 	yyin = oldyyin;
 	yypop_buffer_state();
 	return gh_input;
@@ -687,7 +687,7 @@ void symbol_unset(datum **table, char *symbol) {
 datum* gh_load(char *path) {
 	FILE *file;
 	FILE *oldyyin;
-	int oldsilent;
+	int old_print_flag;
 	
 	file = fopen(path, "r");
 	gh_assert(file != NULL, "FILE-ERROR", "Could not open file");
@@ -695,14 +695,18 @@ datum* gh_load(char *path) {
 	oldyyin = yyin;
 	yyin = file;
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
-	oldsilent = silent;
-	silent = TRUE;
-	while(!feof(file)) {
+	old_print_flag = print_flag;
+	print_flag = FALSE;
+
+	yyrestart(yyin);
+	do {
 		yyparse();
-	}
-	silent = oldsilent;
+	} while (gh_result->type != TYPE_EOF);
+
+	print_flag = old_print_flag;
 	yypop_buffer_state();
 	yyin = oldyyin;
+	yylex_destroy();
 
 	fclose(file);
 

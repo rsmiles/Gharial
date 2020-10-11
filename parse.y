@@ -1,4 +1,5 @@
 %{
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -49,20 +50,26 @@ prog: terms;
 terms: term terms| /* empty */ ;
 
 term: expr {
-				datum *result;
 				if (depth == 0) {
 					gh_input = $$;
-					if (repl) {
-						result = gh_eval($$, &locals);
-						if (!silent) {
-							gh_print(stdout, result);
+					if (eval_flag) {
+						gh_result = gh_eval($$, &empty_locals);
+						if (print_flag) {
+							gh_print(stdout, gh_result);
 							prompt();
 						}
 					}
 					YYACCEPT;
 				}
 			}
-	| error { gh_eval(gh_exception("SYNTAX-ERROR", "Syntax error",-1), &globals); YYACCEPT; };
+	| TOK_EOF { gh_result = &LANG_EOF_VALUE; YYACCEPT; }
+	| error {
+				gh_result = gh_eval(gh_exception("SYNTAX-ERROR", "Syntax error", -1), &empty_locals);
+				gh_print(stdout, gh_result);
+				if (print_flag)
+					prompt();
+				YYACCEPT;
+			};
 
 expr: atom
 	| list
@@ -71,7 +78,6 @@ expr: atom
 
 atom: TOK_NIL         { $$ = &LANG_NIL_VALUE; }
 	| TOK_TRUE        { $$ = &LANG_TRUE_VALUE; }
-	| TOK_EOF         { $$ = &LANG_EOF_VALUE; }
 	| TOK_DECIMAL     { $$ = gh_decimal(atof(yytext)); }
 	| TOK_INTEGER     { $$ = gh_integer(atoi(yytext)); }
 	| TOK_EMPTYSTRING { $$ = gh_string(""); }
@@ -97,8 +103,6 @@ list_body: expr { $$ = gh_cons($1, &LANG_NIL_VALUE); }
 %%
 
 int yyerror(char *ps, ...){
-	/* Just print the prompt, since generating the correct exception is done above */
-	prompt();
 	return 0;
 }
 

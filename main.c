@@ -7,11 +7,13 @@
 void init_io();
 void init_builtins();
 
-int repl = TRUE;
-int silent = FALSE;
-datum *gh_input;
+int eval_flag = TRUE;
+int print_flag = TRUE;
+
+datum *gh_input = &LANG_NIL_VALUE;
+datum *gh_result = &LANG_NIL_VALUE;
 datum *globals = &LANG_NIL_VALUE;
-datum *locals = &LANG_NIL_VALUE;
+datum *empty_locals = &LANG_NIL_VALUE;
 
 void init_io() {
 	symbol_set(&globals, "*STDIN*", gh_file(stdin));
@@ -58,13 +60,15 @@ int main(int argc, char **argv) {
 
 	gh_load(INIT_FILE);
 
-	prompt();
 	yyin = stdin;
-	while(!feof(yyin)) {
-		yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
+	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
+	prompt();
+	do {
 		yyparse();
-		yypop_buffer_state();
-	}
+	} while(gh_result->type != TYPE_EOF);
+	yylex_destroy();
+
+	yypop_buffer_state();
 	printf("\n");
 
 	return 0;

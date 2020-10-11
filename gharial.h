@@ -66,16 +66,17 @@ typedef struct datum {
 	} value;
 } datum;
 
-extern int repl;
-extern int silent;
+extern int eval_flag;
+extern int print_flag;
 extern int yylineno;
 extern FILE *yyin;
 extern datum LANG_NIL_VALUE;
 extern datum LANG_TRUE_VALUE;
 extern datum LANG_EOF_VALUE;
-extern datum *locals;
+extern datum *empty_locals;
 extern datum *globals;
 extern datum *gh_input;
+extern datum *gh_result;
 
 datum *symbol_loc(datum *table, char *symbol);
 
@@ -194,6 +195,8 @@ datum *lang_eof_objectp(datum **locals);
 datum *lang_open(datum **locals);
 
 datum *lang_close(datum **locals);
+
+datum *gh_read(FILE *file);
 
 datum *lang_read(datum **locals);
 
