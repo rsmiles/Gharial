@@ -1,4 +1,5 @@
 #define _POSIX_C_SOURCE 200112L
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -294,7 +295,7 @@ datum *lang_cond(datum **locals) {
 	return &LANG_NIL_VALUE;
 }
 
-datum *lang_eof_objectp(datum **locals) {
+datum *lang_is_eof_object(datum **locals) {
 	datum *expr;
 
 	expr = var_get(*locals, "#expr");

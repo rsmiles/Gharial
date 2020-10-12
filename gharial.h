@@ -192,7 +192,7 @@ datum *lang_recur(datum **locals);
 
 datum *lang_let(datum **locals);
 
-datum *lang_eof_objectp(datum **locals);
+datum *lang_is_eof_object(datum **locals);
 
 datum *lang_open(datum **locals);
 
