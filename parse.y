@@ -64,8 +64,9 @@ term: expr {
 			}
 	| TOK_EOF { gh_result = &LANG_EOF_VALUE; YYACCEPT; }
 	| error {
+				gh_input = $$;
 				depth = 0;
-				gh_result = gh_eval(gh_exception("SYNTAX-ERROR", "Syntax error", -1), &empty_locals);
+				gh_result = gh_eval(gh_exception("SYNTAX-ERROR", "Syntax error", NULL, yylineno), &empty_locals);
 				gh_print(stdout, gh_result);
 				if (print_flag)
 					prompt();

@@ -22,11 +22,11 @@
 #define TYPE_EOF       13
 #define TYPE_EXCEPTION 14
 
-#define gh_assert(test, type, description) \
+#define gh_assert(test, type, description, info) \
 	do { \
 		if (test) \
 			; \
-		else return gh_eval(gh_exception(type, description, -1), &globals); \
+		else return gh_eval(gh_exception(type, description, info, yylineno), &globals); \
 	} while(0);
 
 typedef struct datum {
@@ -60,6 +60,7 @@ typedef struct datum {
 		struct {
 			char *type;
 			char *description;
+			struct datum *info;
 			int lineno;
 		} exception;
 		
@@ -209,7 +210,7 @@ char *typestring(datum *obj);
 
 char *string_append(char *str1, char *str2);
 
-datum *gh_exception(char *type, char *description, int lineno);
+datum *gh_exception(char *type, char *description, datum *info, int lineno);
 
 #endif
 
