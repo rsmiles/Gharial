@@ -77,6 +77,7 @@ extern datum *empty_locals;
 extern datum *globals;
 extern datum *gh_input;
 extern datum *gh_result;
+extern char *current_file;
 
 datum *symbol_loc(datum *table, char *symbol);
 

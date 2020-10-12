@@ -514,6 +514,10 @@ void print_exception(FILE *file, datum *expr) {
 	description = expr->value.exception.description;
 	lineno = expr->value.exception.lineno;
 
+	if (current_file != NULL) {
+		fprintf(file, "Uncaught EXCEPTION in file \"%s\":\n", current_file);
+	}
+
 	if (expr->value.exception.lineno >= 0) {
 		fprintf(file, "EXCEPTION line %d: %s: %s\n", lineno, type, description);
 	} else {
@@ -688,10 +692,13 @@ datum* gh_load(char *path) {
 	FILE *file;
 	FILE *oldyyin;
 	int old_print_flag;
+	char *old_current_file;
 	
 	file = fopen(path, "r");
 	gh_assert(file != NULL, "FILE-ERROR", "Could not open file");
 
+	old_current_file = current_file;
+	current_file = path;
 	oldyyin = yyin;
 	yyin = file;
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
@@ -710,6 +717,7 @@ datum* gh_load(char *path) {
 
 	fclose(file);
 
+	current_file = old_current_file;
 	return &LANG_TRUE_VALUE;
 }
 

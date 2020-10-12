@@ -10,6 +10,8 @@ void init_builtins();
 int eval_flag = TRUE;
 int print_flag = TRUE;
 
+char *current_file = NULL;
+
 datum *gh_input = &LANG_NIL_VALUE;
 datum *gh_result = &LANG_NIL_VALUE;
 datum *globals = &LANG_NIL_VALUE;
