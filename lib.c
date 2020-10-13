@@ -410,26 +410,30 @@ datum *translate_binding(datum *let_binding) {
 	return gh_cons(first, second);
 }
 
-datum *zip(datum *lst1, datum *lst2) {
-	datum *iterator1;
-	datum *iterator2;
+datum *bind_args(datum *symbols, datum *values) {
+	datum *symbol_iterator;
+	datum *value_iterator;
 	datum *result;
 
-	iterator1 = lst1;
-	iterator2 = lst2;
+	symbol_iterator = symbols;
+	value_iterator = values;
 	result = &LANG_NIL_VALUE;
 
-	while (iterator1->type != TYPE_NIL && iterator2->type != TYPE_NIL) {
-		datum *val1;
-		datum *val2;
+	while (symbol_iterator->type == TYPE_CONS && value_iterator->type == TYPE_CONS) {
+		datum *current_symbol;
+		datum *current_value;
 
-		val1 = iterator1->value.cons.car;
-		val2 = iterator2->value.cons.car;
+		current_symbol = symbol_iterator->value.cons.car;
+		current_value = value_iterator->value.cons.car;
 
-		result = gh_cons(gh_cons(val1, val2), result);
+		result = gh_cons(gh_cons(current_symbol, current_value), result);
 
-		iterator1 = lst1->value.cons.cdr;
-		iterator2 = lst2->value.cons.cdr;
+		symbol_iterator = symbol_iterator->value.cons.cdr;
+		value_iterator = value_iterator->value.cons.cdr;
+	}
+
+	if (symbol_iterator->type != TYPE_NIL) {
+		result = gh_cons(gh_cons(symbol_iterator, value_iterator), result);
 	}
 
 	return result;
@@ -457,7 +461,7 @@ datum *lang_loop(datum **locals) {
 		if (result->type == TYPE_RECUR) {
 			datum *recur_bindings;
 
-			recur_bindings = zip(map(&car, translated_bindings), result->value.recur.bindings);
+			recur_bindings = bind_args(map(&car, translated_bindings), result->value.recur.bindings);
 			new_locals = combine(recur_bindings, *locals);
 			iterator = body;
 			continue;
@@ -483,9 +487,7 @@ datum *lang_recur(datum **locals) {
 datum *lang_let(datum **locals) {
 	datum *bindings;
 	datum *body;
-	datum *iterator;
 	datum *new_locals;
-	datum *result;
 	datum *translated_bindings;
 
 	bindings = var_get(*locals, "#bindings");
@@ -494,16 +496,7 @@ datum *lang_let(datum **locals) {
 	translated_bindings = map(&translate_binding, bindings);
 	new_locals = combine(translated_bindings, *locals);
 
-	result = &LANG_NIL_VALUE;
-
-	iterator = body;
-	while (iterator->type != TYPE_NIL) {
-		result = gh_eval(iterator->value.cons.car, &new_locals);
-		iterator = iterator->value.cons.cdr;
-	}
-
-	return result;
-
+	return gh_begin(body, &new_locals);
 }
 
 void print_exception(FILE *file, datum *expr) {
@@ -543,14 +536,17 @@ void print_exception(FILE *file, datum *expr) {
 datum *gh_eval(datum *expr, datum **locals) {
 	char  *symbol;
 	datum *value;
+	datum *expanded;
 
 	switch (expr->type) {
 		case TYPE_CONS:
-			value = gh_eval(expr->value.cons.car, locals);
+			expanded = macroexpand(expr, locals);
+			value = expanded->value.cons.car;
+			if (value->type == TYPE_SYMBOL) {
+				value = var_get(*locals, value->value.string);
+			}
+			return apply(value, expanded->value.cons.cdr, locals);
 
-			gh_assert(value->type == TYPE_FUNC || value->type == TYPE_CFUNC || value->type == TYPE_CFORM || value->type == TYPE_MACRO,
-						"TYPE-ERROR", "Attempt to call a non function, macro or special form", expr);
-			return eval_form(value, expr->value.cons.cdr, locals);
 			break;
 		case TYPE_SYMBOL:
 			symbol = expr->value.string;
@@ -932,80 +928,6 @@ datum *eval_arglist(datum *args, datum **locals) {
 	return argscopy;
 }
 
-datum *eval_form(datum *form, datum *args, datum **locals) {
-	datum *arglist;
-	datum *sym_iterator;
-	datum *args_iterator;
-	datum *result;
-
-	gh_assert(form->type == TYPE_CFUNC || form->type == TYPE_CFORM || form->type == TYPE_FUNC || form->type == TYPE_MACRO, "TYPE-ERROR", "Attempt to call a non function, macro or special form", form);
-
-	arglist = &LANG_NIL_VALUE;
-	if (form->type == TYPE_CFUNC || form->type == TYPE_CFORM)
-		sym_iterator = form->value.c_code.lambda_list;
-	else
-		sym_iterator = form->value.func.lambda_list;
-
-	args_iterator = args;
-
-	while (sym_iterator->type == TYPE_CONS && args_iterator->type == TYPE_CONS) {
-		datum *current_sym;
-		datum *current_arg;
-
-		current_sym = sym_iterator->value.cons.car;
-		current_arg = args_iterator->value.cons.car;
-
-		if (current_sym->type == TYPE_SYMBOL) {
-
-			if (form->type == TYPE_CFORM || form->type == TYPE_MACRO)
-				symbol_set(&arglist, current_sym->value.string, current_arg);
-			else
-				symbol_set(&arglist, current_sym->value.string, gh_eval(current_arg, locals));
-			
-			args_iterator = args_iterator->value.cons.cdr;
-		}
-
-		sym_iterator = sym_iterator->value.cons.cdr;
-	}
-	if (sym_iterator->type != TYPE_NIL) {
-		if (form->type == TYPE_CFORM || form->type == TYPE_MACRO)
-			symbol_set(&arglist, sym_iterator->value.string, args_iterator);
-		else
-			symbol_set(&arglist, sym_iterator->value.string, eval_arglist(args_iterator, locals));
-	}
-
-	switch (form->type) {
-		datum *new_locals;
-		datum *iterator;
-
-		case TYPE_CFUNC:
-		case TYPE_CFORM:
-			new_locals = combine(arglist, *locals);
-			return form->value.c_code.func(&new_locals);
-			break;
-
-		case TYPE_FUNC:
-		case TYPE_MACRO:
-			new_locals = combine(arglist, *locals);
-
-			iterator = form->value.func.body;
-			while (iterator->type == TYPE_CONS) {
-				result = gh_eval(iterator->value.cons.car, &new_locals);
-				iterator = iterator->value.cons.cdr;
-			}
-			break;
-
-		default:
-			gh_assert(TRUE, "TYPE-ERROR", "Unkown form type", form);
-	}
-
-	if (form->type == TYPE_MACRO) {
-		return gh_eval(result, locals);
-	}
-	else
-		return result;
-}
-
 char *typestring(datum *obj) {
 	switch (obj->type) {
 		case TYPE_NIL:
@@ -1092,6 +1014,182 @@ datum *gh_exception(char *type, char *description, datum *info, int lineno) {
 	ex->value.exception.lineno = lineno;
 
 	return ex;
+}
+
+datum *gh_begin(datum *body, datum **locals) {
+	datum *iterator;
+	datum *result;
+
+	while (iterator->type == TYPE_CONS) {
+		result = gh_eval(iterator->value.cons.car, locals);
+		iterator = iterator->value.cons.cdr;
+	}
+
+	return result;
+}
+
+datum *apply(datum *fn, datum *args, datum **locals) {
+	datum *evaluated_args;
+	datum *arg_bindings;
+	datum *new_locals;
+
+	gh_assert(fn->type == TYPE_CFORM || fn->type == TYPE_CFUNC ||
+				fn->type == TYPE_FUNC,
+				"TYPE-ERROR", "Attempt to call non-function", fn);
+
+	if (fn->type == TYPE_CFORM) { /* Do not evaluate arguments if special form */
+		evaluated_args = args;
+	} else {
+		evaluated_args = eval_arglist(args, locals);
+	}
+
+	if (fn->type == TYPE_CFUNC || fn->type == TYPE_CFORM) {
+		arg_bindings = bind_args(fn->value.c_code.lambda_list, evaluated_args);
+	} else {
+		arg_bindings = bind_args(fn->value.func.lambda_list, evaluated_args);
+	}
+
+	new_locals = combine(arg_bindings, *locals);
+
+	if (fn->type == TYPE_CFUNC || fn->type == TYPE_CFORM) {
+		return fn->value.c_code.func(&new_locals);
+	} else {
+		return gh_begin(fn->value.func.body, &new_locals);
+	}
+}
+
+datum *lang_apply(datum **locals) {
+	datum *fn;
+	datum *args;
+
+	fn = var_get(*locals, "#fn");
+	args = var_get(*locals, "#args");
+
+	if (fn->type == TYPE_SYMBOL) {
+		fn = var_get(*locals, fn->value.string);
+	}
+
+	gh_assert(fn->type == TYPE_FUNC || fn->type == TYPE_CFUNC, "TYPE-ERROR", "Attempt to apply non function", fn)
+	return apply(fn, args, locals);
+}
+
+datum *apply_macro(datum *macro, datum *args, datum **locals) {
+	datum *arg_bindings;
+	datum *new_locals;
+
+	arg_bindings = bind_args(macro->value.func.lambda_list, args);
+	new_locals = combine(arg_bindings, *locals);
+
+	return gh_begin(macro->value.func.body, &new_locals);
+
+}
+
+int macroexpand_1(datum **result, datum *expr, datum **locals) {
+	datum *first;
+
+	if (expr->type == TYPE_CONS) {
+
+		first = expr->value.cons.car;
+		if (first->type == TYPE_SYMBOL) {
+			datum *value;
+
+			value = var_get(*locals, first->value.string);
+			first = value;
+		}
+	}
+
+	if (first->type == TYPE_MACRO) {
+		*result = apply_macro(first, expr->value.cons.cdr, locals);
+		return 1;
+	} else {
+		datum *iterator;
+		iterator = expr;
+
+		while(iterator->type == TYPE_CONS) {
+			datum *first;
+
+			first = iterator->value.cons.car;
+			if (first->type == TYPE_CONS) {
+				return macroexpand_1(result, first, locals);
+			}
+			iterator = iterator->value.cons.cdr;
+		}
+		*result = expr;
+		return 0;
+	}
+}
+
+datum *macroexpand(datum *expr, datum **locals) {
+	int macro_expanded;
+	datum *result;
+
+	do {
+		macro_expanded = macroexpand_1(&result, expr, locals);
+	} while (macro_expanded);
+
+	return result;
+}
+
+datum *lang_macroexpand_1(datum **locals) {
+	datum *result;
+	datum *expr;
+
+	expr = var_get(*locals, "#expr");
+
+	macroexpand_1(&result, expr, locals);
+
+	return result;
+}
+
+datum *lang_macroexpand(datum **locals) {
+	datum *expr;
+
+	expr = var_get(*locals, "#expr");
+
+	return macroexpand(expr, locals);
+}
+
+unsigned int num_digits(unsigned int num) {
+	unsigned int test;
+	unsigned int count;
+
+	test = num;
+	count = 0;
+
+	while (num > 0) {
+		test = test / 10;
+		count++;
+	}
+	return count;
+}
+
+datum *gensym(char *name) {
+	unsigned int sym_len;
+	char *sym_str;
+	static unsigned int count = 0;
+
+	sym_len = strlen(name) + 3; /* +3 = 1 for null byte, 1 for '#' character, one for ':' character */
+	sym_len += num_digits(count);
+
+	sym_str = GC_MALLOC(sizeof(char) * sym_len);
+	snprintf(sym_str, sym_len, "#%s:%d", name, count);
+
+	return gh_symbol(sym_str);
+}
+
+datum *lang_gensym(datum **locals) {
+	datum *name;
+
+	name = var_get(*locals, "#name");
+	name = name->value.cons.car;
+
+	if (name->type == TYPE_NIL) {
+		name = gh_string("");
+	}
+
+	gh_assert(name->type == TYPE_SYMBOL || name->type == TYPE_STRING, "TYPE-ERROR", "Non symbol or string passed to gensym", name);
+
+	return gensym(name->value.string);
 }
 
 

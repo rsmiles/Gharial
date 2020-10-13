@@ -40,7 +40,7 @@ typedef struct datum {
 		struct {
 			struct datum *(*func)(struct datum **);
 			struct datum *lambda_list;
-		} c_code;
+		} c_code; /* C function or special form */
 
 		struct {
 			struct datum *car;
@@ -51,7 +51,7 @@ typedef struct datum {
 			struct datum *lambda_list;
 			struct datum *body;
 			struct datum **closure;
-		} func;
+		} func; /* Function or macro */
 
 		struct {
 			struct datum *bindings;
@@ -132,7 +132,7 @@ datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *list);
 
 datum *map(datum *(*func)(datum *x), datum *lst);
 
-datum *zip(datum *lst1, datum *lst2);
+datum *bind_args(datum *lst1, datum *lst2);
 
 datum *gh_car(datum *pair);
 
@@ -211,6 +211,28 @@ char *typestring(datum *obj);
 char *string_append(char *str1, char *str2);
 
 datum *gh_exception(char *type, char *description, datum *info, int lineno);
+
+datum *gh_begin(datum *body, datum **locals);
+
+datum *apply(datum *fn, datum *args, datum **locals);
+
+datum *apply_macro(datum *macro, datum *args, datum **locals);
+
+datum *lang_apply(datum **locals);
+
+int macroexpand_1(datum **result, datum *expr, datum **locals);
+
+datum *macroexpand(datum *expr, datum **locals);
+
+datum *lang_macroexpand_1(datum **locals);
+
+datum *lang_macroexpand(datum **locals);
+
+unsigned int num_digits(unsigned int num);
+
+datum *gensym();
+
+datum *lang_gensym(datum **locals);
 
 #endif
 

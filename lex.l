@@ -35,8 +35,8 @@ SPECIAL    [\+\-\*\/\^=\?\!]
 "{"                   { depth++; return TOK_OPENCURLY; }
 "}"                   { if (depth > 0 ) depth--; return TOK_CLOSECURLY; }
 "."                   { return TOK_DOT; }
-({LETTER}|{SPECIAL})+ { return TOK_SYMBOL; }
 <<EOF>>               { return TOK_EOF; }
+({LETTER}|{SPECIAL})+({LETTER}|{SPECIAL}|{DIGIT})* { return TOK_SYMBOL; }
 
 %%
 

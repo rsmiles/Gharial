@@ -34,18 +34,18 @@ void init_builtins() {
 	symbol_set(&globals, "car", gh_cfunc(&lang_car, gh_cons(gh_symbol("#pair"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "cdr", gh_cfunc(&lang_cdr, gh_cons(gh_symbol("#pair"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "reverse", gh_cfunc(&lang_reverse, gh_cons(gh_symbol("#lst"), &LANG_NIL_VALUE)));
-	symbol_set(&globals, "list", gh_cfunc(&lang_list, gh_cons(&LANG_NIL_VALUE, gh_symbol("#args"))));
+	symbol_set(&globals, "list", gh_cfunc(&lang_list, gh_symbol("#args")));
 	symbol_set(&globals, "=", gh_cfunc(&lang_equal, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b"), &LANG_NIL_VALUE))));
-	symbol_set(&globals, "+", gh_cfunc(&lang_add, gh_cons(&LANG_NIL_VALUE, gh_symbol("#args"))));
+	symbol_set(&globals, "+", gh_cfunc(&lang_add, gh_symbol("#args")));
 	symbol_set(&globals, "-", gh_cfunc(&lang_sub, gh_cons(gh_symbol("#first"), gh_symbol("#rest"))));
-	symbol_set(&globals, "*", gh_cfunc(&lang_mul, gh_cons(&LANG_NIL_VALUE, gh_symbol("#args"))));
+	symbol_set(&globals, "*", gh_cfunc(&lang_mul, gh_symbol("#args")));
 	symbol_set(&globals, "/", gh_cfunc(&lang_div, gh_cons(gh_symbol("#first"), gh_symbol("#rest"))));
 	symbol_set(&globals, "^", gh_cfunc(&lang_pow, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "lambda", gh_cform(&lang_lambda, gh_cons(gh_symbol("#lambda-list"), gh_symbol("#body"))));
 	symbol_set(&globals, "macro", gh_cform(&lang_macro, gh_cons(gh_symbol("#lambda-list"), gh_symbol("#body"))));
-	symbol_set(&globals, "cond", gh_cform(&lang_cond, gh_cons(&LANG_NIL_VALUE, gh_symbol("#conditions"))));
+	symbol_set(&globals, "cond", gh_cform(&lang_cond, gh_symbol("#conditions")));
 	symbol_set(&globals, "loop", gh_cform(&lang_loop, gh_cons(gh_symbol("#bindings"), gh_symbol("#body"))));
-	symbol_set(&globals, "recur", gh_cform(&lang_recur, gh_cons(&LANG_NIL_VALUE, gh_symbol("#bindings"))));
+	symbol_set(&globals, "recur", gh_cform(&lang_recur, gh_symbol("#bindings")));
 	symbol_set(&globals, "let", gh_cform(&lang_let, gh_cons(gh_symbol("#bindings"), gh_symbol("#body"))));
 	symbol_set(&globals, "is-eof-object", gh_cfunc(&lang_is_eof_object, gh_cons(gh_symbol("#expr"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "open", gh_cfunc(&lang_open, gh_cons(gh_symbol("#fname"), gh_symbol("#mode"))));
@@ -53,6 +53,9 @@ void init_builtins() {
 	symbol_set(&globals, "read", gh_cfunc(&lang_read, gh_symbol("#file")));
 	symbol_set(&globals, "write", gh_cfunc(&lang_write, gh_cons(gh_symbol("#expr"), gh_symbol("#file"))));
 	symbol_set(&globals, "load", gh_cfunc(&lang_load, gh_cons(gh_symbol("#path"), &LANG_NIL_VALUE)));
+	symbol_set(&globals, "apply", gh_cfunc(&lang_apply, gh_cons(gh_symbol("#fn"), gh_cons(gh_symbol("#args"), &LANG_NIL_VALUE))));
+	symbol_set(&globals, "macroexpand-1", gh_cform(&lang_macroexpand_1, gh_cons(gh_symbol("#expr"), &LANG_NIL_VALUE)));
+	symbol_set(&globals, "macroexpand", gh_cform(&lang_macroexpand, gh_cons(gh_symbol("#expr"), &LANG_NIL_VALUE)));
 }
 
 int main(int argc, char **argv) {
