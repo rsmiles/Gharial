@@ -292,6 +292,7 @@ datum *lang_cond(datum **locals) {
 
 		iterator = iterator->value.cons.cdr;
 	}
+
 	return &LANG_NIL_VALUE;
 }
 
@@ -542,11 +543,12 @@ datum *gh_eval(datum *expr, datum **locals) {
 		case TYPE_CONS:
 			expanded = macroexpand(expr, locals);
 			value = expanded->value.cons.car;
+
 			if (value->type == TYPE_SYMBOL) {
 				value = var_get(*locals, value->value.string);
 			}
-			return apply(value, expanded->value.cons.cdr, locals);
 
+			return apply(value, expanded->value.cons.cdr, locals);
 			break;
 		case TYPE_SYMBOL:
 			symbol = expr->value.string;
@@ -749,6 +751,7 @@ datum *do_unquotes(datum *expr, datum **locals) {
 		}
 		iterator = iterator->value.cons.cdr;
 	}
+
 	return expr;
 }
 
@@ -1020,11 +1023,12 @@ datum *gh_begin(datum *body, datum **locals) {
 	datum *iterator;
 	datum *result;
 
+	iterator = body;
+
 	while (iterator->type == TYPE_CONS) {
 		result = gh_eval(iterator->value.cons.car, locals);
 		iterator = iterator->value.cons.cdr;
 	}
-
 	return result;
 }
 
@@ -1081,69 +1085,33 @@ datum *apply_macro(datum *macro, datum *args, datum **locals) {
 	new_locals = combine(arg_bindings, *locals);
 
 	return gh_begin(macro->value.func.body, &new_locals);
-
 }
 
-int macroexpand_1(datum **result, datum *expr, datum **locals) {
-	datum *first;
-
+datum * macroexpand(datum *expr, datum **locals) {
 	if (expr->type == TYPE_CONS) {
+		datum *first;
 
 		first = expr->value.cons.car;
 		if (first->type == TYPE_SYMBOL) {
 			datum *value;
 
-			value = var_get(*locals, first->value.string);
+			value = symbol_get(*locals, first->value.string);
+			if (value == NULL) {
+				value = symbol_get(globals, first->value.string);
+			}
+			if (value == NULL) {
+				return expr;
+			}
 			first = value;
 		}
-	}
-
-	if (first->type == TYPE_MACRO) {
-		*result = apply_macro(first, expr->value.cons.cdr, locals);
-		return 1;
-	} else {
-		datum *iterator;
-		iterator = expr;
-
-		while(iterator->type == TYPE_CONS) {
-			datum *first;
-
-			first = iterator->value.cons.car;
-			if (first->type == TYPE_CONS) {
-				datum *nested_result;
-				if (macroexpand_1(&nested_result, first, locals)) {
-					iterator->value.cons.car = nested_result;
-					*result = expr;
-					return 1;
-				}
-			}
-			iterator = iterator->value.cons.cdr;
+		if (first->type == TYPE_MACRO) {
+			return apply_macro(first, expr->value.cons.cdr, locals);
+		} else {
+			return expr;
 		}
-		*result = expr;
-		return 0;
+	} else {
+		return expr;
 	}
-}
-
-datum *macroexpand(datum *expr, datum **locals) {
-	int macro_expanded;
-	datum *result;
-
-	do {
-		macro_expanded = macroexpand_1(&result, expr, locals);
-	} while (macro_expanded);
-
-	return result;
-}
-
-datum *lang_macroexpand_1(datum **locals) {
-	datum *result;
-	datum *expr;
-
-	expr = var_get(*locals, "#expr");
-
-	macroexpand_1(&result, expr, locals);
-
-	return result;
 }
 
 datum *lang_macroexpand(datum **locals) {
@@ -1161,7 +1129,7 @@ unsigned int num_digits(unsigned int num) {
 	test = num;
 	count = 0;
 
-	while (num > 0) {
+	while (test > 0) {
 		test = test / 10;
 		count++;
 	}

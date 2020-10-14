@@ -220,8 +220,6 @@ datum *apply_macro(datum *macro, datum *args, datum **locals);
 
 datum *lang_apply(datum **locals);
 
-int macroexpand_1(datum **result, datum *expr, datum **locals);
-
 datum *macroexpand(datum *expr, datum **locals);
 
 datum *lang_macroexpand_1(datum **locals);
