@@ -1110,7 +1110,12 @@ int macroexpand_1(datum **result, datum *expr, datum **locals) {
 
 			first = iterator->value.cons.car;
 			if (first->type == TYPE_CONS) {
-				return macroexpand_1(result, first, locals);
+				datum *nested_result;
+				if (macroexpand_1(&nested_result, first, locals)) {
+					iterator->value.cons.car = nested_result;
+					*result = expr;
+					return 1;
+				}
 			}
 			iterator = iterator->value.cons.cdr;
 		}
