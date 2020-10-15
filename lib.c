@@ -542,6 +542,7 @@ datum *gh_eval(datum *expr, datum **locals) {
 	switch (expr->type) {
 		case TYPE_CONS:
 			expanded = macroexpand(expr, locals);
+			expanded = macroexpand(expanded, locals);
 			value = expanded->value.cons.car;
 
 			if (value->type == TYPE_SYMBOL) {
@@ -738,8 +739,11 @@ datum* gh_load(char *path) {
 datum *do_unquotes(datum *expr, datum **locals) {
 	datum *iterator;
 	datum *current;
+	datum *copy;
 
-	iterator = expr;
+	copy = reverse(reverse(expr));
+
+	iterator = copy;
 
 	while (iterator->type == TYPE_CONS) {
 		current = iterator->value.cons.car;
@@ -752,7 +756,7 @@ datum *do_unquotes(datum *expr, datum **locals) {
 		iterator = iterator->value.cons.cdr;
 	}
 
-	return expr;
+	return copy;
 }
 
 datum *reverse(datum *lst) {
@@ -1080,14 +1084,16 @@ datum *lang_apply(datum **locals) {
 datum *apply_macro(datum *macro, datum *args, datum **locals) {
 	datum *arg_bindings;
 	datum *new_locals;
+	datum *result;
 
 	arg_bindings = bind_args(macro->value.func.lambda_list, args);
 	new_locals = combine(arg_bindings, *locals);
 
-	return gh_begin(macro->value.func.body, &new_locals);
+	result = gh_begin(macro->value.func.body, &new_locals);
+	return result;
 }
 
-datum * macroexpand(datum *expr, datum **locals) {
+datum *macroexpand(datum *expr, datum **locals) {
 	if (expr->type == TYPE_CONS) {
 		datum *first;
 
@@ -1102,6 +1108,7 @@ datum * macroexpand(datum *expr, datum **locals) {
 			if (value == NULL) {
 				return expr;
 			}
+
 			first = value;
 		}
 		if (first->type == TYPE_MACRO) {

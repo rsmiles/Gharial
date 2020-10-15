@@ -1,3 +1,9 @@
-(set if (macro (test true false)
-	'(cond (,test ,true) (t ,false))))
+(set defmacro (macro (name args body)
+	'(set ,name (macro ,args ,body))))
+
+(defmacro defun (name args body)
+	'(set ,name (lambda ,args ,body)))
+
+(defmacro if (test true false)
+	'(cond (,test ,true) (t ,false)))
 
