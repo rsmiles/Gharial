@@ -158,6 +158,8 @@ datum *lang_quote(datum **locals);
 
 datum *lang_unquote(datum **locals);
 
+datum *lang_unquote_splice(datum **locals);
+
 datum *lang_cons(datum **locals);
 
 datum *lang_car(datum **locals);
