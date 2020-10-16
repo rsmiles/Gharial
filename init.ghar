@@ -1,7 +1,21 @@
 (set defmacro (macro (name args . body)
 	'(set ,name (macro ,args . @body))))
 
+(defmacro defun (name args . body)
+	'(set ,name (lambda ,args . @body)))
+
+(defmacro alias (old-name new-name)
+	'(defmacro ,new-name args
+		(cons ,old-name args)))
+
+(alias set defvar)
+
 (defmacro if (test true false)
 	'(cond (,test ,true) (t ,false)))
+
+(defmacro begin terms
+	'(let () . @terms))
+
+(alias begin progn)
 
 
