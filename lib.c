@@ -782,8 +782,14 @@ datum *do_unquotes(datum *expr, datum **locals) {
 	while (iterator->type == TYPE_CONS) {
 		current = iterator->value.cons.car;
 		if (current->type == TYPE_SYMBOL) {
-			if (strcmp(current->value.string, "unquote") == 0)
-				return gh_eval(iterator, locals);
+			if (strcmp(current->value.string, "unquote") == 0) {
+				return gh_eval(iterator->value.cons.cdr->value.cons.car, locals);
+			} else if (strcmp(current->value.string, "unquote-splice") == 0) {
+				datum *splice;
+				splice = gh_eval(iterator->value.cons.cdr->value.cons.car, locals);
+				iterator->value.cons.car = splice->value.cons.car;
+				iterator->value.cons.cdr = splice->value.cons.cdr;
+			}
 		} else if (current->type == TYPE_CONS) {
 			iterator->value.cons.car = do_unquotes(iterator->value.cons.car, locals);
 		}
@@ -837,6 +843,11 @@ datum *lang_unquote(datum **locals) {
 
 	expr = var_get(*locals, "#expr");
 	return gh_eval(expr, locals);
+}
+
+datum *lang_unquote_splice(datum **locals) {
+	gh_assert(TRUE, "RUNTIME-ERROR", "Call to unquote-splice", NULL);
+	return &LANG_NIL_VALUE;
 }
 
 datum *lang_cons(datum **locals) {
