@@ -29,6 +29,8 @@
 		else return gh_eval(gh_exception(type, description, info, yylineno), &globals); \
 	} while(0);
 
+typedef int bool;
+
 typedef struct datum {
 	int type;
 	union {
@@ -105,6 +107,8 @@ datum *gh_cons(datum *car, datum *cdr);
 void gh_print(FILE *file, datum *expr);
 
 void print_exception(FILE *file, datum *expr);
+
+bool is_macro_call(datum *expr, datum **locals);
 
 datum *gh_eval(datum *expr, datum **locals);
 

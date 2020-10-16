@@ -534,6 +534,37 @@ void print_exception(FILE *file, datum *expr) {
 	}
 }
 
+bool is_macro_call(datum *expr, datum **locals) {
+	if (expr->type == TYPE_CONS) {
+		datum *first;
+
+		first = expr->value.cons.car;
+		if (first->type == TYPE_SYMBOL) {
+			char *str;
+			datum *lookup;
+
+			str = first->value.string;
+			lookup = symbol_get(*locals, str);
+			if (lookup == NULL) {
+				lookup = symbol_get(globals, str);
+			}
+
+			if (lookup != NULL) {
+				first = lookup;
+			} else {
+				return FALSE;
+			}
+		}
+		if (first->type == TYPE_MACRO) {
+			return TRUE;
+		} else {
+			return FALSE;
+		}
+	} else {
+		return FALSE;
+	}
+}
+
 datum *gh_eval(datum *expr, datum **locals) {
 	char  *symbol;
 	datum *value;
@@ -541,8 +572,11 @@ datum *gh_eval(datum *expr, datum **locals) {
 
 	switch (expr->type) {
 		case TYPE_CONS:
-			expanded = macroexpand(expr, locals);
-			expanded = macroexpand(expanded, locals);
+			expanded = expr;
+			while (is_macro_call(expanded, locals)) {
+				expanded = macroexpand(expanded, locals);
+			}
+
 			value = expanded->value.cons.car;
 
 			if (value->type == TYPE_SYMBOL) {
