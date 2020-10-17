@@ -613,6 +613,13 @@ datum *gh_eval(datum *expr, datum **locals) {
 	}
 }
 
+datum *lang_eval(datum **locals) {
+	datum *expr;
+
+	expr = var_get(locals, "#expr");
+	return gh_eval(expr, locals);
+}
+
 void print_datum(FILE *file, datum *expr) {
 	datum *iterator;
 	switch (expr->type) {

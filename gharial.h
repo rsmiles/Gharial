@@ -113,6 +113,8 @@ bool is_macro_call(datum *expr, datum **locals);
 
 datum *gh_eval(datum *expr, datum **locals);
 
+datum *lang_eval(datum **locals);
+
 void prompt();
 
 datum *new_datum();
