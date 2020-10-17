@@ -1267,3 +1267,31 @@ datum *lang_try(datum **locals) {
 	return gh_eval(action, &new_locals);
 }
 
+datum *lang_exception(datum **locals) {
+	datum *type;
+	datum *description;
+	datum *info;
+	int lineno;
+
+	type = var_get(*locals, "#type");
+	gh_assert(type->type == TYPE_SYMBOL || type->type == TYPE_STRING,
+				"TYPE-ERROR", "Expected symbol or string as first argument to exception",
+				type);
+
+	description = var_get(*locals, "#description");
+	gh_assert(description->type == TYPE_STRING,
+				"TYPE-ERROR", "Expected  string as second argument to exception",
+				description);
+
+	info = var_get(*locals, "#info");
+
+	if (info->type != TYPE_CONS) {
+		info = NULL;
+	} else {
+		info = info->value.cons.car;
+	}
+
+	lineno = yylineno;
+
+	return gh_eval(gh_exception(type->value.string, description->value.string, info, lineno), locals);
+}

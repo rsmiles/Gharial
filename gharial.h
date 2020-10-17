@@ -240,5 +240,7 @@ datum *lang_gensym(datum **locals);
 
 datum *lang_try(datum **locals);
 
+datum *lang_exception(datum **locals);
+
 #endif
 
