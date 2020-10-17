@@ -208,7 +208,7 @@ datum *gh_file(FILE *fptr) {
 }
 
 datum *lang_list(datum **locals){
-	return var_get(*locals, "#args");
+	return var_get(locals, "#args");
 }
 
 datum *gh_cons(datum *car, datum *cdr) {
@@ -234,8 +234,8 @@ datum *lang_lambda(datum **locals) {
 	datum *func;
 	datum *iterator;
 
-	lambda_list = var_get(*locals, "#lambda-list");
-	body = var_get(*locals, "#body");
+	lambda_list = var_get(locals, "#lambda-list");
+	body = var_get(locals, "#body");
 
 	iterator = lambda_list;
 
@@ -259,8 +259,8 @@ datum *lang_macro(datum **locals) {
 	datum *mac;
 	datum *iterator;
 
-	lambda_list = var_get(*locals, "#lambda-list");
-	body = var_get(*locals, "#body");
+	lambda_list = var_get(locals, "#lambda-list");
+	body = var_get(locals, "#body");
 
 	iterator = lambda_list;
 
@@ -281,7 +281,7 @@ datum *lang_macro(datum **locals) {
 datum *lang_cond(datum **locals) {
 	datum *iterator;
 
-	iterator = var_get(*locals, "#conditions");
+	iterator = var_get(locals, "#conditions");
 
 	while (iterator->type != TYPE_NIL) {
 		datum *current_cond;
@@ -299,7 +299,7 @@ datum *lang_cond(datum **locals) {
 datum *lang_is_eof_object(datum **locals) {
 	datum *expr;
 
-	expr = var_get(*locals, "#expr");
+	expr = var_get(locals, "#expr");
 
 	if (expr->type == TYPE_EOF)
 		return &LANG_TRUE_VALUE;
@@ -312,10 +312,10 @@ datum *lang_open(datum **locals) {
 	datum *mode;
 	FILE *fptr;
 
-	path = var_get(*locals, "#fname");
+	path = var_get(locals, "#fname");
 	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "TYPE-ERROR", "open requires string or symbol for first argument", path);
 
-	mode = var_get(*locals, "#mode");
+	mode = var_get(locals, "#mode");
 
 	if (mode->type == TYPE_NIL) {
 		mode = gh_string("a+");
@@ -335,7 +335,7 @@ datum *lang_close(datum **locals) {
 	datum *file;
 	int result;
 
-	file = var_get(*locals, "#file");
+	file = var_get(locals, "#file");
 	gh_assert(file->type == TYPE_FILE, "TYPE-ERROR", "Attempt to close a non-file", file);
 
 	result = fclose(file->value.file);
@@ -348,13 +348,13 @@ datum *lang_read(datum **locals) {
 	datum *file;
 	FILE *oldyyin;
 
-	file = var_get(*locals, "#file");
+	file = var_get(locals, "#file");
 	if (file->type == TYPE_CONS) {
 		file = file->value.cons.car;
 		gh_assert(file->type == TYPE_FILE, "TYPE-ERROR", "read call on non-file", file);
 	} else { 
 		gh_assert(file->type == TYPE_NIL, "TYPE-ERROR", "read call on non-file", file);
-		file = var_get(*locals, "input-file");
+		file = var_get(locals, "input-file");
 	}
 
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
@@ -372,15 +372,15 @@ datum *lang_write(datum **locals) {
 	datum *expr;
 	datum *file;
 
-	expr = var_get(*locals, "#expr");
+	expr = var_get(locals, "#expr");
 
-	file = var_get(*locals, "#file");
+	file = var_get(locals, "#file");
 	if (file->type == TYPE_CONS) {
 		file = file->value.cons.car;
 		gh_assert(file->type == TYPE_FILE, "TYPE-ERROR", "read call on non-file", file);
 	} else { 
 		gh_assert(file->type == TYPE_NIL, "TYPE-ERROR", "read call on non-file", file);
-		file = var_get(*locals, "output-file");
+		file = var_get(locals, "output-file");
 	}
 
 	gh_print(file->value.file, expr);
@@ -390,7 +390,7 @@ datum *lang_write(datum **locals) {
 datum *lang_load(datum **locals) {
 	datum *path;
 
-	path = var_get(*locals, "#path");
+	path = var_get(locals, "#path");
 	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "TYPE-ERROR", "Load requires string or symbol for path argument", path);
 
 	gh_load(path->value.string);
@@ -448,8 +448,8 @@ datum *lang_loop(datum **locals) {
 	datum *result;
 	datum *translated_bindings;
 
-	bindings = var_get(*locals, "#bindings");
-	body = var_get(*locals, "#body");
+	bindings = var_get(locals, "#bindings");
+	body = var_get(locals, "#body");
 
 	translated_bindings = map(&translate_binding, bindings);
 	new_locals = combine(translated_bindings, *locals);
@@ -477,7 +477,7 @@ datum *lang_recur(datum **locals) {
 	datum *bindings;
 	datum *rec;
 
-	bindings = var_get(*locals, "#bindings");
+	bindings = var_get(locals, "#bindings");
 	rec = new_datum();
 	rec->type = TYPE_RECUR;
 	rec->value.recur.bindings = eval_arglist(bindings, locals);
@@ -491,8 +491,8 @@ datum *lang_let(datum **locals) {
 	datum *new_locals;
 	datum *translated_bindings;
 
-	bindings = var_get(*locals, "#bindings");
-	body = var_get(*locals, "#body");
+	bindings = var_get(locals, "#bindings");
+	body = var_get(locals, "#body");
 
 	translated_bindings = map(&translate_binding, bindings);
 	new_locals = combine(translated_bindings, *locals);
@@ -569,6 +569,7 @@ datum *gh_eval(datum *expr, datum **locals) {
 	char  *symbol;
 	datum *value;
 	datum *expanded;
+	datum *handlers;
 
 	switch (expr->type) {
 		case TYPE_CONS:
@@ -580,20 +581,32 @@ datum *gh_eval(datum *expr, datum **locals) {
 			value = expanded->value.cons.car;
 
 			if (value->type == TYPE_SYMBOL) {
-				value = var_get(*locals, value->value.string);
+				value = var_get(locals, value->value.string);
 			}
 
 			return apply(value, expanded->value.cons.cdr, locals);
 			break;
 		case TYPE_SYMBOL:
 			symbol = expr->value.string;
-			value = var_get(*locals, symbol);
-			gh_assert(value != NULL, "REF-ERROR", "Undefined variable", value);
+			value = var_get(locals, symbol);
 			return value;
 			break;
 		case TYPE_EXCEPTION:
-			print_exception(stderr, expr);
-			return expr;
+			handlers = symbol_get(*locals, "#handlers");
+			if (handlers == NULL) {
+				print_exception(stderr, expr);
+				return expr;
+			} else {
+				datum *handler;
+				handler = symbol_get(handlers, expr->value.exception.type);
+				if (handler == NULL) {
+					print_exception(stderr, expr);
+					return expr;
+				} else {
+					return apply(handler, expr, locals);
+				}
+			}
+
 			break;
 		default:
 			return expr;
@@ -698,10 +711,10 @@ datum *symbol_get(datum *table, char *symbol) {
 		return loc->value.cons.cdr;
 }
 
-datum *var_get(datum *locals, char *symbol) {
+datum *var_get(datum **locals, char *symbol) {
 	datum *var;
 
-	var = symbol_get(locals, symbol);
+	var = symbol_get(*locals, symbol);
 	if (var == NULL) {
 		var = symbol_get(globals, symbol);
 		gh_assert(var != NULL, "REF-ERROR", "Unbound variable", gh_symbol(symbol));
@@ -836,8 +849,8 @@ datum *lang_set(datum **locals) {
 	datum *value;
 	datum *loc;
 
-	symbol = var_get(*locals, "#symbol");
-	value = gh_eval(var_get(*locals, "#value"), locals);
+	symbol = var_get(locals, "#symbol");
+	value = gh_eval(var_get(locals, "#value"), locals);
 
 	loc = symbol_loc(*locals, symbol->value.string);
 	if (loc)
@@ -851,14 +864,14 @@ datum *lang_set(datum **locals) {
 datum *lang_quote(datum **locals) {
 	datum *expr;
 
-	expr = var_get(*locals, "#expr");
+	expr = var_get(locals, "#expr");
 	return do_unquotes(expr, locals);
 }
 
 datum *lang_unquote(datum **locals) {
 	datum *expr;
 
-	expr = var_get(*locals, "#expr");
+	expr = var_get(locals, "#expr");
 	return gh_eval(expr, locals);
 }
 
@@ -871,15 +884,15 @@ datum *lang_cons(datum **locals) {
 	datum *car;
 	datum *cdr;
 
-	car = var_get(*locals, "#car");
-	cdr = var_get(*locals, "#cdr");
+	car = var_get(locals, "#car");
+	cdr = var_get(locals, "#cdr");
 	return gh_cons(car, cdr);
 }
 
 datum *lang_car(datum **locals) {
 	datum *pair;
 
-	pair = var_get(*locals, "#pair");
+	pair = var_get(locals, "#pair");
 	gh_assert(pair->type == TYPE_CONS, "TYPE-ERROR", "Not a pair or list", pair);
 
 	return pair->value.cons.car;
@@ -888,7 +901,7 @@ datum *lang_car(datum **locals) {
 datum *lang_cdr(datum **locals) {
 	datum *pair;
 
-	pair = var_get(*locals, "#pair");
+	pair = var_get(locals, "#pair");
 	gh_assert(pair->type == TYPE_CONS, "TYPE-ERROR", "Not a pair or list", pair);
 
 	return pair->value.cons.cdr;
@@ -897,7 +910,7 @@ datum *lang_cdr(datum **locals) {
 datum *lang_reverse(datum **locals) {
 	datum *lst;
 
-	lst = var_get(*locals, "#lst");
+	lst = var_get(locals, "#lst");
 
 	return reverse(lst);
 }
@@ -907,8 +920,8 @@ datum *lang_equal(datum **locals) {
 	datum *b;
 	int result;
 
-	a = var_get(*locals, "#a");
-	b = var_get(*locals, "#b");
+	a = var_get(locals, "#a");
+	b = var_get(locals, "#b");
 
 	if ((a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL) &&
 		(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL)) {
@@ -925,7 +938,7 @@ datum *lang_equal(datum **locals) {
 datum *lang_add(datum **locals) {
 	datum *args;
 
-	args = var_get(*locals, "#args");
+	args = var_get(locals, "#args");
 
 	return fold(&add2, gh_integer(0), args);
 }
@@ -934,8 +947,8 @@ datum *lang_sub(datum **locals) {
 	datum *first;
 	datum *rest;
 
-	first = var_get(*locals, "#first");
-	rest = var_get(*locals, "#rest");
+	first = var_get(locals, "#first");
+	rest = var_get(locals, "#rest");
 
 	return fold(&sub2, first, rest);
 }
@@ -943,7 +956,7 @@ datum *lang_sub(datum **locals) {
 datum *lang_mul(datum **locals) {
 	datum *args;
 
-	args = var_get(*locals, "#args");
+	args = var_get(locals, "#args");
 
 	return fold(&mul2, gh_integer(1), args);
 }
@@ -952,8 +965,8 @@ datum *lang_div(datum **locals) {
 	datum *first;
 	datum *rest;
 
-	first = var_get(*locals, "#first");
-	rest = var_get(*locals, "#rest");
+	first = var_get(locals, "#first");
+	rest = var_get(locals, "#rest");
 
 	return fold(&div2, first, rest);
 }
@@ -962,8 +975,8 @@ datum *lang_pow(datum **locals) {
 	datum *a;
 	datum *b;
 
-	a = var_get(*locals, "#a");
-	b = var_get(*locals, "#b");
+	a = var_get(locals, "#a");
+	b = var_get(locals, "#b");
 
 	return(dpow(a, b));
 }
@@ -1134,11 +1147,11 @@ datum *lang_apply(datum **locals) {
 	datum *fn;
 	datum *args;
 
-	fn = var_get(*locals, "#fn");
-	args = var_get(*locals, "#args");
+	fn = var_get(locals, "#fn");
+	args = var_get(locals, "#args");
 
 	if (fn->type == TYPE_SYMBOL) {
-		fn = var_get(*locals, fn->value.string);
+		fn = var_get(locals, fn->value.string);
 	}
 
 	gh_assert(fn->type == TYPE_FUNC || fn->type == TYPE_CFUNC, "TYPE-ERROR", "Attempt to apply non function", fn)
@@ -1188,7 +1201,7 @@ datum *macroexpand(datum *expr, datum **locals) {
 datum *lang_macroexpand(datum **locals) {
 	datum *expr;
 
-	expr = var_get(*locals, "#expr");
+	expr = var_get(locals, "#expr");
 
 	return macroexpand(expr, locals);
 }
@@ -1229,7 +1242,7 @@ datum *gensym(char *name) {
 datum *lang_gensym(datum **locals) {
 	datum *name;
 
-	name = var_get(*locals, "#name");
+	name = var_get(locals, "#name");
 	if (name->type == TYPE_NIL) {
 		name = gh_string("");
 	} else {
@@ -1248,8 +1261,8 @@ datum *lang_try(datum **locals) {
 	datum *new_locals;
 	datum *iterator;
 
-	action = var_get(*locals, "#action");
-	handlers = var_get(*locals, "#except");
+	action = var_get(locals, "#action");
+	handlers = var_get(locals, "#except");
 	handlers = map(&translate_binding, handlers);
 
 	/* Evaluate the exception handler functions so that they are functions, not symbols or lists */
@@ -1273,17 +1286,17 @@ datum *lang_exception(datum **locals) {
 	datum *info;
 	int lineno;
 
-	type = var_get(*locals, "#type");
+	type = var_get(locals, "#type");
 	gh_assert(type->type == TYPE_SYMBOL || type->type == TYPE_STRING,
 				"TYPE-ERROR", "Expected symbol or string as first argument to exception",
 				type);
 
-	description = var_get(*locals, "#description");
+	description = var_get(locals, "#description");
 	gh_assert(description->type == TYPE_STRING,
 				"TYPE-ERROR", "Expected  string as second argument to exception",
 				description);
 
-	info = var_get(*locals, "#info");
+	info = var_get(locals, "#info");
 
 	if (info->type != TYPE_CONS) {
 		info = NULL;

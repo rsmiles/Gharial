@@ -26,7 +26,7 @@
 	do { \
 		if (test) \
 			; \
-		else return gh_eval(gh_exception(type, description, info, yylineno), &globals); \
+		else return gh_eval(gh_exception(type, description, info, yylineno), locals); \
 	} while(0);
 
 typedef int bool;
@@ -77,6 +77,7 @@ extern datum LANG_NIL_VALUE;
 extern datum LANG_TRUE_VALUE;
 extern datum LANG_EOF_VALUE;
 extern datum *empty_locals;
+extern datum **locals;
 extern datum *globals;
 extern datum *gh_input;
 extern datum *gh_result;
@@ -126,7 +127,7 @@ datum* gh_load(char *path);
 
 datum *combine(datum *lst1, datum *lst2);
 
-datum *var_get(datum *locals, char *symbol);
+datum *var_get(datum **locals, char *symbol);
 
 datum *eval_arglist(datum *args, datum **locals);
 

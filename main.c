@@ -16,6 +16,7 @@ datum *gh_input = &LANG_NIL_VALUE;
 datum *gh_result = &LANG_NIL_VALUE;
 datum *globals = &LANG_NIL_VALUE;
 datum *empty_locals = &LANG_NIL_VALUE;
+datum **locals = &empty_locals;
 
 void init_io() {
 	symbol_set(&globals, "*STDIN*", gh_file(stdin));
