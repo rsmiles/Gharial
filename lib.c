@@ -775,7 +775,11 @@ datum *do_unquotes(datum *expr, datum **locals) {
 	datum *current;
 	datum *copy;
 
-	copy = reverse(reverse(expr));
+	if (expr->type == TYPE_CONS) {
+		copy = reverse(reverse(expr));
+	} else {
+		copy = expr;
+	}
 
 	iterator = copy;
 
@@ -1073,6 +1077,7 @@ datum *gh_begin(datum *body, datum **locals) {
 	datum *result;
 
 	iterator = body;
+	result = &LANG_NIL_VALUE;
 
 	while (iterator->type == TYPE_CONS) {
 		result = gh_eval(iterator->value.cons.car, locals);
