@@ -774,6 +774,7 @@ datum *do_unquotes(datum *expr, datum **locals) {
 	datum *iterator;
 	datum *current;
 	datum *copy;
+	datum *prev;
 
 	if (expr->type == TYPE_CONS) {
 		copy = reverse(reverse(expr));
@@ -783,6 +784,8 @@ datum *do_unquotes(datum *expr, datum **locals) {
 
 	iterator = copy;
 
+	prev = NULL;
+
 	while (iterator->type == TYPE_CONS) {
 		current = iterator->value.cons.car;
 		if (current->type == TYPE_SYMBOL) {
@@ -791,12 +794,22 @@ datum *do_unquotes(datum *expr, datum **locals) {
 			} else if (strcmp(current->value.string, "unquote-splice") == 0) {
 				datum *splice;
 				splice = gh_eval(iterator->value.cons.cdr->value.cons.car, locals);
+				if (splice->type != TYPE_CONS) {
+					if (prev != NULL) {
+						prev->value.cons.cdr = splice;
+						return copy;
+					} else {
+						return splice;
+					}
+				}
 				iterator->value.cons.car = splice->value.cons.car;
 				iterator->value.cons.cdr = splice->value.cons.cdr;
 			}
 		} else if (current->type == TYPE_CONS) {
 			iterator->value.cons.car = do_unquotes(iterator->value.cons.car, locals);
 		}
+		
+		prev = iterator;
 		iterator = iterator->value.cons.cdr;
 	}
 
@@ -1083,6 +1096,7 @@ datum *gh_begin(datum *body, datum **locals) {
 		result = gh_eval(iterator->value.cons.car, locals);
 		iterator = iterator->value.cons.cdr;
 	}
+
 	return result;
 }
 
