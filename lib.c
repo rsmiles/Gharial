@@ -1204,19 +1204,24 @@ unsigned int num_digits(unsigned int num) {
 		test = test / 10;
 		count++;
 	}
-	return count;
+
+	if (test <= 0) {
+		return 1;
+	} else {
+		return count;
+	}
 }
 
 datum *gensym(char *name) {
 	unsigned int sym_len;
 	char *sym_str;
-	static unsigned int count = 0;
+	static unsigned long int count = 0;
 
 	sym_len = strlen(name) + 3; /* +3 = 1 for null byte, 1 for '#' character, one for ':' character */
 	sym_len += num_digits(count);
 
 	sym_str = GC_MALLOC(sizeof(char) * sym_len);
-	snprintf(sym_str, sym_len, "#%s:%d", name, count);
+	snprintf(sym_str, sym_len, "#%s:%ld", name, count++);
 
 	return gh_symbol(sym_str);
 }
@@ -1225,15 +1230,40 @@ datum *lang_gensym(datum **locals) {
 	datum *name;
 
 	name = var_get(*locals, "#name");
-	name = name->value.cons.car;
-
 	if (name->type == TYPE_NIL) {
 		name = gh_string("");
+	} else {
+		name = name->value.cons.car;
 	}
+
 
 	gh_assert(name->type == TYPE_SYMBOL || name->type == TYPE_STRING, "TYPE-ERROR", "Non symbol or string passed to gensym", name);
 
 	return gensym(name->value.string);
 }
 
+datum *lang_try(datum **locals) {
+	datum *action;
+	datum *handlers;
+	datum *new_locals;
+	datum *iterator;
+
+	action = var_get(*locals, "#action");
+	handlers = var_get(*locals, "#except");
+	handlers = map(&translate_binding, handlers);
+
+	/* Evaluate the exception handler functions so that they are functions, not symbols or lists */
+	iterator = handlers;
+	while (iterator->type == TYPE_CONS) {
+		datum *handler;
+		handler = iterator->value.cons.car;
+		gh_assert(handler->type == TYPE_CONS, "TYPE-ERROR", "Expected exception handler in try statement", handler);
+		handler->value.cons.cdr = gh_eval(handler->value.cons.cdr, locals);
+		iterator = iterator->value.cons.cdr;
+	}
+
+	new_locals = gh_cons(gh_cons(gh_symbol("#handlers"), handlers), *locals);
+
+	return gh_eval(action, &new_locals);
+}
 

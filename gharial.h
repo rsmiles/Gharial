@@ -238,5 +238,7 @@ datum *gensym();
 
 datum *lang_gensym(datum **locals);
 
+datum *lang_try(datum **locals);
+
 #endif
 

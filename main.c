@@ -56,6 +56,8 @@ void init_builtins() {
 	symbol_set(&globals, "load", gh_cfunc(&lang_load, gh_cons(gh_symbol("#path"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "apply", gh_cfunc(&lang_apply, gh_cons(gh_symbol("#fn"), gh_cons(gh_symbol("#args"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "macroexpand", gh_cform(&lang_macroexpand, gh_cons(gh_symbol("#expr"), &LANG_NIL_VALUE)));
+	symbol_set(&globals, "gensym", gh_cform(&lang_gensym, gh_symbol("#name")));
+	symbol_set(&globals, "try", gh_cform(&lang_try, gh_cons(gh_symbol("#action"), gh_symbol("#except"))));
 }
 
 int main(int argc, char **argv) {
@@ -78,4 +80,3 @@ int main(int argc, char **argv) {
 
 	return 0;
 }
-
