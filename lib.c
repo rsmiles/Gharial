@@ -1318,15 +1318,31 @@ datum *lang_exception(datum **locals) {
 }
 
 char *gh_readline(FILE *file) {
+	char *result;
+
 	if (file == stdin) {
 		int count;
-		return el_gets(gh_editline, &count);
+		const char *el_str = el_gets(gh_editline, &count);
+		result = GC_MALLOC(count);
+		strncpy(result, el_str, count);
+		result[count - 1] = '\0';
+		return result;
 	} else {
-		gh_assert(TRUE, "RUNTIME-ERROR", "Readline on file other than stdin: Not implemented", gh_integer(fileno(file)));
+		fprintf(stderr, "Readline: attempt to read from file other than stdin (not implemented).\n");
 		return NULL;
 	}
 }
 
-datum *lang_readline(datum **locals) {
-	
+datum *lang_read_line(datum **locals) {
+	datum *file;
+
+	file = var_get(locals, "#file");
+
+	if (file->type == TYPE_CONS) {
+		file = file->value.cons.car;
+		gh_assert(file->type == TYPE_FILE, "TYPE-ERROR", "Non-file passed to readline", file);
+	} else {
+		file = var_get(locals, "input-file");
+	}
+	return gh_string(gh_readline(file->value.file));
 }

@@ -9,6 +9,7 @@
 void init_io();
 void init_builtins();
 void init_editline();
+char *el_prompt(EditLine *el);
 
 int eval_flag = TRUE;
 int print_flag = TRUE;
@@ -66,16 +67,22 @@ void init_builtins() {
 	symbol_set(&globals, "try", gh_cform(&lang_try, gh_cons(gh_symbol("#action"), gh_symbol("#except"))));
 	symbol_set(&globals, "exception", gh_cform(&lang_exception, gh_cons(gh_symbol("#type"), gh_cons(gh_symbol("#description"), gh_symbol("#info")))));
 	symbol_set(&globals, "eval", gh_cfunc(&lang_eval, gh_cons(gh_symbol("#expr"), &LANG_NIL_VALUE)));
+	symbol_set(&globals, "read-line", gh_cfunc(&lang_read_line, gh_symbol("#file")));
+}
+
+char *el_prompt(EditLine *el) {
+	return "";
 }
 
 void init_editline(int argc, char **argv) {
 	gh_editline = el_init(argv[0], stdin, stdout, stderr);
 	el_set(gh_editline, EL_SIGNAL, 1);
+	el_set(gh_editline, EL_PROMPT, &el_prompt);
 	gh_history = history_init();
 }
 
 void cleanup_editline() {
-	ghistory_end(gh_history);
+	history_end(gh_history);
 	el_end(gh_editline);
 }
 

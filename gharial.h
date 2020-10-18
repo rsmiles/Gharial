@@ -38,10 +38,7 @@ typedef struct datum {
 		int integer;
 		double decimal;
 		char *string;
-		struct {
-			FILE *fptr;
-			EditLine *el;
-		} file;
+		FILE *file;
 
 		struct {
 			struct datum *(*func)(struct datum **);
@@ -86,7 +83,8 @@ extern datum *globals;
 extern datum *gh_input;
 extern datum *gh_result;
 extern char *current_file;
-
+extern EditLine *gh_editline;
+extern History *gh_history;
 datum *symbol_loc(datum *table, char *symbol);
 
 datum *symbol_get(datum *table, char *symbol);
@@ -250,6 +248,8 @@ datum *lang_try(datum **locals);
 datum *lang_exception(datum **locals);
 
 char *gh_readline(FILE *file);
+
+datum *lang_read_line(datum **locals);
 
 #endif
 
