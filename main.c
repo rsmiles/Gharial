@@ -77,6 +77,7 @@ char *el_prompt(EditLine *el) {
 void init_editline(int argc, char **argv) {
 	gh_editline = el_init(argv[0], stdin, stdout, stderr);
 	el_set(gh_editline, EL_SIGNAL, 1);
+	el_set(gh_editline, EL_EDITOR, "emacs");
 	el_set(gh_editline, EL_PROMPT, &el_prompt);
 	gh_history = history_init();
 }
