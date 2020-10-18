@@ -1320,21 +1320,41 @@ datum *lang_exception(datum **locals) {
 char *gh_readline(FILE *file) {
 	char *result;
 
-	if (file == stdin) {
+	if (file == stdin && isatty(fileno(stdin))) {
 		int count;
 		const char *el_str = el_gets(gh_editline, &count);
+
+		if (count == 0 && feof(file)) {
+			return NULL;
+		}
+
 		result = GC_MALLOC(count);
 		strncpy(result, el_str, count);
 		result[count - 1] = '\0';
 		return result;
 	} else {
-		fprintf(stderr, "Readline: attempt to read from file other than stdin (not implemented).\n");
-		return NULL;
+		#define BUFF_SIZE 512
+		char buff[sizeof(char) * BUFF_SIZE];
+		int count;
+
+		fgets(buff, BUFF_SIZE, file);
+		count = strlen(buff) + 1;
+
+		if (count == 0 && feof(file)) {
+			return NULL;
+		}
+
+		result = GC_MALLOC(sizeof(char) * count - 2);
+
+		strncpy(result, buff, count - 2);
+		result[count - 2] = '\0'; /* get rid of newline char at the end */
+		return result;
 	}
 }
 
 datum *lang_read_line(datum **locals) {
 	datum *file;
+	datum *result;
 
 	file = var_get(locals, "#file");
 
@@ -1344,5 +1364,12 @@ datum *lang_read_line(datum **locals) {
 	} else {
 		file = var_get(locals, "input-file");
 	}
-	return gh_string(gh_readline(file->value.file));
+
+	result = gh_string(gh_readline(file->value.file));
+	if (result == NULL) {
+		return &LANG_EOF_VALUE;
+	} else {
+		return result;
+	}
 }
+
