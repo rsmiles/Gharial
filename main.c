@@ -1,3 +1,5 @@
+#include <histedit.h>
+
 #include "gharial.h"
 #include "y.tab.h"
 #include "lex.yy.h"
@@ -6,6 +8,7 @@
 
 void init_io();
 void init_builtins();
+void init_editline();
 
 int eval_flag = TRUE;
 int print_flag = TRUE;
@@ -17,6 +20,8 @@ datum *gh_result = &LANG_NIL_VALUE;
 datum *globals = &LANG_NIL_VALUE;
 datum *empty_locals = &LANG_NIL_VALUE;
 datum **locals = &empty_locals;
+EditLine *gh_editline;
+History *gh_history;
 
 void init_io() {
 	symbol_set(&globals, "*STDIN*", gh_file(stdin));
@@ -63,10 +68,22 @@ void init_builtins() {
 	symbol_set(&globals, "eval", gh_cfunc(&lang_eval, gh_cons(gh_symbol("#expr"), &LANG_NIL_VALUE)));
 }
 
+void init_editline(int argc, char **argv) {
+	gh_editline = el_init(argv[0], stdin, stdout, stderr);
+	el_set(gh_editline, EL_SIGNAL, 1);
+	gh_history = history_init();
+}
+
+void cleanup_editline() {
+	ghistory_end(gh_history);
+	el_end(gh_editline);
+}
+
 int main(int argc, char **argv) {
 	yylineno = 0;
 	init_io();
 	init_builtins();
+	init_editline(argc, argv);
 
 	gh_load(INIT_FILE);
 
@@ -81,5 +98,6 @@ int main(int argc, char **argv) {
 	yypop_buffer_state();
 	printf("\n");
 
+	cleanup_editline();
 	return 0;
 }

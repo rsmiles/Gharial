@@ -2,6 +2,7 @@
 #define GHARIAL_H
 
 #include <stdio.h>
+#include <histedit.h>
 
 #define TRUE  1
 #define FALSE 0
@@ -37,7 +38,10 @@ typedef struct datum {
 		int integer;
 		double decimal;
 		char *string;
-		FILE *file;
+		struct {
+			FILE *fptr;
+			EditLine *el;
+		} file;
 
 		struct {
 			struct datum *(*func)(struct datum **);
@@ -244,6 +248,8 @@ datum *lang_gensym(datum **locals);
 datum *lang_try(datum **locals);
 
 datum *lang_exception(datum **locals);
+
+char *gh_readline(FILE *file);
 
 #endif
 

@@ -7,6 +7,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <gc.h>
+#include <histedit.h>
 
 #include "gharial.h"
 #include "y.tab.h"
@@ -1314,4 +1315,18 @@ datum *lang_exception(datum **locals) {
 	lineno = yylineno;
 
 	return gh_eval(gh_exception(type->value.string, description->value.string, info, lineno), locals);
+}
+
+char *gh_readline(FILE *file) {
+	if (file == stdin) {
+		int count;
+		return el_gets(gh_editline, &count);
+	} else {
+		gh_assert(TRUE, "RUNTIME-ERROR", "Readline on file other than stdin: Not implemented", gh_integer(fileno(file)));
+		return NULL;
+	}
+}
+
+datum *lang_readline(datum **locals) {
+	
 }
