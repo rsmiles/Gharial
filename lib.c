@@ -1075,12 +1075,13 @@ char *string_append(char *str1, char *str2) {
 	len1 = strlen(str1) + 1;
 	len2 = strlen(str2) + 1;
 
-	result = GC_MALLOC(sizeof(char) * (len1 + len2));
+	result = GC_MALLOC(sizeof(char) * ((len1 - 1) + len2));
 	if (result == NULL) {
 		fprintf(stderr, "Memory error: line %d: Out of memory in string-append!", yylineno);
+		exit(EXIT_FAILURE);
 	}
 	strcpy(result, str1);
-	strcpy(result + len1, str2);
+	strcpy(result + len1 - 1, str2);
 
 	return result;
 }
@@ -1336,18 +1337,28 @@ char *gh_readline(FILE *file) {
 		#define BUFF_SIZE 512
 		char buff[sizeof(char) * BUFF_SIZE];
 		int count;
+		int total;
+		result = "";
 
-		fgets(buff, BUFF_SIZE, file);
-		count = strlen(buff) + 1;
+		total = 0;
 
-		if (count == 0 && feof(file)) {
-			return NULL;
-		}
+		do {
+			fgets(buff, BUFF_SIZE, file);
+			count = strlen(buff) + 1;
 
-		result = GC_MALLOC(sizeof(char) * count - 2);
+			if (count < 2) {
+				if (feof(file)) {
+					return NULL;
+				} else {
+					return "";
+				}
+			}
 
-		strncpy(result, buff, count - 2);
-		result[count - 2] = '\0'; /* get rid of newline char at the end */
+			total += count - 1;
+			result = string_append(result, buff);
+		} while(result[total - 1] != '\n');
+
+		result[total - 1] = '\0'; /* get rid of newline char at the end */
 		return result;
 	}
 }
