@@ -26,12 +26,6 @@ datum *new_datum() {
 	return d;
 }
 
-void prompt() {
-	if (isatty(fileno(stdin))) {
-		printf("$ ");
-	}
-}
-
 datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *lst) {
 	datum *iterator;
 	datum *result;
@@ -1325,8 +1319,13 @@ char *gh_readline(FILE *file) {
 		int count;
 		const char *el_str = el_gets(gh_editline, &count);
 
-		if (count == 0 && feof(file)) {
-			return NULL;
+
+		if (count == 0) {
+			if(feof(file)) {
+				return NULL;
+			} else {
+				return "";
+			}
 		}
 
 		result = GC_MALLOC(count);
@@ -1342,11 +1341,12 @@ char *gh_readline(FILE *file) {
 
 		total = 0;
 
+
 		do {
 			fgets(buff, BUFF_SIZE, file);
 			count = strlen(buff) + 1;
 
-			if (count < 2) {
+			if (count <= 2) {
 				if (feof(file)) {
 					return NULL;
 				} else {
@@ -1384,3 +1384,15 @@ datum *lang_read_line(datum **locals) {
 	}
 }
 
+datum *lang_exit(datum **locals) {
+	datum *status;
+
+	status = var_get(locals, "#status");
+	if (status->type == TYPE_NIL) {
+		status = gh_integer(EXIT_SUCCESS);
+	} else {
+		status = status->value.cons.car;
+		gh_assert(status->type == TYPE_INTEGER, "TYPE-ERROR", "exit optional argument must be an integer", status);
+	}
+	exit(status->value.integer);
+}

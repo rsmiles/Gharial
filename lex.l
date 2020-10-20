@@ -2,8 +2,44 @@
 #include <stdio.h>
 #include "y.tab.h"
 #include "gharial.h"
+
+#define YY_INPUT(buf, result, max_size) result = gh_get_input(buf, max_size);
+
+int gh_get_input(char *buf, int max_size) {
+	static char *line;
+	static int len = 0;
+	static int chars_put = 0;
+
+
+	if (chars_put >= len) {
+		line = gh_readline(yyin);
+		if (line == NULL) {
+			return YY_NULL;
+		}
+
+		len = strlen(line);
+		chars_put = 0;
+	}
+
+
+	while (chars_put < len) {
+		buf[chars_put] = line[chars_put];
+		chars_put++;
+		if (chars_put >= max_size) {
+			return chars_put;
+		}
+	}
+	if (chars_put >= max_size) {
+		return chars_put;
+	}
+	buf[chars_put++] = '\n';
+	return chars_put;
+}
+
 int fileno(FILE *stream);
+
 int depth = 0;
+
 %}
 
 %option noinput

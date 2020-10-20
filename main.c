@@ -68,10 +68,11 @@ void init_builtins() {
 	symbol_set(&globals, "exception", gh_cform(&lang_exception, gh_cons(gh_symbol("#type"), gh_cons(gh_symbol("#description"), gh_symbol("#info")))));
 	symbol_set(&globals, "eval", gh_cfunc(&lang_eval, gh_cons(gh_symbol("#expr"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "read-line", gh_cfunc(&lang_read_line, gh_symbol("#file")));
+	symbol_set(&globals, "exit", gh_cfunc(&lang_exit, gh_symbol("#status")));
 }
 
 char *el_prompt(EditLine *el) {
-	return "";
+	return "$ ";
 }
 
 void init_editline(int argc, char **argv) {
@@ -97,7 +98,6 @@ int main(int argc, char **argv) {
 
 	yyin = stdin;
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
-	prompt();
 	do {
 		yyparse();
 	} while(gh_result->type != TYPE_EOF);

@@ -251,5 +251,9 @@ char *gh_readline(FILE *file);
 
 datum *lang_read_line(datum **locals);
 
+int gh_get_input(char *buf, int max_size);
+
+datum *lang_exit(datum **locals);
+
 #endif
 

@@ -57,7 +57,6 @@ term: expr {
 						gh_result = gh_eval($$, &empty_locals);
 						if (print_flag) {
 							gh_print(stdout, gh_result);
-							prompt();
 						}
 					}
 					YYACCEPT;
@@ -70,7 +69,6 @@ term: expr {
 				gh_result = gh_eval(gh_exception("SYNTAX-ERROR", "Syntax error", NULL, yylineno), &empty_locals);
 				gh_print(stdout, gh_result);
 				if (print_flag)
-					prompt();
 				YYACCEPT;
 			};
 
