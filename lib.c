@@ -1319,9 +1319,8 @@ char *gh_readline(FILE *file) {
 		int count;
 		const char *el_str = el_gets(gh_editline, &count);
 
-
 		if (count == 0) {
-			if(feof(file)) {
+			if (el_str == NULL) {
 				return NULL;
 			} else {
 				return "";
