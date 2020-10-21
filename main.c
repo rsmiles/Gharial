@@ -74,7 +74,11 @@ void init_builtins() {
 }
 
 char *el_prompt(EditLine *el) {
-	return "$ ";
+	if (depth == 0) {
+		return "$ ";
+	} else {
+		return "";
+	}
 }
 
 void init_editline(int argc, char **argv) {
