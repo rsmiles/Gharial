@@ -85,6 +85,7 @@ extern datum *gh_result;
 extern char *current_file;
 extern EditLine *gh_editline;
 extern History *gh_history;
+extern HistEvent gh_last_histevent;
 extern int depth;
 
 datum *symbol_loc(datum *table, char *symbol);

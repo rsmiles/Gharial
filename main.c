@@ -23,6 +23,7 @@ datum *empty_locals = &LANG_NIL_VALUE;
 datum **locals = &empty_locals;
 EditLine *gh_editline;
 History *gh_history;
+HistEvent gh_last_histevent;
 
 void init_io() {
 	symbol_set(&globals, "*STDIN*", gh_file(stdin));
@@ -82,11 +83,15 @@ char *el_prompt(EditLine *el) {
 }
 
 void init_editline(int argc, char **argv) {
+	gh_history = history_init();
+	history(gh_history, &gh_last_histevent, H_SETSIZE, 100);
+	history(gh_history, &gh_last_histevent, H_SETUNIQUE, TRUE);
+
 	gh_editline = el_init(argv[0], stdin, stdout, stderr);
 	el_set(gh_editline, EL_SIGNAL, 1);
 	el_set(gh_editline, EL_EDITOR, "emacs");
 	el_set(gh_editline, EL_PROMPT, &el_prompt);
-	gh_history = history_init();
+	el_set(gh_editline, EL_HIST, history, gh_history);
 }
 
 void cleanup_editline() {

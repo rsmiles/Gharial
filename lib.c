@@ -1388,6 +1388,7 @@ char *gh_readline(FILE *file) {
 		result = GC_MALLOC(count);
 		strncpy(result, el_str, count);
 		result[count - 1] = '\0';
+		history(gh_history, &gh_last_histevent, H_ENTER, result);
 		return result;
 	} else {
 		#define BUFF_SIZE 512
