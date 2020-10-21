@@ -86,6 +86,7 @@ void init_editline(int argc, char **argv) {
 	gh_history = history_init();
 	history(gh_history, &gh_last_histevent, H_SETSIZE, 100);
 	history(gh_history, &gh_last_histevent, H_SETUNIQUE, TRUE);
+	history(gh_history, &gh_last_histevent, H_LOAD, "/home/robert/.gharial_history");
 
 	gh_editline = el_init(argv[0], stdin, stdout, stderr);
 	el_set(gh_editline, EL_SIGNAL, 1);
@@ -95,6 +96,7 @@ void init_editline(int argc, char **argv) {
 }
 
 void cleanup_editline() {
+	history(gh_history, &gh_last_histevent, H_SAVE, "/home/robert/.gharial_history");
 	history_end(gh_history);
 	el_end(gh_editline);
 }
