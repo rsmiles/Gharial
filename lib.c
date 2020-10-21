@@ -715,11 +715,16 @@ datum *symbol_get(datum *table, char *symbol) {
 
 datum *var_get(datum **locals, char *symbol) {
 	datum *var;
+	char *env_var;
 
 	var = symbol_get(*locals, symbol);
 	if (var == NULL) {
 		var = symbol_get(globals, symbol);
-		gh_assert(var != NULL, "REF-ERROR", "Unbound variable", gh_symbol(symbol));
+		if (var == NULL) {
+			env_var = getenv(symbol);
+			gh_assert(env_var != NULL, "REF-ERROR", "Unbound variable", gh_symbol(symbol));
+			var = gh_string(env_var);
+		}
 	}
 	return var;
 }
@@ -859,6 +864,21 @@ datum *lang_set(datum **locals) {
 		loc->value.cons.cdr = gh_eval(value, locals);
 	else
 		symbol_set(&globals, symbol->value.string, value);
+
+	return symbol;
+}
+
+datum *lang_setenv(datum **locals) {
+	datum *symbol;
+	datum *value;
+
+	symbol = var_get(locals, "#symbol");
+	gh_assert(symbol->type == TYPE_STRING || symbol->type == TYPE_SYMBOL, "TYPE-ERROR", "Variable name must by symbol or string in setenv", symbol);
+
+	value = var_get(locals, "#value");
+	gh_assert(value->type == TYPE_STRING, "TYPE-ERROR", "Environment variables can only be set to string values", value);
+
+	setenv(symbol->value.string, value->value.string, TRUE);
 
 	return symbol;
 }

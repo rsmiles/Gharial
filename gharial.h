@@ -163,6 +163,8 @@ datum *eval_form(datum* func, datum *args, datum **locals);
 
 datum *lang_set(datum **locals);
 
+datum *lang_setenv(datum **locals);
+
 datum *lang_quote(datum **locals);
 
 datum *lang_unquote(datum **locals);
