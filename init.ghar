@@ -18,5 +18,11 @@
 
 (alias begin progn)
 
+(set f nil)
+
+(set F nil)
+
+(set else t)
+
 (set *PATH* (string-split PATH ":"))
 
