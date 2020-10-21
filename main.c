@@ -70,6 +70,7 @@ void init_builtins() {
 	symbol_set(&globals, "eval", gh_cfunc(&lang_eval, gh_cons(gh_symbol("#expr"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "read-line", gh_cfunc(&lang_read_line, gh_symbol("#file")));
 	symbol_set(&globals, "exit", gh_cfunc(&lang_exit, gh_symbol("#status")));
+	symbol_set(&globals, "string-split", gh_cfunc(&lang_string_split, gh_cons(gh_symbol("#str"), gh_symbol("#delim"))));
 }
 
 char *el_prompt(EditLine *el) {

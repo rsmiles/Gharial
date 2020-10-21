@@ -1100,6 +1100,44 @@ char *string_append(char *str1, char *str2) {
 	return result;
 }
 
+datum *string_split(const char *str, const char *delim) {
+	char *copy;
+	char *tok;
+	datum *result;
+
+	copy = GC_MALLOC(sizeof(char) * (strlen(str) + 1));
+	result = &LANG_NIL_VALUE;
+
+	strcpy(copy, str);
+
+	tok = strtok(copy, delim);
+
+	while (tok != NULL) {
+		result = gh_cons(gh_string(tok), result);
+		tok = strtok(NULL, delim);
+	}
+
+	return reverse(result);
+}
+
+datum *lang_string_split(datum **locals) {
+	datum *str;
+	datum *delim;
+
+	str = var_get(locals, "#str");
+	gh_assert(str->type == TYPE_STRING, "TYPE-ERROR", "string-split can only split strings", str)
+
+	delim = var_get(locals, "#delim");
+	if (delim->type == TYPE_NIL) {
+		delim = gh_string(" ");
+	} else {
+		delim = delim->value.cons.car;
+	}
+	gh_assert(delim->type == TYPE_STRING, "TYPE-ERROR", "string-split requires a string delimeter", delim);
+
+	return string_split(str->value.string, delim->value.string);
+}
+
 datum *gh_exception(char *type, char *description, datum *info, int lineno) {
 	datum *ex;
 

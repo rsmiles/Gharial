@@ -18,3 +18,5 @@
 
 (alias begin progn)
 
+(set *PATH* (string-split PATH ":"))
+

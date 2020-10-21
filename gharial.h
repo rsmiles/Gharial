@@ -223,6 +223,10 @@ char *typestring(datum *obj);
 
 char *string_append(char *str1, char *str2);
 
+datum *string_split(const char *str, const char *delim);
+
+datum *lang_string_split(datum **locals);
+
 datum *gh_exception(char *type, char *description, datum *info, int lineno);
 
 datum *gh_begin(datum *body, datum **locals);
