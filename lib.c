@@ -30,7 +30,7 @@ datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *lst) {
 	datum *iterator;
 	datum *result;
 
-	gh_assert(lst->type == TYPE_CONS || lst->type == TYPE_NIL, "TYPE-ERROR", "Argument 3 of fold is not a list", lst);
+	gh_assert(lst->type == TYPE_CONS || lst->type == TYPE_NIL, "type-error", "Argument 3 of fold is not a list", lst);
 
 	iterator = lst;
 	result = init;
@@ -40,7 +40,7 @@ datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *lst) {
 		iterator = iterator->value.cons.cdr;
 	}
 
-	gh_assert(iterator->type == TYPE_NIL, "TYPE_ERROR", "argument 3 of fold is an improper list", lst);
+	gh_assert(iterator->type == TYPE_NIL, "type_error", "argument 3 of fold is an improper list", lst);
 
 	return result;
 }
@@ -71,8 +71,8 @@ datum *combine(datum *lst1, datum *lst2) {
 datum *add2(datum *a, datum *b) {
 	int result_type;
 
-	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "TYPE-ERROR", "Attempt to add a non-number", a);
-	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "TYPE-ERROR", "Attempt to add a non-number", b);
+	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "Attempt to add a non-number", a);
+	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "Attempt to add a non-number", b);
 
 	if (a->type == TYPE_DECIMAL || b->type == TYPE_DECIMAL)
 		result_type = TYPE_DECIMAL;
@@ -90,8 +90,8 @@ datum *add2(datum *a, datum *b) {
 datum *sub2(datum *a, datum *b) {
 	int result_type;
 
-	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "TYPE-ERROR", "Attempt to subtract a non-number", a);
-	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "TYPE-ERROR", "ATTEMPT to sulbltract a non-number", b);
+	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "Attempt to subtract a non-number", a);
+	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "ATTEMPT to sulbltract a non-number", b);
 
 	if (a->type == TYPE_DECIMAL || b->type == TYPE_DECIMAL)
 		result_type = TYPE_DECIMAL;
@@ -110,8 +110,8 @@ datum *sub2(datum *a, datum *b) {
 datum *mul2(datum *a, datum *b) {
 	int result_type;
 
-	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "TYPE-ERROR", "Attempt to multiply a non-number", a);
-	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "TYPE-ERROR", "Attempt to multiply a non-number", b);
+	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "Attempt to multiply a non-number", a);
+	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "Attempt to multiply a non-number", b);
 
 	if (a->type == TYPE_DECIMAL || b->type == TYPE_DECIMAL)
 		result_type = TYPE_DECIMAL;
@@ -127,13 +127,13 @@ datum *mul2(datum *a, datum *b) {
 }
 
 datum *div2(datum *a, datum *b) {
-	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "TYPE-ERROR", "Attempt to divide a non-number", a);
-	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "TYPE-ERROR", "Attempt to divide a non-number", b);
+	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "Attempt to divide a non-number", a);
+	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "Attempt to divide a non-number", b);
 
 	if (a->type == TYPE_INTEGER) {
-		gh_assert(a->value.integer != 0, "MATH-ERROR", "Division by zero", a);
+		gh_assert(a->value.integer != 0, "math-error", "Division by zero", a);
 	} else {
-		gh_assert(a->value.decimal != 0.0, "MATH-ERROR", "Division by zero", a);
+		gh_assert(a->value.decimal != 0.0, "math-error", "Division by zero", a);
 	}
 
 	return gh_decimal((b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal) /
@@ -141,8 +141,8 @@ datum *div2(datum *a, datum *b) {
 }
 
 datum *dpow(datum *a, datum *b) {
-	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "TYPE-ERROR", "Attempt to find exponent of non-number", a);
-	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "TYPE-ERROR", "Use of non-number as exponent", b);
+	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "Attempt to find exponent of non-number", a);
+	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "Use of non-number as exponent", b);
 
 	return gh_decimal(pow(a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal,
 						b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal));
@@ -235,11 +235,11 @@ datum *lang_lambda(datum **locals) {
 	iterator = lambda_list;
 
 	while (iterator->type == TYPE_CONS) {
-		gh_assert(iterator->value.cons.car->type == TYPE_SYMBOL, "TYPE-ERROR", "Non-symbol in lambda list", iterator->value.cons.car);
+		gh_assert(iterator->value.cons.car->type == TYPE_SYMBOL, "type-error", "Non-symbol in lambda list", iterator->value.cons.car);
 		iterator = iterator->value.cons.cdr;
 	}
 
-	gh_assert(iterator->type == TYPE_NIL || iterator->type == TYPE_SYMBOL, "TYPE-ERROR", "Non-symbol in lambda list", iterator);
+	gh_assert(iterator->type == TYPE_NIL || iterator->type == TYPE_SYMBOL, "type-error", "Non-symbol in lambda list", iterator);
 
 	func = new_datum(sizeof(datum));
 	func->type = TYPE_FUNC;
@@ -260,11 +260,11 @@ datum *lang_macro(datum **locals) {
 	iterator = lambda_list;
 
 	while (iterator->type == TYPE_CONS) {
-		gh_assert(iterator->value.cons.car->type == TYPE_SYMBOL, "TYPE-ERROR", "Non-symbol in lambda list", iterator->value.cons.car);
+		gh_assert(iterator->value.cons.car->type == TYPE_SYMBOL, "type-error", "Non-symbol in lambda list", iterator->value.cons.car);
 		iterator = iterator->value.cons.cdr;
 	}
 
-	gh_assert(iterator->type == TYPE_NIL || iterator->type == TYPE_SYMBOL, "TYPE-ERROR", "Non-symbol in lambda list", iterator);
+	gh_assert(iterator->type == TYPE_NIL || iterator->type == TYPE_SYMBOL, "type-error", "Non-symbol in lambda list", iterator);
 
 	mac = new_datum(sizeof(datum));
 	mac->type = TYPE_MACRO;
@@ -308,7 +308,7 @@ datum *lang_open(datum **locals) {
 	FILE *fptr;
 
 	path = var_get(locals, "#fname");
-	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "TYPE-ERROR", "open requires string or symbol for first argument", path);
+	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "open requires string or symbol for first argument", path);
 
 	mode = var_get(locals, "#mode");
 
@@ -318,10 +318,10 @@ datum *lang_open(datum **locals) {
 		mode = mode->value.cons.car;
 	}
 
-	gh_assert(mode->type == TYPE_STRING || mode->type == TYPE_SYMBOL, "TYPE-ERROR", "Open requires string or symbol for second argument", mode);
+	gh_assert(mode->type == TYPE_STRING || mode->type == TYPE_SYMBOL, "type-error", "Open requires string or symbol for second argument", mode);
 
 	fptr = fopen(path->value.string, mode->value.string);
-	gh_assert(fptr != NULL, "FILE-ERROR", "Could not open file", path);
+	gh_assert(fptr != NULL, "file-error", "Could not open file", path);
 
 	return gh_file(fptr);
 }
@@ -331,10 +331,10 @@ datum *lang_close(datum **locals) {
 	int result;
 
 	file = var_get(locals, "#file");
-	gh_assert(file->type == TYPE_FILE, "TYPE-ERROR", "Attempt to close a non-file", file);
+	gh_assert(file->type == TYPE_FILE, "type-error", "Attempt to close a non-file", file);
 
 	result = fclose(file->value.file);
-	gh_assert(result == 0, "FILE-ERROR", "Error closing file", file);
+	gh_assert(result == 0, "file-error", "Error closing file", file);
 
 	return &LANG_TRUE_VALUE;
 }
@@ -346,9 +346,9 @@ datum *lang_read(datum **locals) {
 	file = var_get(locals, "#file");
 	if (file->type == TYPE_CONS) {
 		file = file->value.cons.car;
-		gh_assert(file->type == TYPE_FILE, "TYPE-ERROR", "read call on non-file", file);
+		gh_assert(file->type == TYPE_FILE, "type-error", "read call on non-file", file);
 	} else { 
-		gh_assert(file->type == TYPE_NIL, "TYPE-ERROR", "read call on non-file", file);
+		gh_assert(file->type == TYPE_NIL, "type-error", "read call on non-file", file);
 		file = var_get(locals, "input-file");
 	}
 
@@ -372,9 +372,9 @@ datum *lang_write(datum **locals) {
 	file = var_get(locals, "#file");
 	if (file->type == TYPE_CONS) {
 		file = file->value.cons.car;
-		gh_assert(file->type == TYPE_FILE, "TYPE-ERROR", "read call on non-file", file);
+		gh_assert(file->type == TYPE_FILE, "type-error", "read call on non-file", file);
 	} else { 
-		gh_assert(file->type == TYPE_NIL, "TYPE-ERROR", "read call on non-file", file);
+		gh_assert(file->type == TYPE_NIL, "type-error", "read call on non-file", file);
 		file = var_get(locals, "output-file");
 	}
 
@@ -386,7 +386,7 @@ datum *lang_load(datum **locals) {
 	datum *path;
 
 	path = var_get(locals, "#path");
-	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "TYPE-ERROR", "Load requires string or symbol for path argument", path);
+	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "Load requires string or symbol for path argument", path);
 
 	gh_load(path->value.string);
 	
@@ -619,10 +619,10 @@ void print_datum(FILE *file, datum *expr) {
 	datum *iterator;
 	switch (expr->type) {
 		case TYPE_NIL:
-			fprintf(file, "NIL");
+			fprintf(file, "nil");
 			break;
 		case TYPE_TRUE:
-			fprintf(file, "T");
+			fprintf(file, "t");
 			break;
 		case TYPE_INTEGER:
 			fprintf(file, "%d", expr->value.integer);
@@ -722,7 +722,7 @@ datum *var_get(datum **locals, char *symbol) {
 		var = symbol_get(globals, symbol);
 		if (var == NULL) {
 			env_var = getenv(symbol);
-			gh_assert(env_var != NULL, "REF-ERROR", "Unbound variable", gh_symbol(symbol));
+			gh_assert(env_var != NULL, "ref-error", "Unbound variable", gh_symbol(symbol));
 			var = gh_string(env_var);
 		}
 	}
@@ -764,7 +764,7 @@ datum* gh_load(char *path) {
 	char *old_current_file;
 	
 	file = fopen(path, "r");
-	gh_assert(file != NULL, "FILE-ERROR", "Could not open file", gh_string(path));
+	gh_assert(file != NULL, "file-error", "Could not open file", gh_string(path));
 
 	old_current_file = current_file;
 	current_file = path;
@@ -873,10 +873,10 @@ datum *lang_setenv(datum **locals) {
 	datum *value;
 
 	symbol = var_get(locals, "#symbol");
-	gh_assert(symbol->type == TYPE_STRING || symbol->type == TYPE_SYMBOL, "TYPE-ERROR", "Variable name must by symbol or string in setenv", symbol);
+	gh_assert(symbol->type == TYPE_STRING || symbol->type == TYPE_SYMBOL, "type-error", "Variable name must by symbol or string in setenv", symbol);
 
 	value = var_get(locals, "#value");
-	gh_assert(value->type == TYPE_STRING, "TYPE-ERROR", "Environment variables can only be set to string values", value);
+	gh_assert(value->type == TYPE_STRING, "type-error", "Environment variables can only be set to string values", value);
 
 	setenv(symbol->value.string, value->value.string, TRUE);
 
@@ -898,7 +898,7 @@ datum *lang_unquote(datum **locals) {
 }
 
 datum *lang_unquote_splice(datum **locals) {
-	gh_assert(TRUE, "RUNTIME-ERROR", "Call to unquote-splice", NULL);
+	gh_assert(TRUE, "runtime-error", "Call to unquote-splice", NULL);
 	return &LANG_NIL_VALUE;
 }
 
@@ -915,7 +915,7 @@ datum *lang_car(datum **locals) {
 	datum *pair;
 
 	pair = var_get(locals, "#pair");
-	gh_assert(pair->type == TYPE_CONS, "TYPE-ERROR", "Not a pair or list", pair);
+	gh_assert(pair->type == TYPE_CONS, "type-error", "Not a pair or list", pair);
 
 	return pair->value.cons.car;
 }
@@ -924,7 +924,7 @@ datum *lang_cdr(datum **locals) {
 	datum *pair;
 
 	pair = var_get(locals, "#pair");
-	gh_assert(pair->type == TYPE_CONS, "TYPE-ERROR", "Not a pair or list", pair);
+	gh_assert(pair->type == TYPE_CONS, "type-error", "Not a pair or list", pair);
 
 	return pair->value.cons.cdr;
 }
@@ -1125,7 +1125,7 @@ datum *lang_string_split(datum **locals) {
 	datum *delim;
 
 	str = var_get(locals, "#str");
-	gh_assert(str->type == TYPE_STRING, "TYPE-ERROR", "string-split can only split strings", str)
+	gh_assert(str->type == TYPE_STRING, "type-error", "string-split can only split strings", str)
 
 	delim = var_get(locals, "#delim");
 	if (delim->type == TYPE_NIL) {
@@ -1133,7 +1133,7 @@ datum *lang_string_split(datum **locals) {
 	} else {
 		delim = delim->value.cons.car;
 	}
-	gh_assert(delim->type == TYPE_STRING, "TYPE-ERROR", "string-split requires a string delimeter", delim);
+	gh_assert(delim->type == TYPE_STRING, "type-error", "string-split requires a string delimeter", delim);
 
 	return string_split(str->value.string, delim->value.string);
 }
@@ -1145,11 +1145,11 @@ datum *gh_exception(char *type, char *description, datum *info, int lineno) {
 	ex->type = TYPE_EXCEPTION;
 
 	ex->value.exception.type = GC_MALLOC(sizeof (char) * (strlen(type) + 1));
-	gh_assert(ex->value.exception.type != NULL, "MEMORY-ERROR", "Out of memory in gh_exception!", NULL);
+	gh_assert(ex->value.exception.type != NULL, "memory-error", "Out of memory in gh_exception!", NULL);
 	strcpy(ex->value.exception.type, type);
 	
 	ex->value.exception.description = GC_MALLOC(sizeof (char) * (strlen(description) + 1));
-	gh_assert(ex->value.exception.description != NULL, "MEMORY-ERROR", "Out of memory in gh_exception!", NULL);
+	gh_assert(ex->value.exception.description != NULL, "memory-error", "Out of memory in gh_exception!", NULL);
 	strcpy(ex->value.exception.description, description);
 
 	ex->value.exception.info = info;
@@ -1181,7 +1181,7 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 
 	gh_assert(fn->type == TYPE_CFORM || fn->type == TYPE_CFUNC ||
 				fn->type == TYPE_FUNC,
-				"TYPE-ERROR", "Attempt to call non-function", fn);
+				"type-error", "Attempt to call non-function", fn);
 
 	if (fn->type == TYPE_CFORM) { /* Do not evaluate arguments if special form */
 		evaluated_args = args;
@@ -1215,7 +1215,7 @@ datum *lang_apply(datum **locals) {
 		fn = var_get(locals, fn->value.string);
 	}
 
-	gh_assert(fn->type == TYPE_FUNC || fn->type == TYPE_CFUNC, "TYPE-ERROR", "Attempt to apply non function", fn)
+	gh_assert(fn->type == TYPE_FUNC || fn->type == TYPE_CFUNC, "type-error", "Attempt to apply non function", fn)
 	return apply(fn, args, locals);
 }
 
@@ -1311,7 +1311,7 @@ datum *lang_gensym(datum **locals) {
 	}
 
 
-	gh_assert(name->type == TYPE_SYMBOL || name->type == TYPE_STRING, "TYPE-ERROR", "Non symbol or string passed to gensym", name);
+	gh_assert(name->type == TYPE_SYMBOL || name->type == TYPE_STRING, "type-error", "Non symbol or string passed to gensym", name);
 
 	return gensym(name->value.string);
 }
@@ -1331,7 +1331,7 @@ datum *lang_try(datum **locals) {
 	while (iterator->type == TYPE_CONS) {
 		datum *handler;
 		handler = iterator->value.cons.car;
-		gh_assert(handler->type == TYPE_CONS, "TYPE-ERROR", "Expected exception handler in try statement", handler);
+		gh_assert(handler->type == TYPE_CONS, "type-error", "Expected exception handler in try statement", handler);
 		handler->value.cons.cdr = gh_eval(handler->value.cons.cdr, locals);
 		iterator = iterator->value.cons.cdr;
 	}
@@ -1349,12 +1349,12 @@ datum *lang_exception(datum **locals) {
 
 	type = var_get(locals, "#type");
 	gh_assert(type->type == TYPE_SYMBOL || type->type == TYPE_STRING,
-				"TYPE-ERROR", "Expected symbol or string as first argument to exception",
+				"type-error", "Expected symbol or string as first argument to exception",
 				type);
 
 	description = var_get(locals, "#description");
 	gh_assert(description->type == TYPE_STRING,
-				"TYPE-ERROR", "Expected  string as second argument to exception",
+				"type-error", "Expected  string as second argument to exception",
 				description);
 
 	info = var_get(locals, "#info");
@@ -1428,7 +1428,7 @@ datum *lang_read_line(datum **locals) {
 
 	if (file->type == TYPE_CONS) {
 		file = file->value.cons.car;
-		gh_assert(file->type == TYPE_FILE, "TYPE-ERROR", "Non-file passed to readline", file);
+		gh_assert(file->type == TYPE_FILE, "type-error", "Non-file passed to readline", file);
 	} else {
 		file = var_get(locals, "input-file");
 	}
@@ -1449,7 +1449,7 @@ datum *lang_exit(datum **locals) {
 		status = gh_integer(EXIT_SUCCESS);
 	} else {
 		status = status->value.cons.car;
-		gh_assert(status->type == TYPE_INTEGER, "TYPE-ERROR", "exit optional argument must be an integer", status);
+		gh_assert(status->type == TYPE_INTEGER, "type-error", "exit optional argument must be an integer", status);
 	}
 	exit(status->value.integer);
 }

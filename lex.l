@@ -59,8 +59,8 @@ SPECIAL    [\+\-\*\/\^=\?\!]
 ['`]                  { return TOK_QUOTE; }
 "@"                   { return TOK_UNQUOTESPLICE; }
 ","                   { return TOK_UNQUOTE; }
-[tT]                  { return TOK_TRUE; }
-[nN][iI][lL]          { return TOK_NIL; }
+"t"                   { return TOK_TRUE; }
+"nil"                 { return TOK_NIL; }
 {DIGIT}+\.{DIGIT}+    { return TOK_DECIMAL; }
 {DIGIT}+              { return TOK_INTEGER; }
 \"[^\"]*[^\\]\"       { return TOK_STRING; }
