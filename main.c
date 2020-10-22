@@ -1,5 +1,8 @@
+#define _POSIX_C_SOURCE 199309L
+
 #include <libgen.h>
 #include <string.h>
+#include <time.h>
 #include <histedit.h>
 #include <gc.h>
 
@@ -12,6 +15,7 @@
 void init_globals();
 void init_io();
 void init_builtins();
+unsigned char matchparen(EditLine *el, int ch);
 void init_editline();
 char *el_prompt(EditLine *el);
 void cleanup();
@@ -102,6 +106,10 @@ char *el_prompt(EditLine *el) {
 	}
 }
 
+unsigned char matchparen(EditLine *el, int ch){
+	return CC_NORM;
+}
+
 void init_editline(int argc, char **argv) {
 
 	gh_history = history_init();
@@ -114,6 +122,11 @@ void init_editline(int argc, char **argv) {
 	el_set(gh_editline, EL_EDITOR, "emacs");
 	el_set(gh_editline, EL_PROMPT, &el_prompt);
 	el_set(gh_editline, EL_HIST, history, gh_history);
+	el_source(gh_editline, NULL);
+	el_set(gh_editline, EL_ADDFN, "matchparen", "show user matching parentheses", &matchparen);
+	el_set(gh_editline, EL_BIND, ")", "matchparen", NULL);
+	el_set(gh_editline, EL_BIND, "]", "matchparen", NULL);
+	el_set(gh_editline, EL_BIND, "}", "matchparen", NULL);
 }
 
 void cleanup_editline() {
