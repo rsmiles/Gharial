@@ -1,4 +1,7 @@
+#include <libgen.h>
+#include <string.h>
 #include <histedit.h>
+#include <gc.h>
 
 #include "gharial.h"
 #include "y.tab.h"
@@ -6,10 +9,15 @@
 
 #define INIT_FILE "init.ghar"
 
+void init_globals();
 void init_io();
 void init_builtins();
 void init_editline();
 char *el_prompt(EditLine *el);
+void cleanup();
+
+char *hist_file;
+char *PROGNAME;
 
 int eval_flag = TRUE;
 int print_flag = TRUE;
@@ -23,6 +31,19 @@ datum *empty_locals = &LANG_NIL_VALUE;
 datum **locals = &empty_locals;
 EditLine *gh_editline;
 History *gh_history;
+HistEvent gh_last_histevent;
+
+void init_globals(char **argv){
+	PROGNAME = (char *)GC_MALLOC(sizeof(char) * (strlen(argv[0] + 1)));
+	strcpy(PROGNAME, argv[0]);
+	PROGNAME = basename(PROGNAME);
+	
+
+	hist_file = string_append(getenv("HOME"), "/");
+	hist_file = string_append(hist_file, ".");
+	hist_file = string_append(hist_file, PROGNAME);
+	hist_file = string_append(hist_file, "_history");
+}
 
 void init_io() {
 	symbol_set(&globals, "*STDIN*", gh_file(stdin));
@@ -74,27 +95,44 @@ void init_builtins() {
 }
 
 char *el_prompt(EditLine *el) {
-	return "$ ";
+	if (depth == 0) {
+		return "$ ";
+	} else {
+		return "";
+	}
 }
 
 void init_editline(int argc, char **argv) {
+
+	gh_history = history_init();
+	history(gh_history, &gh_last_histevent, H_SETSIZE, 100);
+	history(gh_history, &gh_last_histevent, H_SETUNIQUE, TRUE);
+	history(gh_history, &gh_last_histevent, H_LOAD, hist_file);
+
 	gh_editline = el_init(argv[0], stdin, stdout, stderr);
 	el_set(gh_editline, EL_SIGNAL, 1);
 	el_set(gh_editline, EL_EDITOR, "emacs");
 	el_set(gh_editline, EL_PROMPT, &el_prompt);
-	gh_history = history_init();
+	el_set(gh_editline, EL_HIST, history, gh_history);
 }
 
 void cleanup_editline() {
+	history(gh_history, &gh_last_histevent, H_SAVE, hist_file);
 	history_end(gh_history);
 	el_end(gh_editline);
 }
 
+void cleanup(){
+	cleanup_editline();
+}
+
 int main(int argc, char **argv) {
 	yylineno = 0;
+	init_globals(argv);
 	init_io();
 	init_builtins();
 	init_editline(argc, argv);
+	atexit(&cleanup);
 
 	gh_load(INIT_FILE);
 
@@ -107,7 +145,5 @@ int main(int argc, char **argv) {
 
 	yypop_buffer_state();
 	printf("\n");
-
-	cleanup_editline();
 	return 0;
 }
