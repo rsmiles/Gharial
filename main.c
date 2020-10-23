@@ -98,6 +98,7 @@ void init_builtins() {
 	symbol_set(&globals, "read-line", gh_cfunc(&lang_read_line, gh_symbol("#file")));
 	symbol_set(&globals, "exit", gh_cfunc(&lang_exit, gh_symbol("#status")));
 	symbol_set(&globals, "string-split", gh_cfunc(&lang_string_split, gh_cons(gh_symbol("#str"), gh_symbol("#delim"))));
+	symbol_set(&globals, "return-code", gh_cfunc(&lang_return_code, gh_cons(gh_symbol("#num"), &LANG_NIL_VALUE)));
 }
 
 char *el_prompt(EditLine *el) {
@@ -182,6 +183,8 @@ void cleanup(){
 }
 
 int main(int argc, char **argv) {
+	datum *init_result;
+
 	yylineno = 0;
 	init_globals(argv);
 	init_io();
@@ -189,8 +192,10 @@ int main(int argc, char **argv) {
 	init_editline(argc, argv);
 	atexit(&cleanup);
 
-	gh_load(INIT_FILE);
-
+	symbol_set(&globals, "?", &LANG_NIL_VALUE);
+	init_result = gh_load(INIT_FILE);
+	symbol_set(&globals, "?", init_result);
+	
 	yyin = stdin;
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
 	do {

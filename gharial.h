@@ -7,21 +7,22 @@
 #define TRUE  1
 #define FALSE 0
 
-#define TYPE_NIL       0
-#define TYPE_TRUE      1
-#define TYPE_INTEGER   2
-#define TYPE_DECIMAL   3
-#define TYPE_STRING    4
-#define TYPE_SYMBOL    5
-#define TYPE_CONS      6
-#define TYPE_CFORM     7
-#define TYPE_CFUNC     8
-#define TYPE_FUNC      9
-#define TYPE_MACRO     10
-#define TYPE_RECUR     11
-#define TYPE_FILE      12
-#define TYPE_EOF       13
-#define TYPE_EXCEPTION 14
+#define TYPE_NIL        0
+#define TYPE_TRUE       1
+#define TYPE_INTEGER    2
+#define TYPE_DECIMAL    3
+#define TYPE_STRING     4
+#define TYPE_SYMBOL     5
+#define TYPE_CONS       6
+#define TYPE_CFORM      7
+#define TYPE_CFUNC      8
+#define TYPE_FUNC       9
+#define TYPE_MACRO      10
+#define TYPE_RECUR      11
+#define TYPE_FILE       12
+#define TYPE_EOF        13
+#define TYPE_EXCEPTION  14
+#define TYPE_RETURNCODE 15
 
 #define gh_assert(test, type, description, info) \
 	do { \
@@ -263,6 +264,11 @@ datum *lang_read_line(datum **locals);
 int gh_get_input(char *buf, int max_size);
 
 datum *lang_exit(datum **locals);
+
+datum *gh_return_code(int num);
+
+datum *lang_return_code(datum **locals);
+
 
 #endif
 

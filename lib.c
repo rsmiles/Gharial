@@ -283,12 +283,20 @@ datum *lang_cond(datum **locals) {
 
 	while (iterator->type != TYPE_NIL) {
 		datum *current_cond;
+		datum *eval_cond;
 
 		current_cond = iterator->value.cons.car;
-		if (gh_eval(current_cond->value.cons.car, locals)->type != TYPE_NIL)
-			return gh_eval(current_cond->value.cons.cdr->value.cons.car, locals);
+		eval_cond = gh_eval(current_cond->value.cons.car, locals);
 
-		iterator = iterator->value.cons.cdr;
+		if (eval_cond->type == TYPE_NIL) {
+			iterator = iterator->value.cons.cdr;
+			continue;
+		} else if (eval_cond->type == TYPE_RETURNCODE && eval_cond->value.integer != 0) {
+			iterator = iterator->value.cons.cdr;
+			continue;
+		} else {
+			return gh_eval(current_cond->value.cons.cdr->value.cons.car, locals);
+		}
 	}
 
 	return &LANG_NIL_VALUE;
@@ -624,7 +632,6 @@ datum *gh_eval(datum *expr, datum **locals) {
 					return apply(handler, expr, locals);
 				}
 			}
-
 			break;
 		default:
 			return expr;
@@ -683,6 +690,8 @@ void print_datum(FILE *file, datum *expr) {
 		case TYPE_EXCEPTION:
 			fprintf(file, "<exception>");
 			break;
+		case TYPE_RETURNCODE:
+			break;
 		case TYPE_CONS:
 			iterator = expr;
 	
@@ -709,7 +718,9 @@ void print_datum(FILE *file, datum *expr) {
 
 void gh_print(FILE *file, datum *expr){
 	print_datum(file, expr);
-	fprintf(file, "\n");
+	if (expr->type != TYPE_RETURNCODE) {
+		fprintf(file, "\n");
+	}
 }
 
 datum *symbol_loc(datum *table, char *symbol) {
@@ -1201,6 +1212,7 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 	datum *evaluated_args;
 	datum *arg_bindings;
 	datum *new_locals;
+	datum *result;
 
 	gh_assert(fn->type == TYPE_CFORM || fn->type == TYPE_CFUNC ||
 				fn->type == TYPE_FUNC,
@@ -1221,10 +1233,18 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 	new_locals = combine(arg_bindings, *locals);
 
 	if (fn->type == TYPE_CFUNC || fn->type == TYPE_CFORM) {
-		return fn->value.c_code.func(&new_locals);
+		result = fn->value.c_code.func(&new_locals);
 	} else {
-		return gh_begin(fn->value.func.body, &new_locals);
+		result = gh_begin(fn->value.func.body, &new_locals);
 	}
+
+	if(result->type == TYPE_RETURNCODE) {
+		symbol_set(&globals, "?", gh_integer(result->value.integer));
+	} else {
+		symbol_set(&globals, "?", result);
+	}
+
+	return result;
 }
 
 datum *lang_apply(datum **locals) {
@@ -1478,3 +1498,20 @@ datum *lang_exit(datum **locals) {
 	}
 	exit(status->value.integer);
 }
+
+datum *gh_return_code(int num) {
+	datum *rc;
+	rc = gh_integer(num);
+	rc->type = TYPE_RETURNCODE;
+	return rc;
+}
+
+datum *lang_return_code(datum **locals) {
+	datum *num;
+
+	num = var_get(locals, "#num");
+	gh_assert(num->type == TYPE_INTEGER, "type-error", "return codes must be integers", num);
+	return gh_return_code(num->value.integer);
+}
+
+
