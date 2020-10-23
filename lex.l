@@ -46,7 +46,7 @@ int depth = 0;
 %option nounput
 %option yylineno
 
-WHITESPACE [ \t\r\f]
+WHITESPACE [ \t\r\f\n]
 DIGIT      [0-9]
 LETTER     [A-Za-z]
 SPECIAL    [\+\-\*\/\^=\?\!_]
@@ -55,7 +55,6 @@ SPECIAL    [\+\-\*\/\^=\?\!_]
 
 (#|;).*$              { /* Ignore comments */ }
 {WHITESPACE}+         { /* Ignore whitespace */ }
-\n                    { }
 ['`]                  { return TOK_QUOTE; }
 "@"                   { return TOK_UNQUOTESPLICE; }
 ","                   { return TOK_UNQUOTE; }

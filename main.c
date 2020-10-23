@@ -15,7 +15,9 @@
 void init_globals();
 void init_io();
 void init_builtins();
-unsigned char matchparen(EditLine *el, int ch);
+unsigned char insert_parens(EditLine *el, int ch);
+unsigned char insert_newline(EditLine *el, int ch);
+unsigned char nextline(EditLine *el, int ch);
 void init_editline();
 char *el_prompt(EditLine *el);
 void cleanup();
@@ -106,8 +108,44 @@ char *el_prompt(EditLine *el) {
 	}
 }
 
-unsigned char matchparen(EditLine *el, int ch){
-	return CC_NORM;
+unsigned char insert_parens(EditLine *el, int ch){
+	switch (ch){
+		case '(':
+			el_insertstr(el, "(");
+			el_insertstr(el, ")");
+			break;
+		case '[':
+			el_insertstr(el, "[");
+			el_insertstr(el, "]");
+			break;
+		case '{':
+			el_insertstr(el, "{");
+			el_insertstr(el, "}");
+			break;
+	}
+	el_cursor(el, -1);
+	return CC_REFRESH;
+}
+
+unsigned char insert_newline(EditLine *el, int ch){
+	const struct lineinfo *info = el_line(el);
+
+	el_insertstr(el, "\n");
+	if (info->cursor >= info->lastchar) {
+		printf("\n");
+		return CC_NEWLINE;
+	} else {
+		return CC_REFRESH;
+	}
+}
+
+unsigned char nextline(EditLine *el, int ch) {
+	const struct lineinfo *info = el_line(el);
+	
+	el_cursor(el, info->lastchar - info->cursor);
+	el_insertstr(el, "\n");
+	printf("\n");
+	return CC_NEWLINE;
 }
 
 void init_editline(int argc, char **argv) {
@@ -123,10 +161,14 @@ void init_editline(int argc, char **argv) {
 	el_set(gh_editline, EL_PROMPT, &el_prompt);
 	el_set(gh_editline, EL_HIST, history, gh_history);
 	el_source(gh_editline, NULL);
-	el_set(gh_editline, EL_ADDFN, "matchparen", "show user matching parentheses", &matchparen);
-	el_set(gh_editline, EL_BIND, ")", "matchparen", NULL);
-	el_set(gh_editline, EL_BIND, "]", "matchparen", NULL);
-	el_set(gh_editline, EL_BIND, "}", "matchparen", NULL);
+	el_set(gh_editline, EL_ADDFN, "insert_parens", "insert matching closing parenthesis", &insert_parens);
+	el_set(gh_editline, EL_BIND, "(", "insert_parens", NULL);
+	el_set(gh_editline, EL_BIND, "[", "insert_parens", NULL);
+	el_set(gh_editline, EL_BIND, "{", "insert_parens", NULL);
+	el_set(gh_editline, EL_ADDFN, "insert_newline", "insert newline at cursor position", &insert_newline);
+	el_set(gh_editline, EL_BIND, "\n", "insert_newline", NULL);
+	el_set(gh_editline, EL_ADDFN, "nextline", "Go to next line", &nextline);
+	el_set(gh_editline, EL_BIND, "^\n", "nextline", NULL);
 }
 
 void cleanup_editline() {

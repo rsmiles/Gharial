@@ -489,6 +489,7 @@ datum *lang_let(datum **locals) {
 	bindings = var_get(locals, "#bindings");
 	body = var_get(locals, "#body");
 
+
 	translated_bindings = map(&translate_binding, bindings);
 	new_locals = combine(translated_bindings, *locals);
 
