@@ -180,7 +180,7 @@ void init_editline(int argc, char **argv) {
 	el_set(gh_editline, EL_ADDFN, "nextline", "Go to next line", &nextline);
 	el_set(gh_editline, EL_BIND, "^\n", "nextline", NULL);
 	el_set(gh_editline, EL_ADDFN, "nextcloseparen", "Go to next closing parentheses, or end of line if none.", &nextcloseparen);
-	el_set(gh_editline, EL_BIND, "^l", "nextcloseparen", NULL);
+	el_set(gh_editline, EL_BIND, "^n", "nextcloseparen", NULL);
 }
 
 void cleanup_editline() {
