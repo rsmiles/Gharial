@@ -291,7 +291,7 @@ datum *lang_cond(datum **locals) {
 		if (eval_cond->type == TYPE_NIL) {
 			iterator = iterator->value.cons.cdr;
 			continue;
-		} else if (eval_cond->type == TYPE_RETURNCODE && eval_cond->value.integer != 0) {
+		} else if ((eval_cond->type == TYPE_RETURNCODE || eval_cond->type == TYPE_INTEGER) && eval_cond->value.integer != 0) {
 			iterator = iterator->value.cons.cdr;
 			continue;
 		} else {
