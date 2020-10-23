@@ -18,6 +18,7 @@ void init_builtins();
 unsigned char insert_parens(EditLine *el, int ch);
 unsigned char insert_newline(EditLine *el, int ch);
 unsigned char nextline(EditLine *el, int ch);
+unsigned char nextcloseparen(EditLine *el, int ch);
 void init_editline();
 char *el_prompt(EditLine *el);
 void cleanup();
@@ -148,6 +149,15 @@ unsigned char nextline(EditLine *el, int ch) {
 	return CC_NEWLINE;
 }
 
+unsigned char nextcloseparen(EditLine *el, int ch) {
+	const struct lineinfo *info;
+	do {
+		info = el_line(el);
+		el_cursor(el, 1);
+	} while (*info->cursor != ')' && *info->cursor != ']' && *info->cursor != '}' && info->cursor != info->lastchar);
+	return CC_CURSOR;
+}
+
 void init_editline(int argc, char **argv) {
 
 	gh_history = history_init();
@@ -169,6 +179,8 @@ void init_editline(int argc, char **argv) {
 	el_set(gh_editline, EL_BIND, "\n", "insert_newline", NULL);
 	el_set(gh_editline, EL_ADDFN, "nextline", "Go to next line", &nextline);
 	el_set(gh_editline, EL_BIND, "^\n", "nextline", NULL);
+	el_set(gh_editline, EL_ADDFN, "nextcloseparen", "Go to next closing parentheses, or end of line if none.", &nextcloseparen);
+	el_set(gh_editline, EL_BIND, "^l", "nextcloseparen", NULL);
 }
 
 void cleanup_editline() {
