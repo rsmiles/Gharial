@@ -13,6 +13,9 @@
 #include "y.tab.h"
 #include "lex.yy.h"
 
+datum *translate_binding(datum *let_binding);
+datum *translate_bindings(datum *bindings);
+
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
 datum LANG_EOF_VALUE = { TYPE_EOF, { 0 } };
@@ -406,6 +409,23 @@ datum *translate_binding(datum *let_binding) {
 	return gh_cons(first, second);
 }
 
+datum *translate_bindings(datum *bindings) {
+	datum *copy;
+	datum *iterator;
+
+	copy = reverse(reverse(bindings));
+	iterator = copy;
+
+	while (iterator->type == TYPE_CONS) {
+		datum *current;
+		current = iterator->value.cons.car;
+		gh_assert(current->type == TYPE_CONS, "type-error", "bindings must be lists", current);
+		iterator->value.cons.car = translate_binding(current);
+		iterator = iterator->value.cons.cdr;
+	}
+	return copy;
+}
+
 datum *bind_args(datum *symbols, datum *values) {
 	datum *symbol_iterator;
 	datum *value_iterator;
@@ -446,7 +466,8 @@ datum *lang_loop(datum **locals) {
 	bindings = var_get(locals, "#bindings");
 	body = var_get(locals, "#body");
 
-	translated_bindings = map(&translate_binding, bindings);
+	translated_bindings = translate_bindings(bindings);
+	gh_assert(translated_bindings->type == TYPE_CONS || translated_bindings->type == TYPE_NIL, "type-error", "error occured while translating bindings", bindings);
 	new_locals = combine(translated_bindings, *locals);
 
 	result = &LANG_NIL_VALUE;
@@ -490,7 +511,8 @@ datum *lang_let(datum **locals) {
 	body = var_get(locals, "#body");
 
 
-	translated_bindings = map(&translate_binding, bindings);
+	translated_bindings = translate_bindings(bindings);
+	gh_assert(translated_bindings->type == TYPE_CONS || translated_bindings->type == TYPE_NIL, "type-error", "error occured while translating bindings", bindings);
 	new_locals = combine(translated_bindings, *locals);
 
 	return gh_begin(body, &new_locals);
@@ -1325,7 +1347,8 @@ datum *lang_try(datum **locals) {
 
 	action = var_get(locals, "#action");
 	handlers = var_get(locals, "#except");
-	handlers = map(&translate_binding, handlers);
+	handlers = translate_bindings(handlers);
+	gh_assert(handlers->type == TYPE_CONS || handlers->type == TYPE_NIL, "type-error", "error occured while translating handler", var_get(locals, "#except"));
 
 	/* Evaluate the exception handler functions so that they are functions, not symbols or lists */
 	iterator = handlers;
