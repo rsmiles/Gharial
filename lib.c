@@ -811,7 +811,7 @@ datum* gh_load(char *path) {
 	yyrestart(yyin);
 	do {
 		yyparse();
-	} while (gh_result->type != TYPE_EOF);
+	} while (gh_result->type != TYPE_EOF && gh_result->type != TYPE_EXCEPTION);
 
 	print_flag = old_print_flag;
 	yypop_buffer_state();
@@ -821,7 +821,11 @@ datum* gh_load(char *path) {
 	fclose(file);
 
 	current_file = old_current_file;
-	return &LANG_TRUE_VALUE;
+	if (gh_result->type == TYPE_EXCEPTION) {
+		return gh_result;
+	} else {
+		return &LANG_TRUE_VALUE;
+	}
 }
 
 datum *do_unquotes(datum *expr, datum **locals) {
