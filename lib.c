@@ -492,7 +492,9 @@ datum *lang_loop(datum **locals) {
 	iterator = body;
 	while (iterator->type != TYPE_NIL) {
 		result = gh_eval(iterator->value.cons.car, &new_locals);
-		if (result->type == TYPE_RECUR) {
+		if (result->type == TYPE_EXCEPTION) {
+			return result;
+		} else if (result->type == TYPE_RECUR) {
 			datum *recur_bindings;
 
 			recur_bindings = bind_args(map(&car, translated_bindings), result->value.recur.bindings);
@@ -1222,6 +1224,9 @@ datum *gh_begin(datum *body, datum **locals) {
 
 	while (iterator->type == TYPE_CONS) {
 		result = gh_eval(iterator->value.cons.car, locals);
+		if (result->type == TYPE_EXCEPTION) {
+			return result;
+		}
 		iterator = iterator->value.cons.cdr;
 	}
 
@@ -1635,5 +1640,31 @@ datum *exec_exec(datum *ex, datum *args) {
 	gh_assert(pid != -1, "runtime-error", "could not create child process", NULL);
 	waitpid(pid, &child_status, 0);
 	return gh_return_code(child_status);
+}
+
+datum *gh_subsh(datum *commands) {
+	pid_t pid;
+	int child_status;
+
+	pid = fork();
+	if (pid == 0) {
+		datum *result;
+		result = gh_begin(commands, locals);
+		if (result->type == TYPE_EXCEPTION) {
+			exit(EXIT_FAILURE);
+		}
+		exit(EXIT_SUCCESS);
+	} 
+	gh_assert(pid != -1, "runtime-error", "could not create child process", NULL);
+	waitpid(pid, &child_status, 0);
+	return gh_return_code(child_status);
+
+}
+
+datum *lang_subsh(datum **locals) {
+	datum *commands;
+
+	commands = var_get(locals, "#commands");
+	return gh_subsh(commands);
 }
 

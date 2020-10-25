@@ -100,6 +100,7 @@ void init_builtins() {
 	symbol_set(&globals, "string-split", gh_cfunc(&lang_string_split, gh_cons(gh_symbol("#str"), gh_symbol("#delim"))));
 	symbol_set(&globals, "return-code", gh_cfunc(&lang_return_code, gh_cons(gh_symbol("#num"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "length", gh_cfunc(&lang_length, gh_cons(gh_symbol("#lst"), &LANG_NIL_VALUE)));
+	symbol_set(&globals, "subsh", gh_cform(&lang_subsh, gh_symbol("#commands")));
 }
 
 char *el_prompt(EditLine *el) {
