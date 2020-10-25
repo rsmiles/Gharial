@@ -1,4 +1,4 @@
-#define _POSIX_C_SOURCE 200112L
+#define _POSIX_C_SOURCE 200809L
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -15,6 +15,9 @@
 
 datum *translate_binding(datum *let_binding);
 datum *translate_bindings(datum *bindings);
+bool is_path(char *str);
+datum *gh_exec(char *name);
+datum *exec_lookup(char *name);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -692,6 +695,9 @@ void print_datum(FILE *file, datum *expr) {
 			break;
 		case TYPE_RETURNCODE:
 			break;
+		case TYPE_EXECUTABLE:
+			fprintf(file, "<executable_file:%s>", expr->value.executable.path);
+			break;
 		case TYPE_CONS:
 			iterator = expr;
 	
@@ -756,8 +762,12 @@ datum *var_get(datum **locals, char *symbol) {
 		var = symbol_get(globals, symbol);
 		if (var == NULL) {
 			env_var = getenv(symbol);
-			gh_assert(env_var != NULL, "ref-error", "Unbound variable", gh_symbol(symbol));
-			var = gh_string(env_var);
+			if (env_var != NULL) {
+				var = gh_string(env_var);
+			} else {
+				var = exec_lookup(symbol);
+				gh_assert(var != NULL, "ref-error", "Unbound variable", gh_symbol(symbol));
+			}
 		}
 	}
 	return var;
@@ -1512,4 +1522,48 @@ datum *lang_return_code(datum **locals) {
 	return gh_return_code(num->value.integer);
 }
 
+bool is_path(char *str) {
+	int i;
+	for (i = 0; str[i] != '\0'; i++) {
+		if (str[i] == '/') {
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+datum *gh_exec(char *name) {
+	datum *ex;
+
+	ex = new_datum();
+	ex->type = TYPE_EXECUTABLE;
+	ex->value.executable.path = name;
+	return ex;
+}
+
+datum *exec_lookup(char *name) {
+	if (is_path(name)) {
+		if (access(name, X_OK) == 0) {
+			return gh_exec(name);
+		} else {
+			return NULL;
+		}
+	} else {
+		datum *iterator;
+		iterator = var_get(locals, "*PATH*");
+		while (iterator->type == TYPE_CONS) {
+			datum *dir;
+			char *path;
+
+			dir = iterator->value.cons.car;
+			path = string_append(dir->value.string, "/");
+			path = string_append(path, name);
+			if (access(path, X_OK) == 0) {
+				return gh_exec(path);
+			}
+			iterator = iterator->value.cons.cdr;
+		}
+		return NULL;
+	}
+}
 

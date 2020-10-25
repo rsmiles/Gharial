@@ -23,6 +23,7 @@
 #define TYPE_EOF        13
 #define TYPE_EXCEPTION  14
 #define TYPE_RETURNCODE 15
+#define TYPE_EXECUTABLE 16
 
 #define gh_assert(test, type, description, info) \
 	do { \
@@ -67,6 +68,10 @@ typedef struct datum {
 			struct datum *info;
 			int lineno;
 		} exception;
+
+		struct {
+			char *path;
+		} executable;
 		
 	} value;
 } datum;
