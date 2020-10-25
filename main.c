@@ -18,6 +18,7 @@ void init_builtins();
 unsigned char insert_parens(EditLine *el, int ch);
 unsigned char insert_newline(EditLine *el, int ch);
 unsigned char next_closeparen(EditLine *el, int ch);
+unsigned char insert_doublequotes(EditLine *el, int ch);
 void init_editline();
 char *el_prompt(EditLine *el);
 void cleanup();
@@ -146,10 +147,16 @@ unsigned char insert_newline(EditLine *el, int ch){
 unsigned char next_closeparen(EditLine *el, int ch) {
 	const struct lineinfo *info;
 	do {
-		info = el_line(el);
 		el_cursor(el, 1);
+		info = el_line(el);
 	} while (*info->cursor != ')' && *info->cursor != ']' && *info->cursor != '}' && info->cursor != info->lastchar);
 	return CC_CURSOR;
+}
+
+unsigned char insert_doublequotes(EditLine *el, int ch) {
+	el_insertstr(el, "\"\"");
+	el_cursor(el, -1);
+	return CC_REFRESH;
 }
 
 void init_editline(int argc, char **argv) {
@@ -165,14 +172,20 @@ void init_editline(int argc, char **argv) {
 	el_set(gh_editline, EL_PROMPT, &el_prompt);
 	el_set(gh_editline, EL_HIST, history, gh_history);
 	el_source(gh_editline, NULL);
+
 	el_set(gh_editline, EL_ADDFN, "insert_parens", "insert matching closing parentheses", &insert_parens);
 	el_set(gh_editline, EL_BIND, "(", "insert_parens", NULL);
 	el_set(gh_editline, EL_BIND, "[", "insert_parens", NULL);
 	el_set(gh_editline, EL_BIND, "{", "insert_parens", NULL);
+
 	el_set(gh_editline, EL_ADDFN, "insert_newline", "insert newline at cursor position", &insert_newline);
 	el_set(gh_editline, EL_BIND, "\n", "insert_newline", NULL);
+
 	el_set(gh_editline, EL_ADDFN, "next_closeparen", "move cursor to next closing parenthesis or end of line", &next_closeparen);
 	el_set(gh_editline, EL_BIND, "^n", "next_closeparen", NULL);
+
+	el_set(gh_editline, EL_ADDFN, "insert_doublequotes", "insert a pair of double quotation marks", &insert_doublequotes);
+	el_set(gh_editline, EL_BIND, "\"", "insert_doublequotes", NULL);
 }
 
 void cleanup_editline() {
