@@ -696,7 +696,7 @@ void print_datum(FILE *file, datum *expr) {
 		case TYPE_RETURNCODE:
 			break;
 		case TYPE_EXECUTABLE:
-			fprintf(file, "<executable_file:%s>", expr->value.executable.path);
+			fprintf(file, "<executable:%s>", expr->value.executable.path);
 			break;
 		case TYPE_CONS:
 			iterator = expr;
