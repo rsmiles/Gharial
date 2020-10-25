@@ -274,6 +274,9 @@ datum *gh_return_code(int num);
 
 datum *lang_return_code(datum **locals);
 
+int gh_length(datum *lst);
+
+datum *lang_length(datum **locals);
 
 #endif
 

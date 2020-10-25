@@ -6,6 +6,8 @@
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <gc.h>
 #include <histedit.h>
 
@@ -13,11 +15,15 @@
 #include "y.tab.h"
 #include "lex.yy.h"
 
+extern char **environ;
+
 datum *translate_binding(datum *let_binding);
 datum *translate_bindings(datum *bindings);
 bool is_path(char *str);
 datum *gh_exec(char *name);
 datum *exec_lookup(char *name);
+char **build_argv(datum *ex, datum *arglist);
+datum *exec_exec(datum *ex, datum *args);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -1229,13 +1235,17 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 	datum *result;
 
 	gh_assert(fn->type == TYPE_CFORM || fn->type == TYPE_CFUNC ||
-				fn->type == TYPE_FUNC,
+				fn->type == TYPE_FUNC || fn->type == TYPE_EXECUTABLE,
 				"type-error", "Attempt to call non-function", fn);
 
 	if (fn->type == TYPE_CFORM) { /* Do not evaluate arguments if special form */
 		evaluated_args = args;
 	} else {
 		evaluated_args = eval_arglist(args, locals);
+	}
+
+	if (fn->type == TYPE_EXECUTABLE) {
+		return exec_exec(fn, evaluated_args);
 	}
 
 	if (fn->type == TYPE_CFUNC || fn->type == TYPE_CFORM) {
@@ -1565,5 +1575,65 @@ datum *exec_lookup(char *name) {
 		}
 		return NULL;
 	}
+}
+
+int gh_length(datum *lst) {
+	int count;
+	datum *iterator;
+
+	count = 0;
+	iterator = lst;
+	while (iterator->type == TYPE_CONS) {
+		iterator = iterator->value.cons.cdr;
+		count++;
+	}
+	return count;
+}
+
+datum *lang_length(datum **locals) {
+	datum *lst;
+
+	lst = var_get(locals, "#lst");
+	gh_assert(lst->type == TYPE_CONS, "type-error", "length function requires a list argument", lst);
+
+	return gh_integer(gh_length(lst));
+}
+
+char **build_argv(datum *ex, datum *arglist) {
+	char **argv;
+	int len;
+	datum *iterator;
+	int i;
+
+	len = gh_length(arglist) + 1;
+
+	argv = GC_MALLOC(sizeof(char *) * len);
+
+	argv[0] = ex->value.executable.path;
+
+	iterator = arglist;
+	i = 1;
+	while (iterator->type == TYPE_CONS) {
+		argv[i++] = iterator->value.cons.car->value.string;
+		iterator = iterator->value.cons.cdr;
+	}
+
+	return argv;
+}
+
+datum *exec_exec(datum *ex, datum *args) {
+	pid_t pid;
+	int child_status;
+
+	pid = fork();
+	if (pid == 0) {
+		char **argv;
+
+		argv = build_argv(ex, args);
+		execve(ex->value.executable.path, argv, environ);
+	} 
+	gh_assert(pid != -1, "runtime-error", "could not create child process", NULL);
+	waitpid(pid, &child_status, 0);
+	return gh_return_code(child_status);
 }
 
