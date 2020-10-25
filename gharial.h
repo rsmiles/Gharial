@@ -282,5 +282,7 @@ datum *gh_subsh(datum *commands);
 
 datum *lang_subsh(datum **locals);
 
+datum *lang_cd(datum **locals);
+
 #endif
 

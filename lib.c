@@ -1,5 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
 
+#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1666,5 +1667,21 @@ datum *lang_subsh(datum **locals) {
 
 	commands = var_get(locals, "#commands");
 	return gh_subsh(commands);
+}
+
+datum *gh_error() {
+	return gh_string(strerror(errno));
+}
+
+datum *lang_cd(datum **locals) {
+	datum *dir;
+	int result;
+
+	dir = var_get(locals, "#dir");
+	gh_assert(dir->type == TYPE_STRING || dir->type == TYPE_SYMBOL, "type-error", "cd must be given a string or symbol", dir);
+
+	result = chdir(dir->value.string);
+	gh_assert(result == 0, "runtime-error", "could not change to directory", gh_error())
+	return dir;
 }
 

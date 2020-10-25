@@ -101,6 +101,7 @@ void init_builtins() {
 	symbol_set(&globals, "return-code", gh_cfunc(&lang_return_code, gh_cons(gh_symbol("#num"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "length", gh_cfunc(&lang_length, gh_cons(gh_symbol("#lst"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "subsh", gh_cform(&lang_subsh, gh_symbol("#commands")));
+	symbol_set(&globals, "cd", gh_cfunc(&lang_cd, gh_cons(gh_symbol("#dir"), &LANG_NIL_VALUE)));
 }
 
 char *el_prompt(EditLine *el) {
@@ -209,3 +210,4 @@ int main(int argc, char **argv) {
 	printf("\n");
 	return 0;
 }
+
