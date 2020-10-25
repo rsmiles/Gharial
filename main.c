@@ -194,9 +194,9 @@ int main(int argc, char **argv) {
 	init_editline(argc, argv);
 	atexit(&cleanup);
 
-	symbol_set(&globals, "?", &LANG_NIL_VALUE);
+	symbol_set(&globals, "*?*", &LANG_NIL_VALUE);
 	init_result = gh_load(INIT_FILE);
-	symbol_set(&globals, "?", init_result);
+	symbol_set(&globals, "*?*", init_result);
 	
 	yyin = stdin;
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
