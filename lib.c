@@ -1242,12 +1242,6 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 		result = gh_begin(fn->value.func.body, &new_locals);
 	}
 
-	if(result->type == TYPE_RETURNCODE) {
-		symbol_set(&globals, "?", gh_integer(result->value.integer));
-	} else {
-		symbol_set(&globals, "?", result);
-	}
-
 	return result;
 }
 
