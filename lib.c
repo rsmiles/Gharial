@@ -1643,7 +1643,7 @@ datum *exec_exec(datum *ex, datum *args) {
 	return gh_return_code(child_status);
 }
 
-datum *gh_subsh(datum *commands) {
+datum *gh_subproc(datum *commands) {
 	pid_t pid;
 	int child_status;
 
@@ -1662,11 +1662,11 @@ datum *gh_subsh(datum *commands) {
 
 }
 
-datum *lang_subsh(datum **locals) {
+datum *lang_subproc(datum **locals) {
 	datum *commands;
 
 	commands = var_get(locals, "#commands");
-	return gh_subsh(commands);
+	return gh_subproc(commands);
 }
 
 datum *gh_error() {

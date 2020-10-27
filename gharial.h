@@ -278,9 +278,9 @@ int gh_length(datum *lst);
 
 datum *lang_length(datum **locals);
 
-datum *gh_subsh(datum *commands);
+datum *gh_subproc(datum *commands);
 
-datum *lang_subsh(datum **locals);
+datum *lang_subproc(datum **locals);
 
 datum *lang_cd(datum **locals);
 
