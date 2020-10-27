@@ -24,7 +24,8 @@ bool is_path(char *str);
 datum *gh_exec(char *name);
 datum *exec_lookup(char *name);
 char **build_argv(datum *ex, datum *arglist);
-datum *exec_exec(datum *ex, datum *args);
+void set_proc_IO(FILE *input, FILE *output, FILE *error);
+datum *exec_exec(datum *ex, datum *args, FILE *input, FILE *output, FILE *error);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -1251,7 +1252,7 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 	}
 
 	if (fn->type == TYPE_EXECUTABLE) {
-		return exec_exec(fn, evaluated_args);
+		return exec_exec(fn, evaluated_args, NULL, NULL, NULL);
 	}
 
 	if (fn->type == TYPE_CFUNC || fn->type == TYPE_CFORM) {
@@ -1627,7 +1628,27 @@ char **build_argv(datum *ex, datum *arglist) {
 	return argv;
 }
 
-datum *exec_exec(datum *ex, datum *args) {
+void set_proc_IO(FILE *input, FILE *output, FILE *error) {
+	if (input != NULL && input != stdin) {
+		fclose(stdout);
+		dup2(fileno(input), 0);
+		stdin = fdopen(0, "r");
+	}
+
+	if (output != NULL && output != stdout) {
+		fclose(stdout);
+		dup2(fileno(output), 1);
+		stdout = fdopen(1, "w");
+	}
+
+	if (error != NULL && input != stderr) {
+		fclose(stderr);
+		dup2(fileno(input), 2);
+		stderr = fdopen(2, "w");
+	}
+}
+
+datum *exec_exec(datum *ex, datum *args, FILE *input, FILE *output, FILE *error) {
 	pid_t pid;
 	int child_status;
 
@@ -1635,7 +1656,11 @@ datum *exec_exec(datum *ex, datum *args) {
 	if (pid == 0) {
 		char **argv;
 
+
 		argv = build_argv(ex, args);
+
+		set_proc_IO(input, output, error);
+
 		execve(ex->value.executable.path, argv, environ);
 	} 
 	gh_assert(pid != -1, "runtime-error", "could not create child process", NULL);
@@ -1643,13 +1668,16 @@ datum *exec_exec(datum *ex, datum *args) {
 	return gh_return_code(child_status);
 }
 
-datum *gh_subproc(datum *commands) {
+datum *gh_subproc(datum *commands, FILE *input, FILE *output, FILE *error) {
 	pid_t pid;
 	int child_status;
 
 	pid = fork();
 	if (pid == 0) {
 		datum *result;
+
+		set_proc_IO(input, output, error);
+
 		result = gh_begin(commands, locals);
 		if (result->type == TYPE_EXCEPTION) {
 			exit(EXIT_FAILURE);
@@ -1666,7 +1694,7 @@ datum *lang_subproc(datum **locals) {
 	datum *commands;
 
 	commands = var_get(locals, "#commands");
-	return gh_subproc(commands);
+	return gh_subproc(commands, NULL, NULL, NULL);
 }
 
 datum *gh_error() {
