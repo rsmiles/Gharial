@@ -24,8 +24,8 @@ bool is_path(char *str);
 datum *gh_exec(char *name);
 datum *exec_lookup(char *name);
 char **build_argv(datum *ex, datum *arglist);
-void set_proc_IO(FILE *input, FILE *output, FILE *error);
-datum *exec_exec(datum *ex, datum *args, FILE *input, FILE *output, FILE *error);
+void set_proc_IO(datum **locals);
+datum *exec_exec(datum *ex, datum *args, datum **locals);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -1252,7 +1252,7 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 	}
 
 	if (fn->type == TYPE_EXECUTABLE) {
-		return exec_exec(fn, evaluated_args, NULL, NULL, NULL);
+		return exec_exec(fn, evaluated_args, locals);
 	}
 
 	if (fn->type == TYPE_CFUNC || fn->type == TYPE_CFORM) {
@@ -1628,27 +1628,82 @@ char **build_argv(datum *ex, datum *arglist) {
 	return argv;
 }
 
-void set_proc_IO(FILE *input, FILE *output, FILE *error) {
-	if (input != NULL && input != stdin) {
-		fclose(stdout);
-		dup2(fileno(input), 0);
-		stdin = fdopen(0, "r");
+void set_proc_IO(datum **locals) {
+	datum *input_file;
+	datum *output_file;
+	datum *error_file;
+
+	datum *standard_input;
+	datum *standard_output;
+	datum *standard_error;
+
+	input_file = var_get(locals, "input-file");
+	output_file = var_get(locals, "output-file");
+	error_file = var_get(locals, "error-file");
+
+	standard_input = var_get(locals, "*STDIN*");
+	standard_output = var_get(locals, "*STDOUT*");
+	standard_error = var_get(locals, "*STDERR*");
+
+	if (input_file != standard_input) {
+		FILE *std_fp;
+		FILE *f_fp;
+		int std_fd;
+		int f_fd;
+
+		std_fp = standard_input->value.file;
+		std_fd = fileno(std_fp);
+
+		f_fp = input_file->value.file;
+		f_fd = fileno(f_fp);
+
+		fclose(std_fp);
+		dup2(f_fd, std_fd);
+
+		symbol_set(&globals, "*STDIN*", input_file);
+		stdin = f_fp;
 	}
 
-	if (output != NULL && output != stdout) {
-		fclose(stdout);
-		dup2(fileno(output), 1);
-		stdout = fdopen(1, "w");
-	}
+	if (output_file != standard_output) {
+		FILE *std_fp;
+		FILE *f_fp;
+		int std_fd;
+		int f_fd;
 
-	if (error != NULL && input != stderr) {
-		fclose(stderr);
-		dup2(fileno(input), 2);
-		stderr = fdopen(2, "w");
+		std_fp = standard_output->value.file;
+		std_fd = fileno(std_fp);
+
+		f_fp = output_file->value.file;
+		f_fd = fileno(f_fp);
+
+		fclose(std_fp);
+		dup2(f_fd, std_fd);
+
+		symbol_set(&globals, "*STDOUT*", output_file);
+		stdout = f_fp;
+	}
+	
+	if (error_file != standard_error) {
+		FILE *std_fp;
+		FILE *f_fp;
+		int std_fd;
+		int f_fd;
+
+		std_fp = standard_error->value.file;
+		std_fd = fileno(std_fp);
+
+		f_fp = error_file->value.file;
+		f_fd = fileno(f_fp);
+
+		fclose(std_fp);
+		dup2(f_fd, std_fd);
+
+		symbol_set(&globals, "*STDERR*", error_file);
+		stderr = f_fp;
 	}
 }
 
-datum *exec_exec(datum *ex, datum *args, FILE *input, FILE *output, FILE *error) {
+datum *exec_exec(datum *ex, datum *args, datum **locals) {
 	pid_t pid;
 	int child_status;
 
@@ -1659,7 +1714,7 @@ datum *exec_exec(datum *ex, datum *args, FILE *input, FILE *output, FILE *error)
 
 		argv = build_argv(ex, args);
 
-		set_proc_IO(input, output, error);
+		set_proc_IO(locals);
 
 		execve(ex->value.executable.path, argv, environ);
 	} 
@@ -1668,7 +1723,7 @@ datum *exec_exec(datum *ex, datum *args, FILE *input, FILE *output, FILE *error)
 	return gh_return_code(child_status);
 }
 
-datum *gh_subproc(datum *commands, FILE *input, FILE *output, FILE *error) {
+datum *gh_subproc(datum *commands, datum **locals) {
 	pid_t pid;
 	int child_status;
 
@@ -1676,7 +1731,7 @@ datum *gh_subproc(datum *commands, FILE *input, FILE *output, FILE *error) {
 	if (pid == 0) {
 		datum *result;
 
-		set_proc_IO(input, output, error);
+		set_proc_IO(locals);
 
 		result = gh_begin(commands, locals);
 		if (result->type == TYPE_EXCEPTION) {
@@ -1694,7 +1749,7 @@ datum *lang_subproc(datum **locals) {
 	datum *commands;
 
 	commands = var_get(locals, "#commands");
-	return gh_subproc(commands, NULL, NULL, NULL);
+	return gh_subproc(commands, locals);
 }
 
 datum *gh_error() {

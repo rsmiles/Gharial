@@ -278,7 +278,7 @@ int gh_length(datum *lst);
 
 datum *lang_length(datum **locals);
 
-datum *gh_subproc(datum *commands, FILE *input, FILE *output, FILE *error);
+datum *gh_subproc(datum *commands, datum **locals);
 
 datum *lang_subproc(datum **locals);
 
