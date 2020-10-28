@@ -1635,202 +1635,68 @@ char **build_argv(datum *ex, datum *arglist) {
 	return argv;
 }
 
-void set_proc_IO(datum **locals) {
-	datum *input_file;
-	datum *output_file;
-	datum *error_file;
+datum *set_proc_IO(FILE *input, FILE *output, FILE *error, datum **locals) {
+	if (input != NULL && input != stdin) {
+		datum *gh_stdin;
+		int dup_status;
 
-	datum *standard_input;
-	datum *standard_output;
-	datum *standard_error;
+		fclose(stdin);
+		dup_status = dup2(fileno(input), 0);
+		gh_assert(dup_status != -1, "i/o error", "Could not duplicate file descriptor for new stdin", gh_error());
+		stdin = fdopen(0, "r");
+		gh_assert(stdin != NULL, "i/o error", "Could not open file descriptor for new stdin", gh_error());
+		gh_stdin = gh_file(stdin);
+		symbol_set(&globals, "input-file", gh_stdin);
+		symbol_set(&globals, "*STDIN*", gh_stdin);
+	}
+	if (output != NULL, output != stdout) {
+		datum *gh_stdout;
+		int dup_status;
 
-	input_file = var_get(locals, "input-file");
-	output_file = var_get(locals, "output-file");
-	error_file = var_get(locals, "error-file");
+		fclose(stdout);
+		dup_status = dup2(fileno(output), 1);
+		gh_assert(dup_status != -1, "i/o error", "Could not duplicate file descriptor for new stdout", gh_error());
+		stdout = fdopen(1, "w");
+		gh_assert(stdout != NULL, "i/o error", "Could not open file descriptor for new stdout", gh_error());
+		gh_stdout = gh_file(stdout);
+		symbol_set(&globals, "output-file", gh_stdout);
+		symbol_set(&globals, "*STDOUT*", gh_stdout);
+	}
+	if (error != NULL && error != stdout) {
+		datum *gh_stderr;
+		int dup_status;
 
-	standard_input = var_get(locals, "*STDIN*");
-	standard_output = var_get(locals, "*STDOUT*");
-	standard_error = var_get(locals, "*STDERR*");
-
-	if (input_file != standard_input) {
-		FILE *std_fp;
-		FILE *f_fp;
-		int std_fd;
-		int f_fd;
-
-		std_fp = standard_input->value.file;
-		std_fd = fileno(std_fp);
-
-		f_fp = input_file->value.file;
-		f_fd = fileno(f_fp);
-
-		fclose(std_fp);
-		dup2(f_fd, std_fd);
-
-		symbol_set(&globals, "*STDIN*", input_file);
-		stdin = f_fp;
+		fclose(stderr);
+		dup_status = dup2(fileno(error), 2);
+		gh_assert(dup_status != -1, "i/o error", "Could not duplicate file descriptor for new stderr", gh_error());
+		stderr = fdopen(2, "w");
+		gh_assert(stderr != NULL, "i/o error", "Could not open file descriptor for new stderr", gh_error());
+		gh_stdout = gh_file(stderr);
+		symbol_set(&globals, "error-file", gh_stderr);
+		symbol_set(&globals, "*STDERR*", gh_stderr);
 	}
 
-	if (output_file != standard_output) {
-		FILE *std_fp;
-		FILE *f_fp;
-		int std_fd;
-		int f_fd;
-
-		std_fp = standard_output->value.file;
-		std_fd = fileno(std_fp);
-
-		f_fp = output_file->value.file;
-		f_fd = fileno(f_fp);
-
-		fclose(std_fp);
-		dup2(f_fd, std_fd);
-
-		symbol_set(&globals, "*STDOUT*", output_file);
-		stdout = f_fp;
-	}
-	
-	if (error_file != standard_error) {
-		FILE *std_fp;
-		FILE *f_fp;
-		int std_fd;
-		int f_fd;
-
-		std_fp = standard_error->value.file;
-		std_fd = fileno(std_fp);
-
-		f_fp = error_file->value.file;
-		f_fd = fileno(f_fp);
-
-		fclose(std_fp);
-		dup2(f_fd, std_fd);
-
-		symbol_set(&globals, "*STDERR*", error_file);
-		stderr = f_fp;
-	}
+	return &LANG_TRUE_VALUE;
 }
 
-datum *exec_exec(datum *ex, datum *args, datum **locals) {
+pid_t gh_proc(datum *commands, datum **locals, FILE *input, FILE *output *FILE *error) {
 	pid_t pid;
-	int child_status;
-	int pipe_status;
-	int pipe_fds[2];
-	FILE *pipe_read;
-	FILE *pipe_write;
-	datum *new_locals;
-
-	new_locals = *locals;
-
-	if (capture_flag) {
-		pipe_status = pipe(pipe_fds);
-		gh_assert(pipe_status != -1, "i/o-error", "could not open pipe", gh_error());
-		pipe_read = fdopen(pipe_fds[0], "r");
-		pipe_write = fdopen(pipe_fds[1], "w");
-
-		new_locals = gh_cons(gh_cons(gh_symbol("output-file"), gh_file(pipe_write)), new_locals);
-	}
-
-	pid = fork();
-	if (pid == 0) {
-		char **argv;
-
-		argv = build_argv(ex, args);
-
-		set_proc_IO(&new_locals);
-
-		execve(ex->value.executable.path, argv, environ);
-	}
- 
-	gh_assert(pid != -1, "runtime-error", "could not create child process", NULL);
-	if (capture_flag) {
-		char *line;
-		datum *result;
-
-		fclose(pipe_write);
-		result = &LANG_NIL_VALUE;
-
-		do {
-			line = gh_readline(pipe_read);
-			if (line != NULL) {
-				result = gh_cons(gh_string(line), result);
-			}
-		} while (line != NULL);
-
-		waitpid(pid, &child_status, 0);
-		symbol_set(&globals, "*?*", gh_integer(child_status));
-
-		return result;
-	} else {
-		waitpid(pid, &child_status, 0);
-		symbol_set(&globals, "*?*", gh_integer(child_status));
-		return gh_return_code(child_status);
-	}
-}
-
-datum *gh_subproc(datum *commands, datum **locals) {
-	pid_t pid;
-	int child_status;
-	int pipe_status;
-	int pipe_fds[2];
-	FILE *pipe_read;
-	FILE *pipe_write;
-	datum *new_locals;
-
-	new_locals = *locals;
-
-	if (capture_flag) {
-		pipe_status = pipe(pipe_fds);
-		gh_assert(pipe_status != -1, "i/o-error", "could not open pipe", gh_error());
-		pipe_read = fdopen(pipe_fds[0], "r");
-		pipe_write = fdopen(pipe_fds[1], "w");
-
-		new_locals = gh_cons(gh_cons(gh_symbol("output-file"), gh_file(pipe_write)), new_locals);
-	}
 
 	pid = fork();
 	if (pid == 0) {
 		datum *result;
 
-		set_proc_IO(&new_locals);
-
-		result = gh_begin(commands, &new_locals);
+		set_proc_IO(input, output, error);
+		result = gh_begin(locals);
 		if (result->type == TYPE_EXCEPTION) {
 			exit(EXIT_FAILURE);
+		} else {
+			exit(EXIT_SUCCESS);
 		}
-		exit(EXIT_SUCCESS);
-	} 
-	gh_assert(pid != -1, "runtime-error", "could not create child process", NULL);
-	if (capture_flag) {
-		char *line;
-		datum *result;
-
-		fclose(pipe_write);
-		result = &LANG_NIL_VALUE;
-
-		do {
-			line = gh_readline(pipe_read);
-			if (line != NULL) {
-				result = gh_cons(gh_string(line), result);
-			}
-		} while (line != NULL);
-
-		waitpid(pid, &child_status, 0);
-		symbol_set(&globals, "*?*", gh_integer(child_status));
-
-		return result;
 	} else {
-		waitpid(pid, &child_status, 0);
-		symbol_set(&globals, "*?*", gh_integer(child_status));
-		return gh_return_code(child_status);
+		gh_assert(pid != -1, "runtime-error", "could not create child process", gh_error());
+		return pid;
 	}
-
-}
-
-datum *lang_subproc(datum **locals) {
-	datum *commands;
-
-	commands = var_get(locals, "#commands");
-	return gh_subproc(commands, locals);
 }
 
 datum *gh_error() {
