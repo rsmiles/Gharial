@@ -72,7 +72,7 @@ SPECIAL    [\$\+\-\*\/\^=\?\!_\.]
 "}"                   { if (depth > 0 ) depth--; return TOK_CLOSECURLY; }
 "."                   { return TOK_DOT; }
 <<EOF>>               { return TOK_EOF; }
-({LETTER}|{SPECIAL})+({LETTER}|{SPECIAL}|{DIGIT}|\.)* { return TOK_SYMBOL; }
+({LETTER}|{SPECIAL}|\.)+({LETTER}|{SPECIAL}|{DIGIT}|\.)* { return TOK_SYMBOL; }
 
 %%
 
