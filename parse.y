@@ -55,12 +55,7 @@ term: expr {
 					gh_input = $$;
 					if (eval_flag) {
 						gh_result = gh_eval($$, &empty_locals);
-						if(gh_result->type == TYPE_RETURNCODE) {
-							symbol_set(&globals, "*?*", gh_integer(gh_result->value.integer));
-						} else {
-							symbol_set(&globals, "*?*", gh_result);
-						}
-						
+
 						if (print_flag) {
 							gh_print(stdout, gh_result);
 						}

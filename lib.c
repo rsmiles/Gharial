@@ -26,6 +26,7 @@ datum *exec_lookup(char *name);
 char **build_argv(datum *ex, datum *arglist);
 void set_proc_IO(datum **locals);
 datum *exec_exec(datum *ex, datum *args, datum **locals);
+datum *gh_error();
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -1470,7 +1471,13 @@ char *gh_readline(FILE *file) {
 
 
 		do {
-			fgets(buff, BUFF_SIZE, file);
+			char *status;
+			status = fgets(buff, BUFF_SIZE, file);
+
+			if (status == NULL) {
+				return NULL;
+			}
+
 			count = strlen(buff) + 1;
 
 			if (count <= 2) {
@@ -1706,42 +1713,116 @@ void set_proc_IO(datum **locals) {
 datum *exec_exec(datum *ex, datum *args, datum **locals) {
 	pid_t pid;
 	int child_status;
+	int pipe_status;
+	int pipe_fds[2];
+	FILE *pipe_read;
+	FILE *pipe_write;
+	datum *new_locals;
+
+	new_locals = *locals;
+
+	if (capture_flag) {
+		pipe_status = pipe(pipe_fds);
+		gh_assert(pipe_status != -1, "i/o-error", "could not open pipe", gh_error());
+		pipe_read = fdopen(pipe_fds[0], "r");
+		pipe_write = fdopen(pipe_fds[1], "w");
+
+		new_locals = gh_cons(gh_cons(gh_symbol("output-file"), gh_file(pipe_write)), new_locals);
+	}
 
 	pid = fork();
 	if (pid == 0) {
 		char **argv;
 
-
 		argv = build_argv(ex, args);
 
-		set_proc_IO(locals);
+		set_proc_IO(&new_locals);
 
 		execve(ex->value.executable.path, argv, environ);
-	} 
+	}
+ 
 	gh_assert(pid != -1, "runtime-error", "could not create child process", NULL);
-	waitpid(pid, &child_status, 0);
-	return gh_return_code(child_status);
+	if (capture_flag) {
+		char *line;
+		datum *result;
+
+		fclose(pipe_write);
+		result = &LANG_NIL_VALUE;
+
+		do {
+			line = gh_readline(pipe_read);
+			if (line != NULL) {
+				result = gh_cons(gh_string(line), result);
+			}
+		} while (line != NULL);
+
+		waitpid(pid, &child_status, 0);
+		symbol_set(&globals, "*?*", gh_integer(child_status));
+
+		return result;
+	} else {
+		waitpid(pid, &child_status, 0);
+		symbol_set(&globals, "*?*", gh_integer(child_status));
+		return gh_return_code(child_status);
+	}
 }
 
 datum *gh_subproc(datum *commands, datum **locals) {
 	pid_t pid;
 	int child_status;
+	int pipe_status;
+	int pipe_fds[2];
+	FILE *pipe_read;
+	FILE *pipe_write;
+	datum *new_locals;
+
+	new_locals = *locals;
+
+	if (capture_flag) {
+		pipe_status = pipe(pipe_fds);
+		gh_assert(pipe_status != -1, "i/o-error", "could not open pipe", gh_error());
+		pipe_read = fdopen(pipe_fds[0], "r");
+		pipe_write = fdopen(pipe_fds[1], "w");
+
+		new_locals = gh_cons(gh_cons(gh_symbol("output-file"), gh_file(pipe_write)), new_locals);
+	}
 
 	pid = fork();
 	if (pid == 0) {
 		datum *result;
 
-		set_proc_IO(locals);
+		set_proc_IO(&new_locals);
 
-		result = gh_begin(commands, locals);
+		result = gh_begin(commands, &new_locals);
 		if (result->type == TYPE_EXCEPTION) {
 			exit(EXIT_FAILURE);
 		}
 		exit(EXIT_SUCCESS);
 	} 
 	gh_assert(pid != -1, "runtime-error", "could not create child process", NULL);
-	waitpid(pid, &child_status, 0);
-	return gh_return_code(child_status);
+	if (capture_flag) {
+		char *line;
+		datum *result;
+
+		fclose(pipe_write);
+		result = &LANG_NIL_VALUE;
+
+		do {
+			line = gh_readline(pipe_read);
+			if (line != NULL) {
+				result = gh_cons(gh_string(line), result);
+			}
+		} while (line != NULL);
+
+		waitpid(pid, &child_status, 0);
+		symbol_set(&globals, "*?*", gh_integer(child_status));
+
+		return result;
+	} else {
+		waitpid(pid, &child_status, 0);
+		symbol_set(&globals, "*?*", gh_integer(child_status));
+		return gh_return_code(child_status);
+	}
 
 }
 
@@ -1766,5 +1847,20 @@ datum *lang_cd(datum **locals) {
 	result = chdir(dir->value.string);
 	gh_assert(result == 0, "runtime-error", "could not change to directory", gh_error())
 	return dir;
+}
+
+datum *lang_capture(datum **locals) {
+	datum *commands;
+	datum *result;
+	bool old_capture_flag;
+
+	commands = var_get(locals, "#commands");
+
+	old_capture_flag = capture_flag;
+	capture_flag = TRUE;
+	
+	result = gh_begin(commands, locals);
+	capture_flag = old_capture_flag;
+	return result;
 }
 

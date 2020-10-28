@@ -76,8 +76,9 @@ typedef struct datum {
 	} value;
 } datum;
 
-extern int eval_flag;
-extern int print_flag;
+extern bool eval_flag;
+extern bool print_flag;
+extern bool capture_flag;
 extern int yylineno;
 extern FILE *yyin;
 extern datum LANG_NIL_VALUE;
@@ -283,6 +284,8 @@ datum *gh_subproc(datum *commands, datum **locals);
 datum *lang_subproc(datum **locals);
 
 datum *lang_cd(datum **locals);
+
+datum *lang_capture(datum **locals);
 
 #endif
 
