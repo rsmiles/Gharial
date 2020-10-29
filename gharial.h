@@ -24,6 +24,7 @@
 #define TYPE_EXCEPTION  14
 #define TYPE_RETURNCODE 15
 #define TYPE_EXECUTABLE 16
+#define TYPE_PID        17
 
 #define gh_assert(test, type, description, info) \
 	do { \
@@ -279,13 +280,9 @@ int gh_length(datum *lst);
 
 datum *lang_length(datum **locals);
 
-datum *gh_subproc(datum *commands, datum **locals);
-
 datum *lang_subproc(datum **locals);
 
 datum *lang_cd(datum **locals);
-
-datum *lang_capture(datum **locals);
 
 #endif
 

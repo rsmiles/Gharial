@@ -24,9 +24,13 @@ bool is_path(char *str);
 datum *gh_exec(char *name);
 datum *exec_lookup(char *name);
 char **build_argv(datum *ex, datum *arglist);
-void set_proc_IO(datum **locals);
-datum *exec_exec(datum *ex, datum *args, datum **locals);
+void set_proc_IO(FILE *input, FILE *output, FILE *error);
 datum *gh_error();
+datum *gh_pid(int num);
+datum *lang_subproc_nowait(datum **locals);
+datum *run_exec_nowait(datum *ex, datum *args, datum **locals);
+datum *run_exec(datum *ex, datum *args, datum **locals);
+
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -706,6 +710,9 @@ void print_datum(FILE *file, datum *expr) {
 			break;
 		case TYPE_RETURNCODE:
 			break;
+		case TYPE_PID:
+			fprintf(file, "<pid %d>", expr->value.integer);
+			break;
 		case TYPE_EXECUTABLE:
 			fprintf(file, "<executable:%s>", expr->value.executable.path);
 			break;
@@ -1253,7 +1260,7 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 	}
 
 	if (fn->type == TYPE_EXECUTABLE) {
-		return exec_exec(fn, evaluated_args, locals);
+		return run_exec(fn, evaluated_args, locals);
 	}
 
 	if (fn->type == TYPE_CFUNC || fn->type == TYPE_CFORM) {
@@ -1635,51 +1642,77 @@ char **build_argv(datum *ex, datum *arglist) {
 	return argv;
 }
 
-datum *set_proc_IO(FILE *input, FILE *output, FILE *error, datum **locals) {
+void set_proc_IO(FILE *input, FILE *output, FILE *error) {
 	if (input != NULL && input != stdin) {
 		datum *gh_stdin;
 		int dup_status;
 
 		fclose(stdin);
 		dup_status = dup2(fileno(input), 0);
-		gh_assert(dup_status != -1, "i/o error", "Could not duplicate file descriptor for new stdin", gh_error());
+		if (dup_status == -1) {
+			fprintf(stderr, "Error: could not duplicate file descriptor %d for new stdin: %s\n",
+					fileno(input), strerror(errno));
+			exit(EXIT_FAILURE);
+		}
 		stdin = fdopen(0, "r");
-		gh_assert(stdin != NULL, "i/o error", "Could not open file descriptor for new stdin", gh_error());
+		if (stdin == NULL) {
+			fprintf(stderr, "Error: could not open file descriptor %d for new stdin: %s\n",
+					fileno(input), strerror(errno));
+			exit(EXIT_FAILURE);
+		}
 		gh_stdin = gh_file(stdin);
 		symbol_set(&globals, "input-file", gh_stdin);
 		symbol_set(&globals, "*STDIN*", gh_stdin);
 	}
-	if (output != NULL, output != stdout) {
+	if (output != NULL && output != stdout) {
 		datum *gh_stdout;
 		int dup_status;
 
 		fclose(stdout);
 		dup_status = dup2(fileno(output), 1);
-		gh_assert(dup_status != -1, "i/o error", "Could not duplicate file descriptor for new stdout", gh_error());
+		if (dup_status == -1) {
+			fprintf(stderr, "Error: could not duplicate file descriptor %d for new stdout: %s\n",
+					fileno(output), strerror(errno));
+			exit(EXIT_FAILURE);
+		}
 		stdout = fdopen(1, "w");
-		gh_assert(stdout != NULL, "i/o error", "Could not open file descriptor for new stdout", gh_error());
+		if (stdout == NULL) {
+			fprintf(stderr, "Error: could not open file descriptor %d for new stdout: %s\n",
+					fileno(output), strerror(errno));
+			exit(EXIT_FAILURE);
+		}
 		gh_stdout = gh_file(stdout);
 		symbol_set(&globals, "output-file", gh_stdout);
 		symbol_set(&globals, "*STDOUT*", gh_stdout);
 	}
-	if (error != NULL && error != stdout) {
+	if (error != NULL && error != stderr) {
 		datum *gh_stderr;
 		int dup_status;
 
 		fclose(stderr);
 		dup_status = dup2(fileno(error), 2);
-		gh_assert(dup_status != -1, "i/o error", "Could not duplicate file descriptor for new stderr", gh_error());
+		if (dup_status == -1)
+			exit(EXIT_FAILURE);
 		stderr = fdopen(2, "w");
-		gh_assert(stderr != NULL, "i/o error", "Could not open file descriptor for new stderr", gh_error());
-		gh_stdout = gh_file(stderr);
+		if (stderr == NULL) {
+			exit(EXIT_FAILURE);
+		}
+		gh_stderr = gh_file(stderr);
 		symbol_set(&globals, "error-file", gh_stderr);
 		symbol_set(&globals, "*STDERR*", gh_stderr);
 	}
-
-	return &LANG_TRUE_VALUE;
 }
 
-pid_t gh_proc(datum *commands, datum **locals, FILE *input, FILE *output *FILE *error) {
+datum *gh_pid(int num) {
+	datum *integer;
+
+	integer = gh_integer(num);
+	integer->type = TYPE_PID;
+
+	return integer;
+}
+
+datum *gh_proc(datum *commands, datum **locals, FILE *input, FILE *output, FILE *error) {
 	pid_t pid;
 
 	pid = fork();
@@ -1687,7 +1720,7 @@ pid_t gh_proc(datum *commands, datum **locals, FILE *input, FILE *output *FILE *
 		datum *result;
 
 		set_proc_IO(input, output, error);
-		result = gh_begin(locals);
+		result = gh_begin(commands, locals);
 		if (result->type == TYPE_EXCEPTION) {
 			exit(EXIT_FAILURE);
 		} else {
@@ -1695,8 +1728,76 @@ pid_t gh_proc(datum *commands, datum **locals, FILE *input, FILE *output *FILE *
 		}
 	} else {
 		gh_assert(pid != -1, "runtime-error", "could not create child process", gh_error());
-		return pid;
+		return gh_pid(pid);
 	}
+}
+
+
+datum *lang_subproc_nowait(datum **locals) {
+	datum *commands;
+	datum *input_file;
+	datum *output_file;
+	datum *error_file;
+
+	commands = var_get(locals, "#commands");
+	gh_assert(commands->type == TYPE_CONS, "type-error", "command list needs to be a list", commands);
+	input_file = var_get(locals, "input-file");
+	gh_assert(input_file->type == TYPE_FILE, "type-error", "input file is not a file", input_file);
+	output_file = var_get(locals, "output-file");
+	gh_assert(output_file->type == TYPE_FILE, "type-error", "output file is not a file", output_file);
+	error_file = var_get(locals, "error-file");
+	gh_assert(error_file->type == TYPE_FILE, "type-error", "error file is not a file", error_file);
+
+	return gh_proc(commands, locals, input_file->value.file, output_file->value.file, error_file->value.file);
+}
+
+datum *lang_subproc(datum **locals) {
+	datum *pid;
+	int status;
+	
+	pid = lang_subproc_nowait(locals);
+	waitpid(pid->value.integer, &status, 0);
+	symbol_set(&globals, "*?*", gh_integer(status));
+	return gh_return_code(status);
+}
+
+datum *gh_run(datum *command, datum *args, datum **locals, FILE *input, FILE *output, FILE *error) {
+	pid_t pid;
+
+	pid = fork();
+	if (pid == 0) {
+		char **argv;
+		set_proc_IO(input, output, error);
+		argv = build_argv(command, args);
+		execve(command->value.executable.path, argv, environ);
+		fprintf(stderr, "exec failure: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	} else {
+		gh_assert(pid != -1, "runtime-error", "could not create child process", gh_error());
+		return gh_pid(pid);
+	}
+}
+
+datum *run_exec_nowait(datum *ex, datum *args, datum **locals) {
+	datum *input_file;
+	datum *output_file;
+	datum *error_file;
+
+	input_file = var_get(locals, "input-file");
+	output_file = var_get(locals, "output-file");
+	error_file = var_get(locals, "error-file");
+
+	return gh_run(ex, args, locals, input_file->value.file, output_file->value.file, error_file->value.file);
+}
+
+datum *run_exec(datum *command, datum *args, datum **locals) {
+	int status;
+	datum *pid;
+
+	pid = run_exec_nowait(command, args, locals);
+	waitpid(pid->value.integer, &status, 0);
+	symbol_set(&globals, "*?*", gh_integer(status));
+	return gh_return_code(status);
 }
 
 datum *gh_error() {
