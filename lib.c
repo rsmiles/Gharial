@@ -1843,7 +1843,6 @@ datum *lang_pipe(datum **locals) {
 	datum *commands;
 	datum *iterator;
 	datum *command1;
-	datum *gh_pipe_output;
 	datum *pids;
 	int proc_status;
 
@@ -1863,6 +1862,7 @@ datum *lang_pipe(datum **locals) {
 			FILE *pipe_input;
 			FILE *pipe_output;
 			datum *gh_pipe_input;
+			datum *gh_pipe_output;
 			datum *command1_locals;
 			datum *command2_locals;
 			datum *command1_result;
@@ -1902,6 +1902,10 @@ datum *lang_pipe(datum **locals) {
 		iterator = iterator->value.cons.cdr;
 	}
 	gh_assert(iterator->type == TYPE_NIL, "type-error", "pipeline constructed with improper list", commands);
+
+	if (command1->type == TYPE_NIL) {
+		return gh_eval(command1, locals);
+	}
 
 	pids = reverse(pids);
 
