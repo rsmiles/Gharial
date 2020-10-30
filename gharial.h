@@ -95,6 +95,7 @@ extern EditLine *gh_editline;
 extern History *gh_history;
 extern HistEvent gh_last_histevent;
 extern int depth;
+extern datum *subproc_nowait;
 
 datum *symbol_loc(datum *table, char *symbol);
 
@@ -279,6 +280,8 @@ datum *lang_return_code(datum **locals);
 int gh_length(datum *lst);
 
 datum *lang_length(datum **locals);
+
+datum *lang_subproc_nowait(datum **locals);
 
 datum *lang_subproc(datum **locals);
 

@@ -27,10 +27,10 @@ char **build_argv(datum *ex, datum *arglist);
 void set_proc_IO(FILE *input, FILE *output, FILE *error);
 datum *gh_error();
 datum *gh_pid(int num);
-datum *lang_subproc_nowait(datum **locals);
 datum *run_exec_nowait(datum *ex, datum *args, datum **locals);
 datum *run_exec(datum *ex, datum *args, datum **locals);
 datum *pipe_eval(datum *expr, datum **locals);
+datum *eval_arglist(datum *args, datum **locals);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -1816,7 +1816,8 @@ datum *lang_cd(datum **locals) {
 	return dir;
 }
 
-datum *pipe_eval(expr, datum **locals) {
+
+datum *pipe_eval(datum *expr, datum **locals) {
 	datum *command;
 	datum *args;
 
@@ -1827,15 +1828,16 @@ datum *pipe_eval(expr, datum **locals) {
 	
 	if (command->type == TYPE_SYMBOL) {
 		if (strcmp(command->value.string, "subproc") == 0) {
-			return apply(&lang_subproc_nowait, args, locals);
+			return apply(subproc_nowait, args, locals);
 		} else {
 			command = var_get(locals, command->value.string);
-			if (command->type == TYPE_EXECUTABLE) {
-				return run_exec_nowait(command, args, locals);
-			} else {
-				return apply(command, args, locals);
-			}
 		}
+	}
+
+	if (command->type == TYPE_EXECUTABLE) {
+		return run_exec_nowait(command, eval_arglist(args, locals), locals);
+	} else {
+		return apply(command, args, locals);
 	}
 }
 
@@ -1843,6 +1845,7 @@ datum *lang_pipe(datum **locals) {
 	datum *commands;
 	datum *iterator;
 	datum *command1;
+	datum *command2;
 	datum *pids;
 	int proc_status;
 
@@ -1852,10 +1855,11 @@ datum *lang_pipe(datum **locals) {
 	pids = &LANG_NIL_VALUE;
 
 	command1 = &LANG_NIL_VALUE;
+	command2 = &LANG_NIL_VALUE;
 	while (iterator->type == TYPE_CONS) {
-		datum *command2;
 
 		command2 = iterator->value.cons.car;
+
 		if (command1->type != TYPE_NIL) {
 			int pipe_status;
 			int pipe_fds[2];
@@ -1883,10 +1887,9 @@ datum *lang_pipe(datum **locals) {
 			command1_locals = gh_cons(gh_cons(gh_symbol("output-file"), gh_pipe_input), *locals);
 			command2_locals = gh_cons(gh_cons(gh_symbol("input-file"), gh_pipe_output), *locals);
 
-			command1_result = pipe_eval(command1, command1_locals);
-			command2_result = pipe_eval(command2, command2_locals);
-
+			command1_result = pipe_eval(command1, &command1_locals);
 			fclose(pipe_input);
+			command2_result = pipe_eval(command2, &command2_locals);
 			fclose(pipe_output);
 
 			if (command1_result->type == TYPE_PID) {
@@ -1903,15 +1906,11 @@ datum *lang_pipe(datum **locals) {
 	}
 	gh_assert(iterator->type == TYPE_NIL, "type-error", "pipeline constructed with improper list", commands);
 
-	if (command1->type == TYPE_NIL) {
-		return gh_eval(command1, locals);
-	}
-
 	pids = reverse(pids);
 
 	iterator = pids;
 
-	proc_status = 0;	
+	proc_status = 0;
 	while (iterator->type == TYPE_CONS) {
 		datum *pid;
 		pid_t wait_status;
