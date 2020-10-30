@@ -284,5 +284,7 @@ datum *lang_subproc(datum **locals);
 
 datum *lang_cd(datum **locals);
 
+datum *lang_pipe(datum **locals);
+
 #endif
 
