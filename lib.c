@@ -1846,13 +1846,14 @@ datum *lang_pipe(datum **locals) {
 	datum *iterator;
 	datum *command1;
 	datum *command2;
-	datum *pids;
+	datum *results;
 	int proc_status;
+	datum *last;
 
 	commands = var_get(locals, "#commands");
 	iterator = commands;
 
-	pids = &LANG_NIL_VALUE;
+	results = &LANG_NIL_VALUE;
 
 	command1 = &LANG_NIL_VALUE;
 	command2 = &LANG_NIL_VALUE;
@@ -1892,13 +1893,10 @@ datum *lang_pipe(datum **locals) {
 			command2_result = pipe_eval(command2, &command2_locals);
 			fclose(pipe_output);
 
-			if (command1_result->type == TYPE_PID) {
-				pids = gh_cons(command1_result, pids);
-			}
 
-			if (command2_result->type == TYPE_PID) {
-				pids = gh_cons(command2_result, pids);
-			}
+			results = gh_cons(command1_result, results);
+
+			results = gh_cons(command2_result, results);
 
 		}
 		command1 = command2;
@@ -1906,24 +1904,34 @@ datum *lang_pipe(datum **locals) {
 	}
 	gh_assert(iterator->type == TYPE_NIL, "type-error", "pipeline constructed with improper list", commands);
 
-	pids = reverse(pids);
+	results = reverse(results);
 
-	iterator = pids;
+	iterator = results;
 
 	proc_status = 0;
+	last = &LANG_NIL_VALUE;
 	while (iterator->type == TYPE_CONS) {
-		datum *pid;
+		datum *current;
 		pid_t wait_status;
 
-		pid = iterator->value.cons.car;
-		wait_status = waitpid((pid_t)pid->value.integer, &proc_status, 0);
+		current = iterator->value.cons.car;
+		if (current->type == TYPE_PID) {
 
-		symbol_set(&globals, "*?*", gh_integer(proc_status));
-		gh_assert(wait_status > 0, "runtime-error", "error or interruption in child process", gh_error());
-		
+			wait_status = waitpid((pid_t)current->value.integer, &proc_status, 0);
+
+			symbol_set(&globals, "*?*", gh_integer(proc_status));
+			gh_assert(wait_status > 0, "runtime-error", "error or interruption in child process", gh_error());
+		} else {
+			symbol_set(&globals, "*?*", current);
+		}
+		last = iterator->value.cons.car;
 		iterator = iterator->value.cons.cdr;
+		
 	}
-
-	return gh_return_code(proc_status);
+	if (last->type == TYPE_PID) {
+		return gh_return_code(last->value.integer);
+	} else {
+		return last;
+	}
 }
 
