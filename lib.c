@@ -614,6 +614,7 @@ datum *gh_eval(datum *expr, datum **locals) {
 	datum *value;
 	datum *expanded;
 	datum *handlers;
+	datum *result;
 
 	switch (expr->type) {
 		case TYPE_CONS:
@@ -628,32 +629,38 @@ datum *gh_eval(datum *expr, datum **locals) {
 				value = var_get(locals, value->value.string);
 			}
 
-			return apply(value, expanded->value.cons.cdr, locals);
+			result = apply(value, expanded->value.cons.cdr, locals);
 			break;
 		case TYPE_SYMBOL:
 			symbol = expr->value.string;
 			value = var_get(locals, symbol);
-			return value;
+			result = value;
 			break;
 		case TYPE_EXCEPTION:
 			handlers = symbol_get(*locals, "#handlers");
 			if (handlers == NULL) {
 				print_exception(stderr, expr);
-				return expr;
+				result = expr;
 			} else {
 				datum *handler;
 				handler = symbol_get(handlers, expr->value.exception.type);
 				if (handler == NULL) {
 					print_exception(stderr, expr);
-					return expr;
+					result = expr;
 				} else {
-					return apply(handler, expr, locals);
+					result = apply(handler, expr, locals);
 				}
 			}
 			break;
 		default:
-			return expr;
+			result = expr;
 	}
+	if (result->type == TYPE_RETURNCODE) {
+		symbol_set(&globals, "*?*", gh_integer(result->value.integer));
+	} else {
+		symbol_set(&globals, "*?*", result);
+	}
+	return result;
 }
 
 datum *lang_eval(datum **locals) {
@@ -1757,7 +1764,6 @@ datum *lang_subproc(datum **locals) {
 	
 	pid = lang_subproc_nowait(locals);
 	waitpid(pid->value.integer, &status, 0);
-	symbol_set(&globals, "*?*", gh_integer(status));
 	return gh_return_code(status);
 }
 
@@ -1796,7 +1802,6 @@ datum *run_exec(datum *command, datum *args, datum **locals) {
 
 	pid = run_exec_nowait(command, args, locals);
 	waitpid(pid->value.integer, &status, 0);
-	symbol_set(&globals, "*?*", gh_integer(status));
 	return gh_return_code(status);
 }
 
@@ -1919,17 +1924,15 @@ datum *lang_pipe(datum **locals) {
 
 			wait_status = waitpid((pid_t)current->value.integer, &proc_status, 0);
 
-			symbol_set(&globals, "*?*", gh_integer(proc_status));
 			gh_assert(wait_status > 0, "runtime-error", "error or interruption in child process", gh_error());
-		} else {
-			symbol_set(&globals, "*?*", current);
-		}
+		} 
+
 		last = iterator->value.cons.car;
 		iterator = iterator->value.cons.cdr;
 		
 	}
 	if (last->type == TYPE_PID) {
-		return gh_return_code(last->value.integer);
+		return gh_return_code(proc_status);
 	} else {
 		return last;
 	}
