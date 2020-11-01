@@ -1846,6 +1846,35 @@ datum *pipe_eval(datum *expr, datum **locals) {
 	}
 }
 
+bool gh_redirect(FILE *input, FILE *output) {
+	#define REDIRECT_BUFF_SIZE 256
+	char buff[REDIRECT_BUFF_SIZE];
+	char *gets_status;
+	int puts_status;
+
+	do {
+		gets_status = fgets(buff, REDIRECT_BUFF_SIZE, input);
+		if (gets_status != NULL) {
+			puts_status = fputs(buff, output);
+			if (puts_status == EOF) {
+				fclose(input);
+				fclose(output);
+				return FALSE;
+			}
+		}
+	} while (gets_status != NULL);
+
+	if (errno != 0) {
+		fclose(input);
+		fclose(output);
+		return FALSE;
+	}
+
+	fclose(input);
+	fclose(output);
+	return TRUE;
+}
+
 datum *lang_pipe(datum **locals) {
 	datum *commands;
 	datum *iterator;

@@ -289,5 +289,7 @@ datum *lang_cd(datum **locals);
 
 datum *lang_pipe(datum **locals);
 
+bool gh_redirect(FILE *input, FILE *output);
+
 #endif
 
