@@ -1876,6 +1876,30 @@ bool gh_redirect(FILE *input, FILE *output) {
 }
 
 datum *lang_pipe(datum **locals) {
+	#define pipe_assert (test, type, description) \
+		do { \
+			if (test) { \
+				; \
+			} else { \
+				int err; \
+				err = errno; \
+				if (pipe_fds[0] != -1) { \
+					close(pipe_fds[0]; \
+				} \
+				if (pipe_fds[1] != -1) { \
+					close(pipe_fds[1]; \
+				} \
+				if (export_fds[0] != -1) { \
+					close(export_fds[0]; \
+				} \
+				if (export_fds[1] != -1) { \
+					close(export_fds[1]; \
+				} \
+				gh_assert(TRUE, type, description, info, gh_string(strerror(err)); \
+			} \
+		} while(0);
+
+	datum *starting_input;
 	datum *commands;
 	datum *iterator;
 	datum *command1;
@@ -1883,11 +1907,21 @@ datum *lang_pipe(datum **locals) {
 	datum *results;
 	int proc_status;
 	datum *last;
+	datum *gh_last_export_output;
 
 	commands = var_get(locals, "#commands");
 	iterator = commands;
 
 	results = &LANG_NIL_VALUE;
+
+	export_fds[0] = -1;
+	export_fds[1] = -1;
+	export_input = NULL;
+	export_output = NULL;
+
+	
+	starting_input = var_get(locals, "input-file");
+	gh_last_export_output = starting_input;
 
 	command1 = &LANG_NIL_VALUE;
 	command2 = &LANG_NIL_VALUE;
@@ -1897,36 +1931,64 @@ datum *lang_pipe(datum **locals) {
 
 		if (command1->type != TYPE_NIL) {
 			int pipe_status;
+			int export_status;
 			int pipe_fds[2];
 			FILE *pipe_input;
 			FILE *pipe_output;
 			datum *gh_pipe_input;
 			datum *gh_pipe_output;
+			int export_fds[2];
+			FILE *export_input;
+			FILE *export_output;
+			datum *gh_export_input;
+			datum *gh_export_output;
 			datum *command1_locals;
 			datum *command2_locals;
 			datum *command1_result;
 			datum *command2_result;
 
+			pipe_fds[0] = -1;
+			pipe_fds[1] = -1;
+			export_fds[0] = -1;
+			export_fds[1] = -1;
+
 			pipe_status = pipe(pipe_fds);
 			gh_assert(pipe_status != -1, "i/o-error", "could not create pipe", gh_error());
 
 			pipe_input = fdopen(pipe_fds[1], "w");
-			gh_assert(pipe_input != NULL, "i/o-error", "could not open pipe write file descriptor", gh_error());
+			pipe_assert(pipe_input != NULL, "i/o-error", "could not open pipe write file descriptor");
 			
 			pipe_output = fdopen(pipe_fds[0], "r");
-			gh_assert(pipe_output != NULL, "i/o-error", "could not open pipe read file descriptor", gh_error());
+			pipe_assert(pipe_output != NULL, "i/o-error", "could not open pipe read file descriptor");
+
+			export_status = pipe(export_fds);
+			pipe_assert(export_status != -1, "i/o-error", "could not create export pipe");
+
+			export_input = fdopen(export_fds[1]);
+			pipe_assert(export_input != NULL, "i/o-error", "could not open export write fd");
+			
+			export_output = fdopen(export_fds[2]);
+			pipe_assert(export_input != NULL, "i/o-error", "could not open export read fd");
 
 			gh_pipe_input = gh_file(pipe_input);
 			gh_pipe_output = gh_file(pipe_output);
+			gh_export_input = gh_file(export_input);
+			gh_export_output = gh_file(export_input);
 
+			command1_locals = gh_cons(gh_cons(gh_symbol("input-file"), last_eport_output), *locals);
 			command1_locals = gh_cons(gh_cons(gh_symbol("output-file"), gh_pipe_input), *locals);
+
 			command2_locals = gh_cons(gh_cons(gh_symbol("input-file"), gh_pipe_output), *locals);
+			command2_locals = gh_cons(gh_cons(gh_symbol("output-file"), gh_export_input), *locals);
 
 			command1_result = pipe_eval(command1, &command1_locals);
+			if (gh_last_export_output != starting_input) {
+				fclose(gh_last_export_output);
+			}
 			fclose(pipe_input);
 			command2_result = pipe_eval(command2, &command2_locals);
 			fclose(pipe_output);
-
+			gh_last_export_output = gh_export_output;
 
 			results = gh_cons(command1_result, results);
 
@@ -1937,6 +1999,7 @@ datum *lang_pipe(datum **locals) {
 		iterator = iterator->value.cons.cdr;
 	}
 	gh_assert(iterator->type == TYPE_NIL, "type-error", "pipeline constructed with improper list", commands);
+	redirect_file(gh_last_export_output->value.file, stdout);
 
 	results = reverse(results);
 
@@ -1965,5 +2028,6 @@ datum *lang_pipe(datum **locals) {
 	} else {
 		return last;
 	}
+	#undef pipe_assert
 }
 
