@@ -29,6 +29,7 @@ datum *gh_error();
 datum *gh_pid(int num);
 datum *run_exec_nowait(datum *ex, datum *args, datum **locals);
 datum *run_exec(datum *ex, datum *args, datum **locals);
+datum *gh_pipe();
 datum *pipe_eval(datum *expr, datum **locals);
 datum *eval_arglist(datum *args, datum **locals);
 
@@ -653,6 +654,9 @@ datum *gh_eval(datum *expr, datum **locals) {
 	}
 	if (result->type == TYPE_RETURNCODE) {
 		symbol_set(&globals, "*?*", gh_integer(result->value.integer));
+	} else if(result->type == TYPE_CAPTURE) {
+		symbol_set(&globals, "*?*", result->value.cons.cdr);
+		return result->value.cons.car;
 	} else {
 		symbol_set(&globals, "*?*", result);
 	}
@@ -1875,6 +1879,23 @@ bool gh_redirect(FILE *input, FILE *output) {
 	return TRUE;
 }
 
+datum *gh_pipe() {
+	int pipe_status;
+	int pipe_fds[2];
+	FILE *pipe_input;
+	FILE *pipe_output;
+	datum *gh_pipe_input;
+	datum *gh_pipe_output;
+
+	pipe_status = pipe(pipe_fds);
+	gh_assert(pipe_status != -1, "i/o-error", "could not open pipe", gh_error());
+	pipe_input = fdopen(pipe_fds[1], "w");
+	pipe_output = fdopen(pipe_fds[0], "r");
+	gh_pipe_input = gh_file(pipe_input);
+	gh_pipe_output = gh_file(pipe_output);
+	return gh_cons(gh_pipe_output, gh_pipe_input);
+}
+
 datum *lang_pipe(datum **locals) {
 	datum *commands;
 	datum *input_file;
@@ -1907,15 +1928,11 @@ datum *lang_pipe(datum **locals) {
 		if (iterator->value.cons.cdr->type != TYPE_CONS) {
 			command_output = output_file;
 		} else {
-			int pipe_fds[2];
-			int pipe_status;
+			datum *pipe_files;
 
-			pipe_status = pipe(pipe_fds);
-			gh_assert(pipe_status != -1, "i/o-error", "could not create pipe", gh_error())
-
-			command_output = gh_file(fdopen(pipe_fds[1], "w"));
-
-			last_output = gh_file(fdopen(pipe_fds[0], "r"));
+			pipe_files = gh_pipe();
+			command_output = pipe_files->value.cons.cdr;
+			last_output = pipe_files->value.cons.car;
 		}
 		command_locals = gh_cons(gh_cons(gh_symbol("output-file"), command_output), command_locals);
 		results = gh_cons(pipe_eval(command, &command_locals), results);
@@ -1950,5 +1967,47 @@ datum *lang_pipe(datum **locals) {
 		iterator = iterator->value.cons.cdr;
 	}
 	return last_result;
+}
+
+datum *gh_capture(datum *result, datum *status) {
+	datum *cap;
+
+	cap = gh_cons(result, status);
+	cap->type = TYPE_CAPTURE;
+	return cap;
+}
+
+datum *lang_capture(datum **locals) {
+	datum *commands;
+	datum *pipe_files;
+	datum *pipe_in;
+	datum *pipe_out;
+	datum *command_locals;
+	datum *status;
+	datum *result;
+	char *line;
+
+	commands = var_get(locals, "#commands");
+
+	pipe_files = gh_pipe();
+	pipe_in = pipe_files->value.cons.cdr;
+	pipe_out = pipe_files->value.cons.car;
+
+	command_locals = gh_cons(gh_cons(gh_symbol("output-file"), pipe_in), *locals);
+	
+	status = gh_begin(commands, &command_locals);
+	fclose(pipe_in->value.file);
+	result = &LANG_NIL_VALUE;
+	line = NULL;
+	do {
+		line = gh_readline(pipe_out->value.file);
+		if (line != NULL) {
+			result = gh_cons(gh_string(line), result);
+		}
+	} while (line != NULL);
+	if (status->type == TYPE_RETURNCODE) {
+		status->type = TYPE_INTEGER;
+	}
+	return gh_capture(reverse(result), status);
 }
 
