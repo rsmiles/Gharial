@@ -623,11 +623,7 @@ datum *gh_eval(datum *expr, datum **locals) {
 				expanded = macroexpand(expanded, locals);
 			}
 
-			value = expanded->value.cons.car;
-
-			if (value->type == TYPE_SYMBOL) {
-				value = var_get(locals, value->value.string);
-			}
+			value = gh_eval(expanded->value.cons.car, locals);
 
 			result = apply(value, expanded->value.cons.cdr, locals);
 			break;
@@ -1830,13 +1826,17 @@ datum *pipe_eval(datum *expr, datum **locals) {
 
 	command = expr->value.cons.car;
 	args = expr->value.cons.cdr;
-	
-	if (command->type == TYPE_SYMBOL) {
+
+	if (command == var_get(locals, "subproc")) {
+		return apply(subproc_nowait, args, locals);
+	} else if (command->type == TYPE_SYMBOL) {	
 		if (strcmp(command->value.string, "subproc") == 0) {
 			return apply(subproc_nowait, args, locals);
 		} else {
-			command = var_get(locals, command->value.string);
+			command = gh_eval(command, locals);
 		}
+	} else {
+		command = gh_eval(command, locals);
 	}
 
 	if (command->type == TYPE_EXECUTABLE) {
