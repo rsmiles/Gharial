@@ -723,6 +723,9 @@ void print_datum(FILE *file, datum *expr) {
 		case TYPE_EXECUTABLE:
 			fprintf(file, "<executable:%s>", expr->value.executable.path);
 			break;
+		case TYPE_CAPTURE:
+			fprintf(file, "<captured_output>");
+			break;
 		case TYPE_CONS:
 			iterator = expr;
 	
