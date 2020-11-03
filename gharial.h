@@ -290,11 +290,13 @@ datum *lang_cd(datum **locals);
 
 datum *lang_pipe(datum **locals);
 
-bool gh_redirect(FILE *input, FILE *output);
+bool gh_stream_to(FILE *input, FILE *output);
 
 datum *gh_capture(datum *result, datum *status);
 
 datum *lang_capture(datum **locals);
+
+datum *gh_redirect(datum *file_symbol, datum *path, datum *file_mode,  bool in_pipe, datum *commands, datum **locals);
 
 #endif
 

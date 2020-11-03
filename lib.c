@@ -1853,7 +1853,7 @@ datum *pipe_eval(datum *expr, datum **locals) {
 	}
 }
 
-bool gh_redirect(FILE *input, FILE *output) {
+bool gh_stream_to(FILE *input, FILE *output) {
 	#define REDIRECT_BUFF_SIZE 256
 	char buff[REDIRECT_BUFF_SIZE];
 	char *gets_status;
@@ -2013,4 +2013,32 @@ datum *lang_capture(datum **locals) {
 	}
 	return gh_capture(reverse(result), status);
 }
+
+datum *gh_redirect(datum *file_symbol, datum *path, datum *file_mode,  bool in_pipe, datum *commands, datum **locals) {
+	FILE *file;
+	datum *file_datum;
+	datum *new_locals;
+
+	file = fopen(path->value.string, file_mode->value.string);
+	gh_assert(file != NULL, "i/o-error", "Could not open file", gh_error);
+
+	file_datum = gh_file(file);
+
+	new_locals = gh_cons(gh_cons(file_symbol, file_datum), *locals);
+
+	if (in_pipe) {
+		datum *interator;
+		datum *result;
+
+		iterator = commands;
+		while (iterator->type == TYPE_CONS) {
+			result = pipe_eval(command, &new_locals);
+			iterator = iterator->value.cons.cdr;
+		}
+		return result;
+	} else {
+		return gh_begin(commands, &new_locals);
+	}
+}
+
 
