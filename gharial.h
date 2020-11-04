@@ -298,7 +298,7 @@ datum *gh_capture(datum *result, datum *status);
 
 datum *lang_capture(datum **locals);
 
-datum *gh_redirect(datum *file_symbol, datum *path, datum *file_mode,  bool in_pipe, datum *commands, datum **locals);
+datum *gh_redirect(datum *file_symbol, datum *path, char *file_mode,  bool in_pipe, datum *commands, datum **locals);
 
 datum *lang_err_to(datum **locals);
 
@@ -309,6 +309,10 @@ datum *lang_to(datum **locals);
 datum *lang_to_append(datum **locals);
 
 datum *lang_from(datum **locals);
+
+datum *lang_pipe_err_to(datum **locals);
+
+datum *lang_pipe_err_append(datum **locals);
 
 #endif
 

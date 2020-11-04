@@ -31,8 +31,6 @@ datum *run_exec_nowait(datum *ex, datum *args, datum **locals);
 datum *run_exec(datum *ex, datum *args, datum **locals);
 datum *gh_pipe();
 datum *pipe_eval(datum *expr, datum **locals);
-datum *lang_pipe_err_to(datum **locals);
-datum *lang_pipe_err_append(datum **locals);
 datum *eval_arglist(datum *args, datum **locals);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
@@ -1843,8 +1841,9 @@ datum *pipe_eval(datum *expr, datum **locals) {
 		return apply(subproc_nowait, args, locals);
 	} else if (command == var_get(locals, "err-to")) {
 		return apply(pipe_err_to, args, locals);
-	else if (command == var_get(locals, "err-to+")) {
+	} else if (command == var_get(locals, "err-to+")) {
 		return apply(pipe_err_append, args, locals);
+	}
 	gh_assert(command != var_get(locals, "to"), "i/o-error", "cannot re-direct output within a pipeline", command);
 	gh_assert(command != var_get(locals, "to+"), "i/o-error", "cannot re-direct output within a pipeline", command);
 	gh_assert(command != var_get(locals, "from"), "i/o-error", "cannot re-direct input within a pipeline", command);
@@ -2017,25 +2016,30 @@ datum *lang_capture(datum **locals) {
 	return gh_capture(reverse(result), status);
 }
 
-datum *gh_redirect(datum *file_symbol, datum *path, datum *file_mode,  bool in_pipe, datum *commands, datum **locals) {
+datum *gh_redirect(datum *file_symbol, datum *path, char *file_mode,  bool in_pipe, datum *commands, datum **locals) {
 	FILE *file;
 	datum *file_datum;
 	datum *new_locals;
 
+	path = gh_eval(path, locals);
+
 	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "redirect path must be string or symbol", path);
-	file = fopen(path->value.string, file_mode->value.string);
-	gh_assert(file != NULL, "i/o-error", "Could not open file", gh_error);
+	file = fopen(path->value.string, file_mode);
+	gh_assert(file != NULL, "i/o-error", "Could not open file", gh_error());
 
 	file_datum = gh_file(file);
 
 	new_locals = gh_cons(gh_cons(file_symbol, file_datum), *locals);
 
 	if (in_pipe) {
-		datum *interator;
+		datum *iterator;
 		datum *result;
 
 		iterator = commands;
 		while (iterator->type == TYPE_CONS) {
+			datum *command;
+
+			command = iterator->value.cons.car;
 			result = pipe_eval(command, &new_locals);
 			iterator = iterator->value.cons.cdr;
 		}
@@ -2050,9 +2054,9 @@ datum *lang_pipe_err_to(datum **locals) {
 	datum *commands;
 
 	path = var_get(locals, "#path");
-	commands = var_get(locals, "commands");
+	commands = var_get(locals, "#commands");
 
-	return gh_redirect("error-file", path, "w", TRUE, commands, locals);
+	return gh_redirect(gh_symbol("error-file"), path, "w", TRUE, commands, locals);
 }
 
 datum *lang_pipe_err_append(datum **locals) {
@@ -2060,9 +2064,9 @@ datum *lang_pipe_err_append(datum **locals) {
 	datum *commands;
 
 	path = var_get(locals, "#path");
-	commands = var_get(locals, "commands");
+	commands = var_get(locals, "#commands");
 
-	return gh_redirect("error-file", path, "a", TRUE, commands, locals);
+	return gh_redirect(gh_symbol("error-file"), path, "a", TRUE, commands, locals);
 }
 
 datum *lang_err_to(datum **locals) {
@@ -2070,9 +2074,9 @@ datum *lang_err_to(datum **locals) {
 	datum *commands;
 
 	path = var_get(locals, "#path");
-	commands = var_get(locals, "commands");
+	commands = var_get(locals, "#commands");
 
-	return gh_redirect("error-file", path, "w", FALSE, commands, locals);
+	return gh_redirect(gh_symbol("error-file"), path, "w", FALSE, commands, locals);
 }
 
 datum *lang_err_append(datum **locals) {
@@ -2080,9 +2084,9 @@ datum *lang_err_append(datum **locals) {
 	datum *commands;
 
 	path = var_get(locals, "#path");
-	commands = var_get(locals, "commands");
+	commands = var_get(locals, "#commands");
 
-	return gh_redirect("error-file", path, "a", FALSE, commands, locals);
+	return gh_redirect(gh_symbol("error-file"), path, "a", FALSE, commands, locals);
 }
 
 datum *lang_to(datum **locals) {
@@ -2090,9 +2094,9 @@ datum *lang_to(datum **locals) {
 	datum *commands;
 
 	path = var_get(locals, "#path");
-	commands = var_get(locals, "commands");
+	commands = var_get(locals, "#commands");
 
-	return gh_redirect("output-file", path, "a", FALSE, commands, locals);
+	return gh_redirect(gh_symbol("output-file"), path, "a", FALSE, commands, locals);
 
 }
 
@@ -2101,9 +2105,9 @@ datum *lang_to_append(datum **locals) {
 	datum *commands;
 
 	path = var_get(locals, "#path");
-	commands = var_get(locals, "commands");
+	commands = var_get(locals, "#commands");
 
-	return gh_redirect("output-file", path, "a", FALSE, commands, locals);
+	return gh_redirect(gh_symbol("output-file"), path, "a", FALSE, commands, locals);
 	
 }
 
@@ -2112,8 +2116,8 @@ datum *lang_from(datum **locals) {
 	datum *commands;
 
 	path = var_get(locals, "#path");
-	commands = var_get(locals, "commands");
+	commands = var_get(locals, "#commands");
 
-	return gh_redirect("output-file", path, "r", FALSE, commands, locals);
+	return gh_redirect(gh_symbol("input-file"), path, "r", FALSE, commands, locals);
 }
 
