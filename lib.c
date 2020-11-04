@@ -438,7 +438,7 @@ datum *translate_bindings(datum *bindings) {
 	datum *copy;
 	datum *iterator;
 
-	copy = reverse(reverse(bindings));
+	copy = list_copy(bindings);
 	iterator = copy;
 
 	while (iterator->type == TYPE_CONS) {
@@ -652,6 +652,7 @@ datum *gh_eval(datum *expr, datum **locals) {
 		default:
 			result = expr;
 	}
+
 	if (result->type == TYPE_RETURNCODE) {
 		symbol_set(&globals, "*?*", gh_integer(result->value.integer));
 	} else if(result->type == TYPE_CAPTURE) {
@@ -768,11 +769,15 @@ char *string_copy(const char *str) {
 datum *symbol_loc_one(datum *table, char *symbol) {
 	datum *iterator;
 
+
 	iterator = table;
 	while (iterator->type == TYPE_CONS) {
 		datum *current;
 
 		current = iterator->value.cons.car;
+		if (current->type != TYPE_CONS) {
+			return NULL;
+		}
 		if (strcmp(current->value.cons.car->value.string, symbol) == 0)
 			return current;
 		iterator = iterator->value.cons.cdr;
@@ -902,7 +907,7 @@ datum *do_unquotes(datum *expr, datum **locals) {
 	datum *prev;
 
 	if (expr->type == TYPE_CONS) {
-		copy = reverse(reverse(expr));
+		copy = list_copy(expr);
 	} else {
 		copy = expr;
 	}
@@ -954,6 +959,32 @@ datum *reverse(datum *lst) {
 	}
 
 	return reversed;
+}
+
+datum *list_copy(datum *lst) {
+	datum *reversed;
+	datum *copy;
+	datum *iterator;
+
+	reversed = &LANG_NIL_VALUE;
+	iterator = lst;
+
+	while (iterator->type == TYPE_CONS) {
+		reversed = gh_cons(iterator->value.cons.car, reversed);
+		iterator = iterator->value.cons.cdr;
+	}
+
+	copy = iterator;
+
+	iterator = reversed;
+
+	
+	while (iterator->type == TYPE_CONS) {
+		copy = gh_cons(iterator->value.cons.car, copy);
+		iterator = iterator->value.cons.cdr;
+	}
+
+	return copy;
 }
 
 datum *lang_set(datum **locals) {
@@ -1128,7 +1159,7 @@ datum *eval_arglist(datum *args, datum **locals) {
 	datum *iterator;
 	datum *argscopy;
 
-	argscopy = reverse(reverse(args));	
+	argscopy = list_copy(args);	
 	iterator = argscopy;
 	while (iterator->type != TYPE_NIL) {
 		iterator->value.cons.car = gh_eval(iterator->value.cons.car, locals);

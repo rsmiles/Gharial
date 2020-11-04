@@ -154,6 +154,8 @@ datum *eval_arglist(datum *args, datum **locals);
 
 datum *reverse(datum *lst);
 
+datum *list_copy(datum *lst);
+
 datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *list);
 
 datum *map(datum *(*func)(datum *x), datum *lst);
