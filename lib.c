@@ -757,7 +757,15 @@ void gh_print(FILE *file, datum *expr){
 	}
 }
 
-datum *symbol_loc(datum *table, char *symbol) {
+char *string_copy(const char *str) {
+	char *copy;
+
+	copy = GC_MALLOC(sizeof(char) * (strlen(str) + 1));
+	strcpy(copy, str);
+	return copy;
+}
+
+datum *symbol_loc_one(datum *table, char *symbol) {
 	datum *iterator;
 
 	iterator = table;
@@ -770,6 +778,27 @@ datum *symbol_loc(datum *table, char *symbol) {
 		iterator = iterator->value.cons.cdr;
 	}
 	return NULL;
+}
+
+datum *symbol_loc(datum *table, char *symbol) {
+	char *sym_copy;
+	char *current_sym;
+	datum *loc;
+	datum *current_table;
+
+	sym_copy = string_copy(symbol);
+	current_sym = strtok(sym_copy, ".");
+	current_table = table;
+	do {
+		loc = symbol_loc_one(current_table, current_sym);
+		if (loc == NULL) {
+			return NULL;
+		}
+		current_table = loc->value.cons.cdr;
+		current_sym = strtok(NULL, ".");
+	} while (current_sym != NULL);
+
+	return loc;
 }
 
 datum *symbol_get(datum *table, char *symbol) {

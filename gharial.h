@@ -100,6 +100,8 @@ extern datum *subproc_nowait;
 extern datum *pipe_err_to;
 extern datum *pipe_err_append;
 
+datum *symbol_loc_one(datum *table, char *symbol);
+
 datum *symbol_loc(datum *table, char *symbol);
 
 datum *symbol_get(datum *table, char *symbol);
@@ -237,6 +239,8 @@ datum *lang_load(datum **locals);
 char *typestring(datum *obj);
 
 char *string_append(char *str1, char *str2);
+
+char *string_copy(const char *str);
 
 datum *string_split(const char *str, const char *delim);
 
