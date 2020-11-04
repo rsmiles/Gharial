@@ -97,6 +97,8 @@ extern History *gh_history;
 extern HistEvent gh_last_histevent;
 extern int depth;
 extern datum *subproc_nowait;
+extern datum *pipe_err_to;
+extern datum *pipe_err_append;
 
 datum *symbol_loc(datum *table, char *symbol);
 
@@ -297,6 +299,16 @@ datum *gh_capture(datum *result, datum *status);
 datum *lang_capture(datum **locals);
 
 datum *gh_redirect(datum *file_symbol, datum *path, datum *file_mode,  bool in_pipe, datum *commands, datum **locals);
+
+datum *lang_err_to(datum **locals);
+
+datum *lang_err_append(datum **locals);
+
+datum *lang_to(datum **locals);
+
+datum *lang_to_append(datum **locals);
+
+datum *lang_from(datum **locals);
 
 #endif
 
