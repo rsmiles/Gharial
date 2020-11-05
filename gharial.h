@@ -156,6 +156,8 @@ datum *reverse(datum *lst);
 
 datum *list_copy(datum *lst);
 
+datum *append(datum *lst1, datum *lst2);
+
 datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *list);
 
 datum *map(datum *(*func)(datum *x), datum *lst);
@@ -199,6 +201,8 @@ datum *lang_cdr(datum **locals);
 datum *lang_reverse(datum **locals);
 
 datum *lang_list(datum **locals);
+
+datum *lang_append(datum **locals);
 
 datum *lang_equal(datum **locals);
 
@@ -319,6 +323,8 @@ datum *lang_from(datum **locals);
 datum *lang_pipe_err_to(datum **locals);
 
 datum *lang_pipe_err_append(datum **locals);
+
+datum *lang_import(datum **locals);
 
 #endif
 

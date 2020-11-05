@@ -987,6 +987,33 @@ datum *list_copy(datum *lst) {
 	return copy;
 }
 
+datum *append(datum *lst1, datum *lst2) {
+	datum *result;
+	datum *iterator;
+
+	result = reverse(lst1);
+	iterator = lst2;
+	while (iterator->type == TYPE_CONS) {
+		result = gh_cons(iterator->value.cons.car, result);
+		iterator = iterator->value.cons.cdr;
+	}
+
+	return reverse(result);
+}
+
+datum *lang_append(datum **locals) {
+	datum *lst1;
+	datum *lst2;
+
+	lst1 = var_get(locals, "#lst1");
+	gh_assert(lst1->type == TYPE_CONS, "type-error", "first argument to append must be list", lst1);
+
+	lst2 = var_get(locals, "#lst2");
+	gh_assert(lst2->type == TYPE_CONS, "type-error", "first argument to append must be list", lst2);
+
+	return append(lst1, lst2);
+}
+
 datum *lang_set(datum **locals) {
 	datum *symbol;
 	datum *value;
@@ -2179,5 +2206,15 @@ datum *lang_from(datum **locals) {
 	commands = var_get(locals, "#commands");
 
 	return gh_redirect(gh_symbol("input-file"), path, "r", FALSE, commands, locals);
+}
+
+datum *lang_import(datum **locals) {
+	datum *table;
+
+	table = var_get(locals, "#table");
+
+	globals = append(table, globals);
+
+	return &LANG_TRUE_VALUE;
 }
 
