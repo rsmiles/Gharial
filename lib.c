@@ -836,13 +836,34 @@ datum *var_get(datum **locals, char *symbol) {
 }
 
 void symbol_set(datum **table, char *symbol, datum *value) {
+	datum *prev_loc;
 	datum *loc;
-	loc = symbol_loc(*table, symbol);
-	if (loc) {
-		loc->value.cons.cdr = value;
-	} else {
-		*table = gh_cons(gh_cons(gh_symbol(symbol), value), *table);
-	}
+	datum *current_table;
+	char *sym_copy;
+	char *current_sym;
+
+	sym_copy = string_copy(symbol);
+	current_sym = strtok(sym_copy, ".");
+	current_table = *table;
+	prev_loc = NULL;
+
+	do {
+		char *next_sym;
+
+		loc = symbol_loc_one(current_table, current_sym);
+		next_sym = strtok(sym_copy, ".");
+		if (next_sym == NULL) {
+			if (loc == NULL) {
+				*table = gh_cons(gh_cons(gh_symbol(current_sym), value), *table);
+				prev_loc->value.cons.cdr = gh_cons(gh_symbol(current_sym), value);
+			} else {
+				loc->value.cons.cdr = value;
+			}
+			return;
+		}
+		current_sym = next_sym;
+		prev_loc = loc;
+	} while (current_sym != NULL);
 }
 
 void symbol_unset(datum **table, char *symbol) {
