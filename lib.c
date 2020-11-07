@@ -835,35 +835,44 @@ datum *var_get(datum **locals, char *symbol) {
 	return var;
 }
 
-void symbol_set(datum **table, char *symbol, datum *value) {
-	datum *prev_loc;
-	datum *loc;
-	datum *current_table;
+char *symbol_set(datum **table, char *symbol, datum *value) {
 	char *sym_copy;
 	char *current_sym;
+	char *next_sym;
+	datum *loc;
+	datum *current_table;
+	datum *prev_loc;
 
+	prev_loc = NULL;
 	sym_copy = string_copy(symbol);
 	current_sym = strtok(sym_copy, ".");
 	current_table = *table;
-	prev_loc = NULL;
 
 	do {
-		char *next_sym;
-
 		loc = symbol_loc_one(current_table, current_sym);
-		next_sym = strtok(sym_copy, ".");
+		next_sym = strtok(NULL, ".");
 		if (next_sym == NULL) {
 			if (loc == NULL) {
-				*table = gh_cons(gh_cons(gh_symbol(current_sym), value), *table);
-				prev_loc->value.cons.cdr = gh_cons(gh_symbol(current_sym), value);
+				if (current_table == *table) {
+					*table = gh_cons(gh_cons(gh_symbol(current_sym), value), current_table);
+				} else {
+					prev_loc->value.cons.cdr = gh_cons(gh_cons(gh_symbol(current_sym), value), current_table);
+				}
 			} else {
 				loc->value.cons.cdr = value;
 			}
-			return;
 		}
-		current_sym = next_sym;
+
+		if (loc == NULL) {
+			return NULL;
+		}
+
+		current_table = loc->value.cons.cdr;
 		prev_loc = loc;
+		current_sym = next_sym;
 	} while (current_sym != NULL);
+
+	return symbol;
 }
 
 void symbol_unset(datum **table, char *symbol) {

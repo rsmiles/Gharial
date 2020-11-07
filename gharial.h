@@ -106,7 +106,7 @@ datum *symbol_loc(datum *table, char *symbol);
 
 datum *symbol_get(datum *table, char *symbol);
 
-void  symbol_set(datum **table, char *symbol, datum *value);
+char  *symbol_set(datum **table, char *symbol, datum *value);
 
 void  symbol_unset(datum **table, char *symbol);
 
