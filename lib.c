@@ -729,6 +729,10 @@ void print_datum(FILE *file, datum *expr) {
 		case TYPE_CAPTURE:
 			fprintf(file, "<captured_output>");
 			break;
+		case TYPE_JOB:
+			fprintf(file, "<job:");
+			gh_print(stdout, expr->value.job.commands);
+			fprintf(file, ">");
 		case TYPE_CONS:
 			iterator = expr;
 	
@@ -1936,12 +1940,20 @@ datum *run_exec_nowait(datum *ex, datum *args, datum **locals) {
 }
 
 datum *run_exec(datum *command, datum *args, datum **locals) {
-	int status;
-	datum *pid;
+	datum *job;
+	datum *input_file;
+	datum *output_file;
+	datum *error_file;
+	datum *commands;
 
-	pid = run_exec_nowait(command, args, locals);
-	waitpid(pid->value.integer, &status, 0);
-	return gh_return_code(status);
+	input_file = var_get(locals, "input-file");
+	output_file = var_get(locals, "output-file");
+	error_file = var_get(locals, "error-file");
+
+	commands = gh_cons(gh_cons(command, args), &LANG_NIL_VALUE);
+
+	job = job_start(commands, input_file, output_file, error_file);
+	return job_wait(job);
 }
 
 datum *gh_error() {
@@ -2037,24 +2049,19 @@ datum *gh_pipe() {
 	return gh_cons(gh_pipe_output, gh_pipe_input);
 }
 
-datum *lang_pipe(datum **locals) {
-	datum *commands;
-	datum *input_file;
-	datum *output_file;
-	datum *iterator;
-	datum *results;
+datum *job_start(datum *commands, datum *input_file, datum *output_file, datum *error_file) {
+	datum *job;
 	datum *last_output;
-	datum *last_result;
+	datum *iterator;
 
-	commands = var_get(locals, "#commands");
-	input_file = var_get(locals, "input-file");
-	output_file = var_get(locals, "output-file");
+	job = new_datum();
+	job->type = TYPE_JOB;
+	job->value.job.commands = commands;
+	job->value.job.values = &LANG_NIL_VALUE;
 
 	last_output = input_file;
 
-	results = &LANG_NIL_VALUE;
 	iterator = commands;
-
 	while (iterator->type == TYPE_CONS) {
 		datum *command;
 		datum *command_output;
@@ -2076,7 +2083,7 @@ datum *lang_pipe(datum **locals) {
 			last_output = pipe_files->value.cons.car;
 		}
 		command_locals = gh_cons(gh_cons(gh_symbol("output-file"), command_output), command_locals);
-		results = gh_cons(pipe_eval(command, &command_locals), results);
+		job->value.job.values = gh_cons(pipe_eval(command, &command_locals), job->value.job.values);
 		if (command_input != input_file) {
 			fclose(command_input->value.file);
 		}
@@ -2087,9 +2094,15 @@ datum *lang_pipe(datum **locals) {
 		iterator = iterator->value.cons.cdr;
 	}
 
-	results = reverse(results);
-	last_result = &LANG_NIL_VALUE;
-	iterator = results;
+	return job;
+}
+
+datum *job_wait(datum *job) {
+	datum *last_value;
+	datum *iterator;
+
+	last_value = &LANG_NIL_VALUE;
+	iterator = job->value.job.values;
 	while (iterator->type == TYPE_CONS) {
 		datum *current;
 		int wait_status;
@@ -2100,14 +2113,31 @@ datum *lang_pipe(datum **locals) {
 		current = iterator->value.cons.car;
 		if (current->type == TYPE_PID) {
 			wait_status = waitpid((pid_t)current->value.integer, &wait_status, 0);
-			last_result = gh_return_code(proc_status);
+			last_value = gh_return_code(proc_status);
 		} else {
-			last_result = current;
+			last_value = current;
 		}
 
 		iterator = iterator->value.cons.cdr;
 	}
-	return last_result;
+	return last_value;
+}
+
+
+datum *lang_pipe(datum **locals) {
+	datum *commands;
+	datum *input_file;
+	datum *output_file;
+	datum *error_file;
+	datum *job;
+
+	commands = var_get(locals, "#commands");
+	input_file = var_get(locals, "input-file");
+	output_file = var_get(locals, "output-file");
+	error_file = var_get(locals, "error-file");
+
+	job = job_start(commands, input_file, output_file, error_file);
+	return job_wait(job);
 }
 
 datum *gh_capture(datum *result, datum *status) {

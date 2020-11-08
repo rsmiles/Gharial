@@ -26,6 +26,7 @@
 #define TYPE_EXECUTABLE 16
 #define TYPE_PID        17
 #define TYPE_CAPTURE    18
+#define TYPE_JOB        19
 
 #define gh_assert(test, type, description, info) \
 	do { \
@@ -74,6 +75,14 @@ typedef struct datum {
 		struct {
 			char *path;
 		} executable;
+
+		struct {
+			struct datum *commands;
+			struct datum *values;
+			struct datum *input_file;
+			struct datum *output_file;
+			struct datum *error_file;
+		} job;
 		
 	} value;
 } datum;
@@ -299,6 +308,12 @@ datum *lang_subproc_nowait(datum **locals);
 datum *lang_subproc(datum **locals);
 
 datum *lang_cd(datum **locals);
+
+datum *job_start(datum *commands, datum *input_file, datum *output_file, datum *error_file);
+
+datum *job_wait(datum *job);
+
+datum *job_signal(datum *job);
 
 datum *lang_pipe(datum **locals);
 
