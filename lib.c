@@ -8,6 +8,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <gc.h>
 #include <histedit.h>
@@ -32,6 +33,7 @@ datum *run_exec(datum *ex, datum *args, datum **locals);
 datum *gh_pipe();
 datum *pipe_eval(datum *expr, datum **locals);
 datum *eval_arglist(datum *args, datum **locals);
+bool is_path_executable(const char *path);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -1690,6 +1692,23 @@ bool is_path(char *str) {
 	return FALSE;
 }
 
+bool is_path_executable(const char *path) {
+	int stat_status;
+	struct stat statbuff;
+
+	stat_status = stat(path, &statbuff);
+
+	if (stat_status != 0) {
+		return FALSE;
+	}
+
+	if (!(statbuff.st_mode & X_OK)) {
+		return FALSE;
+	}
+
+	return S_ISREG(statbuff.st_mode);
+}
+
 datum *gh_exec(char *name) {
 	datum *ex;
 
@@ -1701,7 +1720,7 @@ datum *gh_exec(char *name) {
 
 datum *exec_lookup(char *name) {
 	if (is_path(name)) {
-		if (access(name, X_OK) == 0) {
+		if (is_path_executable(name)) {
 			return gh_exec(name);
 		} else {
 			return NULL;
