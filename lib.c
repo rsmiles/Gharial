@@ -2112,7 +2112,13 @@ datum *job_wait(datum *job) {
 
 		current = iterator->value.cons.car;
 		if (current->type == TYPE_PID) {
-			wait_status = waitpid((pid_t)current->value.integer, &wait_status, 0);
+			wait_status = waitpid((pid_t)current->value.integer, &proc_status, 0);
+			gh_assert(wait_status > 0, "runtime error", "error waiting for process to exit", gh_error());
+
+			if (WIFSTOPPED(proc_status)) {
+				job->value.job.values = iterator;
+				return job;
+			}
 			last_value = gh_return_code(proc_status);
 		} else {
 			last_value = current;
