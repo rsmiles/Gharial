@@ -267,6 +267,7 @@ datum *lang_lambda(datum **locals) {
 	func->type = TYPE_FUNC;
 	func->value.func.lambda_list = lambda_list;
 	func->value.func.body = body;
+	func->value.func.closure = *locals;
 	return func;	
 }
 
@@ -1403,7 +1404,13 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 		arg_bindings = bind_args(fn->value.func.lambda_list, evaluated_args);
 	}
 
-	new_locals = combine(arg_bindings, *locals);
+	if (fn->type == TYPE_FUNC) {
+		new_locals = combine(fn->value.func.closure, *locals);
+	} else {
+		new_locals = *locals;
+	}
+
+	new_locals = combine(arg_bindings, new_locals);
 
 	if (fn->type == TYPE_CFUNC || fn->type == TYPE_CFORM) {
 		result = fn->value.c_code.func(&new_locals);

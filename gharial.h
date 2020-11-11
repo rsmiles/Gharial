@@ -58,7 +58,7 @@ typedef struct datum {
 		struct {
 			struct datum *lambda_list;
 			struct datum *body;
-			struct datum **closure;
+			struct datum *closure;
 		} func; /* Function or macro */
 
 		struct {
