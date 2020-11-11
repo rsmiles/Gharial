@@ -110,6 +110,7 @@ void init_builtins() {
 	symbol_set(&globals, "cd", gh_cfunc(&lang_cd, gh_cons(gh_symbol("#dir"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "|", gh_cform(&lang_pipe, gh_symbol("#commands")));
 	symbol_set(&globals, "$", gh_cform(&lang_capture, gh_symbol("#commands")));
+	symbol_set(&globals, "&", gh_cform(&lang_disown, gh_cons(gh_symbol("#command"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "err-to", gh_cform(&lang_err_to, gh_cons(gh_symbol("#path"), gh_symbol("#commands"))));
 	symbol_set(&globals, "err-to+", gh_cform(&lang_err_to, gh_cons(gh_symbol("#path"), gh_symbol("#commands"))));
 	symbol_set(&globals, "to", gh_cform(&lang_to, gh_cons(gh_symbol("#path"), gh_symbol("#commands"))));

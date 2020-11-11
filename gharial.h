@@ -341,5 +341,7 @@ datum *lang_pipe_err_append(datum **locals);
 
 datum *lang_import(datum **locals);
 
+datum *lang_disown(datum **locals);
+
 #endif
 

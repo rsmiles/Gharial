@@ -731,8 +731,9 @@ void print_datum(FILE *file, datum *expr) {
 			break;
 		case TYPE_JOB:
 			fprintf(file, "<job:");
-			gh_print(stdout, expr->value.job.commands);
+			print_datum(stdout, expr->value.job.commands);
 			fprintf(file, ">");
+			break;
 		case TYPE_CONS:
 			iterator = expr;
 	
@@ -1484,8 +1485,7 @@ unsigned int num_digits(unsigned int num) {
 	count = 0;
 
 	while (test > 0) {
-		test = test / 10;
-		count++;
+		test = test / 10; count++;
 	}
 
 	if (test <= 0) {
@@ -2301,5 +2301,35 @@ datum *lang_import(datum **locals) {
 	globals = append(table, globals);
 
 	return &LANG_TRUE_VALUE;
+}
+
+datum *lang_disown(datum **locals) {
+	datum *command;
+	datum *input_file;
+	datum *output_file;
+	datum *error_file;
+
+	command = var_get(locals, "#command");
+
+	if (command->type == TYPE_CONS) {
+		datum *first;
+
+		first = command->value.cons.car;
+		if ((first->type == TYPE_SYMBOL && strcmp(first->value.string, "|") == 0) ||
+			first == var_get(locals, "|")) {
+			command = command->value.cons.cdr;
+		} else {
+			command = gh_cons(command, &LANG_NIL_VALUE);
+		}
+		
+	}
+
+	input_file = var_get(locals, "input-file");
+	output_file = var_get(locals, "output-file");
+	error_file = var_get(locals, "error-file");
+
+	printf("command: ");
+
+	return job_start(command, input_file, output_file, error_file);
 }
 
