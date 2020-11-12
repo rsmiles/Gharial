@@ -251,11 +251,11 @@ void cleanup(){
 
 int main(int argc, char **argv) {
 	yylineno = 0;
-	init_signals();
 	init_globals(argv);
 	init_io();
 	init_builtins();
 	init_editline(argc, argv);
+	init_signals();
 	atexit(&cleanup);
 
 	symbol_set(&globals, "*?*", gh_integer(0));
