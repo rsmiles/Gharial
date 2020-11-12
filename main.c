@@ -1,6 +1,8 @@
 #define _POSIX_C_SOURCE 199309L
 
+#include <errno.h>
 #include <libgen.h>
+#include <signal.h>
 #include <string.h>
 #include <time.h>
 #include <histedit.h>
@@ -15,6 +17,7 @@
 void init_globals();
 void init_io();
 void init_builtins();
+void init_signals();
 unsigned char insert_parens(EditLine *el, int ch);
 unsigned char insert_newline(EditLine *el, int ch);
 unsigned char next_closeparen(EditLine *el, int ch);
@@ -22,6 +25,8 @@ unsigned char insert_doublequotes(EditLine *el, int ch);
 void init_editline();
 char *el_prompt(EditLine *el);
 void cleanup();
+void sig_stop(int signum);
+void sig_interrupt(int signum);
 
 char *hist_file;
 char *PROGNAME;
@@ -29,9 +34,12 @@ char *PROGNAME;
 bool eval_flag = TRUE;
 bool print_flag = TRUE;
 bool capture_flag = FALSE;
+struct sigaction sigstop_action;
+struct sigaction siginterrupt_action;
 datum *subproc_nowait;
 datum *pipe_err_to;
 datum *pipe_err_append;
+datum *jobs;
 
 char *current_file = NULL;
 
@@ -43,6 +51,14 @@ datum **locals = &empty_locals;
 EditLine *gh_editline;
 History *gh_history;
 HistEvent gh_last_histevent;
+
+void sig_stop(int signum) {
+	printf("stop!\n");
+}
+
+void sig_interrupt(int signum) {
+	printf("interrupt\n");
+}
 
 void init_globals(char **argv){
 	PROGNAME = (char *)GC_MALLOC(sizeof(char) * (strlen(argv[0] + 1)));
@@ -121,6 +137,23 @@ void init_builtins() {
 	subproc_nowait = gh_cform(&lang_subproc_nowait, gh_symbol("#commands"));
 	pipe_err_to = gh_cform(&lang_pipe_err_to, gh_cons(gh_symbol("#path"), gh_symbol("#commands")));
 	pipe_err_append = gh_cform(&lang_pipe_err_append, gh_cons(gh_symbol("#path"), gh_symbol("#commands")));
+}
+
+void init_signals() {
+	sigstop_action.sa_handler = &sig_stop;
+	sigemptyset(&sigstop_action.sa_mask);
+	sigstop_action.sa_flags = 0;
+	if (sigaction(SIGTSTP, &sigstop_action, NULL) == -1) {
+		fprintf(stderr, "error setting signal handler for SIGSTP: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	siginterrupt_action.sa_handler = &sig_interrupt;
+	sigemptyset(&siginterrupt_action.sa_mask);
+	siginterrupt_action.sa_flags = 0;
+	if (sigaction(SIGINT, &siginterrupt_action, NULL) == -1) {
+		fprintf(stderr, "error setting signal handler for SIGSTP: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 }
 
 char *el_prompt(EditLine *el) {
@@ -218,6 +251,7 @@ void cleanup(){
 
 int main(int argc, char **argv) {
 	yylineno = 0;
+	init_signals();
 	init_globals(argv);
 	init_io();
 	init_builtins();

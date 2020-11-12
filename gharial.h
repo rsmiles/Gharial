@@ -108,6 +108,7 @@ extern int depth;
 extern datum *subproc_nowait;
 extern datum *pipe_err_to;
 extern datum *pipe_err_append;
+extern datum *jobs;
 
 datum *symbol_loc_one(datum *table, char *symbol);
 
