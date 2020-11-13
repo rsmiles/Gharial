@@ -2111,6 +2111,9 @@ datum *job_start(datum *commands, datum *input_file, datum *output_file, datum *
 datum *job_wait(datum *job) {
 	datum *last_value;
 	datum *iterator;
+	datum *new_jobs;
+
+	current_job = job;
 
 	last_value = &LANG_NIL_VALUE;
 	iterator = job->value.job.values;
@@ -2128,6 +2131,7 @@ datum *job_wait(datum *job) {
 
 			if (WIFSTOPPED(proc_status)) {
 				job->value.job.values = iterator;
+				current_job = NULL;
 				return job;
 			}
 			last_value = gh_return_code(proc_status);
@@ -2137,9 +2141,45 @@ datum *job_wait(datum *job) {
 
 		iterator = iterator->value.cons.cdr;
 	}
+	current_job = NULL;
+
+	new_jobs = &LANG_NIL_VALUE;
+	iterator = jobs;
+	while (iterator->type == TYPE_NIL) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+		if (current != job) {
+			new_jobs = gh_cons(current, new_jobs);
+		}
+
+		iterator = iterator->value.cons.cdr;
+	}
+
+	jobs = reverse(new_jobs);
+
 	return last_value;
 }
 
+datum *job_signal(datum *job, int sig) {
+	datum *iterator;
+
+	iterator = job->value.job.commands;
+
+	while (iterator->type == TYPE_CONS) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+		if (current->type == TYPE_PID) {
+			int kill_status;
+
+			kill_status = kill((pid_t)current->value.integer, sig);
+			
+		}
+
+		iterator = iterator->value.cons.cdr;
+	}
+}
 
 datum *lang_pipe(datum **locals) {
 	datum *commands;

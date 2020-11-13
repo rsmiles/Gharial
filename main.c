@@ -39,7 +39,6 @@ struct sigaction siginterrupt_action;
 datum *subproc_nowait;
 datum *pipe_err_to;
 datum *pipe_err_append;
-datum *jobs;
 
 char *current_file = NULL;
 
@@ -48,16 +47,18 @@ datum *gh_result = &LANG_NIL_VALUE;
 datum *globals = &LANG_NIL_VALUE;
 datum *empty_locals = &LANG_NIL_VALUE;
 datum **locals = &empty_locals;
+datum *jobs;
+datum *current_job;
 EditLine *gh_editline;
 History *gh_history;
 HistEvent gh_last_histevent;
 
 void sig_stop(int signum) {
-	printf("stop!\n");
+
 }
 
 void sig_interrupt(int signum) {
-	printf("interrupt\n");
+
 }
 
 void init_globals(char **argv){
