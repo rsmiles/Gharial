@@ -259,6 +259,9 @@ int main(int argc, char **argv) {
 	init_signals();
 	atexit(&cleanup);
 
+	jobs = &LANG_NIL_VALUE;
+	current_job = NULL;
+
 	symbol_set(&globals, "*?*", gh_integer(0));
 	gh_load(INIT_FILE);
 	
