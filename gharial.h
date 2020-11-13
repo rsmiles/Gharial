@@ -110,6 +110,7 @@ extern datum *pipe_err_to;
 extern datum *pipe_err_append;
 extern datum *jobs;
 extern datum *current_job;
+extern struct sigaction default_action;
 
 datum *symbol_loc_one(datum *table, char *symbol);
 
@@ -315,7 +316,7 @@ datum *job_start(datum *commands, datum *input_file, datum *output_file, datum *
 
 datum *job_wait(datum *job);
 
-datum *job_signal(datum *job);
+datum *job_signal(datum *job, int sig);
 
 datum *lang_pipe(datum **locals);
 
@@ -345,7 +346,11 @@ datum *lang_import(datum **locals);
 
 datum *lang_disown(datum **locals);
 
-datum *filter(bool (*test)(datum *x), datum *lst);
+datum *lang_jobs(datum **locals);
+
+datum *lang_bg(datum **locals);
+
+datum *lang_fg(datum **locals);
 
 #endif
 

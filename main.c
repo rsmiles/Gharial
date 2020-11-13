@@ -34,6 +34,7 @@ char *PROGNAME;
 bool eval_flag = TRUE;
 bool print_flag = TRUE;
 bool capture_flag = FALSE;
+struct sigaction default_action;
 struct sigaction sigstop_action;
 struct sigaction siginterrupt_action;
 datum *subproc_nowait;
@@ -54,11 +55,19 @@ History *gh_history;
 HistEvent gh_last_histevent;
 
 void sig_stop(int signum) {
-
+	if (current_job != NULL) {
+		job_signal(current_job, SIGTSTP);
+		jobs = gh_cons(current_job, jobs);
+		current_job = NULL;
+	}
 }
 
 void sig_interrupt(int signum) {
-
+	if (current_job != NULL) {
+		job_signal(current_job, SIGINT);
+		current_job = NULL;
+	}
+	
 }
 
 void init_globals(char **argv){
@@ -134,6 +143,9 @@ void init_builtins() {
 	symbol_set(&globals, "to+", gh_cform(&lang_to_append, gh_cons(gh_symbol("#path"), gh_symbol("#commands"))));
 	symbol_set(&globals, "from", gh_cform(&lang_from, gh_cons(gh_symbol("#path"), gh_symbol("#commands"))));
 	symbol_set(&globals, "import", gh_cfunc(&lang_import, gh_cons(gh_symbol("#table"), &LANG_NIL_VALUE)));
+	symbol_set(&globals, "jobs", gh_cfunc(&lang_jobs, &LANG_NIL_VALUE));
+	symbol_set(&globals, "bg", gh_cfunc(&lang_bg, gh_symbol("#job")));
+	symbol_set(&globals, "fg", gh_cfunc(&lang_fg, gh_symbol("#job")));
 
 	subproc_nowait = gh_cform(&lang_subproc_nowait, gh_symbol("#commands"));
 	pipe_err_to = gh_cform(&lang_pipe_err_to, gh_cons(gh_symbol("#path"), gh_symbol("#commands")));
@@ -141,6 +153,10 @@ void init_builtins() {
 }
 
 void init_signals() {
+	default_action.sa_handler = SIG_DFL;
+	sigemptyset(&default_action.sa_mask);
+	default_action.sa_flags = 0;
+
 	sigstop_action.sa_handler = &sig_stop;
 	sigemptyset(&sigstop_action.sa_mask);
 	sigstop_action.sa_flags = 0;

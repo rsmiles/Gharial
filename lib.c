@@ -34,6 +34,7 @@ datum *gh_pipe();
 datum *pipe_eval(datum *expr, datum **locals);
 datum *eval_arglist(datum *args, datum **locals);
 bool is_path_executable(const char *path);
+void job_remove(datum *job);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -1388,7 +1389,7 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 				fn->type == TYPE_FUNC || fn->type == TYPE_EXECUTABLE,
 				"type-error", "Attempt to call non-function", fn);
 
-	if (fn->type == TYPE_CFORM) { /* Do not evaluate arguments if special form */
+	if (fn->type == TYPE_CFORM || fn->type == TYPE_EXECUTABLE) { /* Do not evaluate arguments if special form */
 		evaluated_args = args;
 	} else {
 		evaluated_args = eval_arglist(args, locals);
@@ -1878,7 +1879,19 @@ datum *gh_proc(datum *commands, datum **locals, FILE *input, FILE *output, FILE 
 
 	pid = fork();
 	if (pid == 0) {
+		int sigaction_status;
 		datum *result;
+
+		sigaction_status = sigaction(SIGTSTP, &default_action, NULL);
+		if (sigaction_status == -1) {
+			fprintf(error, "Error restoring default SIGTSTP signal handler\n");
+			exit(EXIT_FAILURE);
+		}
+		sigaction_status = sigaction(SIGINT, &default_action, NULL);
+		if (sigaction_status == -1) {
+			fprintf(error, "Error restoring default SIGINT signal handler\n");
+			exit(EXIT_FAILURE);
+		}
 
 		set_proc_IO(input, output, error);
 		result = gh_begin(commands, locals);
@@ -1927,6 +1940,21 @@ datum *gh_run(datum *command, datum *args, datum **locals, FILE *input, FILE *ou
 	pid = fork();
 	if (pid == 0) {
 		char **argv;
+		int sigaction_status;
+
+		sigaction_status = sigaction(SIGTSTP, &default_action, NULL);
+		if (sigaction_status == -1) {
+			fprintf(error, "Error restoring default SIGTSTP signal handler\n");
+			exit(EXIT_FAILURE);
+		}
+
+		sigaction_status = sigaction(SIGINT, &default_action, NULL);
+		if (sigaction_status == -1) {
+			fprintf(error, "Error restoring default SIGINT signal handler\n");
+			exit(EXIT_FAILURE);
+		}
+
+
 		set_proc_IO(input, output, error);
 		argv = build_argv(command, args);
 		execve(command->value.executable.path, argv, environ);
@@ -2108,10 +2136,29 @@ datum *job_start(datum *commands, datum *input_file, datum *output_file, datum *
 	return job;
 }
 
+void job_remove(datum *job) {
+	datum *new_jobs;
+	datum *iterator;
+
+	new_jobs = &LANG_NIL_VALUE;
+	iterator = jobs;
+	while (iterator->type == TYPE_CONS) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+		if (current != job) {
+			new_jobs = gh_cons(current, new_jobs);
+		}
+
+		iterator = iterator->value.cons.cdr;
+	}
+
+	jobs = reverse(new_jobs);
+}
+
 datum *job_wait(datum *job) {
 	datum *last_value;
 	datum *iterator;
-	datum *new_jobs;
 
 	current_job = job;
 
@@ -2127,13 +2174,13 @@ datum *job_wait(datum *job) {
 		current = iterator->value.cons.car;
 		if (current->type == TYPE_PID) {
 			wait_status = waitpid((pid_t)current->value.integer, &proc_status, 0);
-			gh_assert(wait_status > 0, "runtime error", "error waiting for process to exit", gh_error());
-
-			if (WIFSTOPPED(proc_status)) {
+			if (wait_status == -1) {
+				gh_assert(WIFSTOPPED(proc_status) == 0, "runtime error", "error waiting for process to exit", gh_error());
 				job->value.job.values = iterator;
 				current_job = NULL;
 				return job;
 			}
+
 			last_value = gh_return_code(proc_status);
 		} else {
 			last_value = current;
@@ -2143,20 +2190,7 @@ datum *job_wait(datum *job) {
 	}
 	current_job = NULL;
 
-	new_jobs = &LANG_NIL_VALUE;
-	iterator = jobs;
-	while (iterator->type == TYPE_NIL) {
-		datum *current;
-
-		current = iterator->value.cons.car;
-		if (current != job) {
-			new_jobs = gh_cons(current, new_jobs);
-		}
-
-		iterator = iterator->value.cons.cdr;
-	}
-
-	jobs = reverse(new_jobs);
+	job_remove(job);
 
 	return last_value;
 }
@@ -2164,7 +2198,7 @@ datum *job_wait(datum *job) {
 datum *job_signal(datum *job, int sig) {
 	datum *iterator;
 
-	iterator = job->value.job.commands;
+	iterator = job->value.job.values;
 
 	while (iterator->type == TYPE_CONS) {
 		datum *current;
@@ -2174,11 +2208,13 @@ datum *job_signal(datum *job, int sig) {
 			int kill_status;
 
 			kill_status = kill((pid_t)current->value.integer, sig);
+			gh_assert(kill_status != -1, "runtime-error", "error delivering signal to job", job);
 			
 		}
 
 		iterator = iterator->value.cons.cdr;
 	}
+	return &LANG_TRUE_VALUE;
 }
 
 datum *lang_pipe(datum **locals) {
@@ -2383,4 +2419,42 @@ datum *lang_disown(datum **locals) {
 
 	return job_start(command, input_file, output_file, error_file);
 }
+
+datum *lang_jobs(datum **locals) {
+	return jobs;
+}
+
+datum *lang_bg(datum **locals) {
+	datum *job;
+
+	job = var_get(locals, "#job");
+	if (job->type == TYPE_NIL) {
+		job = jobs->value.cons.car;
+	} else {
+		job = job->value.cons.car;
+	}
+
+	gh_assert(job->type == TYPE_JOB, "type-error", "cannot bg non-job", job);
+
+	job_signal(job, SIGCONT);
+	job_remove(job);
+	return &LANG_TRUE_VALUE;
+}
+
+datum *lang_fg(datum **locals) {
+	datum *job;
+
+	job = var_get(locals, "#job");
+	if (job->type == TYPE_NIL) {
+		job = jobs->value.cons.car;
+	} else {
+		job = job->value.cons.car;
+	}
+
+	gh_assert(job->type == TYPE_JOB, "type-error", "cannot bg non-job", job);
+
+	job_signal(job, SIGCONT);
+	return job_wait(job);
+}
+
 
