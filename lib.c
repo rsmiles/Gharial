@@ -2465,3 +2465,26 @@ void set_interactive(bool value) {
 	}
 }
 
+datum *gh_format(FILE *output, char *str, datum *args) {
+	return &LANG_NIL_VALUE;
+}
+
+datum *lang_format(datum **locals) {
+	datum *output;
+	datum *str;
+	datum *args;
+
+	output = var_get(locals, "#output");
+	if (output->type == TYPE_TRUE) {
+		output = var_get(locals, "output-file");
+	}
+	gh_assert(output->type == TYPE_FILE, "type-error", "cannot format to non-files", output);
+
+	str = var_get(locals, "#str");
+	gh_assert(str->type == TYPE_STRING, "type-error", "invalid format string", str);
+
+	args = var_get(locals, "#args");
+
+	return gh_format(output->value.file, str->value.string, args);
+}
+
