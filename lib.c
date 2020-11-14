@@ -35,6 +35,7 @@ datum *pipe_eval(datum *expr, datum **locals);
 datum *eval_arglist(datum *args, datum **locals);
 bool is_path_executable(const char *path);
 void job_remove(datum *job);
+char *gh_read_all(FILE *f);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -2466,6 +2467,38 @@ void set_interactive(bool value) {
 }
 
 datum *gh_format(FILE *output, char *str, datum *args) {
+	int i;
+	datum *iterator;
+
+	iterator = args;
+
+	for (i = 0; str[i] != '\0'; i++) {
+		if (str[i] == '~') {
+			gh_assert(iterator->type == TYPE_CONS, "runtime-error", "not enough args to format string", gh_string(str));
+			switch(str[i + 1]) {
+				case '~':
+					fprintf(output, "~~");
+					break;
+
+				case '%':
+					fprintf(output, "\n");
+					break;
+
+				case 'S':
+				case 's':
+					print_datum(output, iterator->value.cons.car);
+					i++;
+					break;
+
+			}
+			iterator = iterator->value.cons.cdr;
+		} else {
+			fputc(str[i], output);
+		}
+	}
+	gh_assert(iterator->type == TYPE_NIL, "runtime-error", "too many args to format string", gh_string(str));
+	
+	fprintf(output, "\n");
 	return &LANG_NIL_VALUE;
 }
 
@@ -2478,6 +2511,7 @@ datum *lang_format(datum **locals) {
 	if (output->type == TYPE_TRUE) {
 		output = var_get(locals, "output-file");
 	}
+
 	gh_assert(output->type == TYPE_FILE, "type-error", "cannot format to non-files", output);
 
 	str = var_get(locals, "#str");
