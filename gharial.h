@@ -90,6 +90,7 @@ typedef struct datum {
 extern bool eval_flag;
 extern bool print_flag;
 extern bool capture_flag;
+extern bool interactive;
 extern int yylineno;
 extern FILE *yyin;
 extern datum LANG_NIL_VALUE;
@@ -111,6 +112,8 @@ extern datum *pipe_err_append;
 extern datum *jobs;
 extern datum *current_job;
 extern struct sigaction default_action;
+extern struct sigaction sigstop_action;
+extern struct sigaction siginterrupt_action;
 
 datum *symbol_loc_one(datum *table, char *symbol);
 
@@ -351,6 +354,8 @@ datum *lang_jobs(datum **locals);
 datum *lang_bg(datum **locals);
 
 datum *lang_fg(datum **locals);
+
+void set_interactive(bool value);
 
 #endif
 

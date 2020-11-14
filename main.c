@@ -34,6 +34,7 @@ char *PROGNAME;
 bool eval_flag = TRUE;
 bool print_flag = TRUE;
 bool capture_flag = FALSE;
+bool interactive = FALSE;
 struct sigaction default_action;
 struct sigaction sigstop_action;
 struct sigaction siginterrupt_action;
@@ -160,16 +161,15 @@ void init_signals() {
 	sigstop_action.sa_handler = &sig_stop;
 	sigemptyset(&sigstop_action.sa_mask);
 	sigstop_action.sa_flags = 0;
-	if (sigaction(SIGTSTP, &sigstop_action, NULL) == -1) {
-		fprintf(stderr, "error setting signal handler for SIGSTP: %s", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+
 	siginterrupt_action.sa_handler = &sig_interrupt;
 	sigemptyset(&siginterrupt_action.sa_mask);
 	siginterrupt_action.sa_flags = 0;
-	if (sigaction(SIGINT, &siginterrupt_action, NULL) == -1) {
-		fprintf(stderr, "error setting signal handler for SIGSTP: %s", strerror(errno));
-		exit(EXIT_FAILURE);
+
+	if (isatty(fileno(stdin))) {
+		set_interactive(TRUE);
+	} else {
+		set_interactive(FALSE);
 	}
 }
 

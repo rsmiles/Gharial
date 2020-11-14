@@ -1876,23 +1876,11 @@ datum *gh_pid(int num) {
 
 datum *gh_proc(datum *commands, datum **locals, FILE *input, FILE *output, FILE *error) {
 	pid_t pid;
+	datum *result;
 
 	pid = fork();
 	if (pid == 0) {
-		int sigaction_status;
-		datum *result;
-
-		sigaction_status = sigaction(SIGTSTP, &default_action, NULL);
-		if (sigaction_status == -1) {
-			fprintf(error, "Error restoring default SIGTSTP signal handler\n");
-			exit(EXIT_FAILURE);
-		}
-		sigaction_status = sigaction(SIGINT, &default_action, NULL);
-		if (sigaction_status == -1) {
-			fprintf(error, "Error restoring default SIGINT signal handler\n");
-			exit(EXIT_FAILURE);
-		}
-
+		set_interactive(FALSE);
 		set_proc_IO(input, output, error);
 		result = gh_begin(commands, locals);
 		if (result->type == TYPE_EXCEPTION) {
@@ -1940,21 +1928,8 @@ datum *gh_run(datum *command, datum *args, datum **locals, FILE *input, FILE *ou
 	pid = fork();
 	if (pid == 0) {
 		char **argv;
-		int sigaction_status;
 
-		sigaction_status = sigaction(SIGTSTP, &default_action, NULL);
-		if (sigaction_status == -1) {
-			fprintf(error, "Error restoring default SIGTSTP signal handler\n");
-			exit(EXIT_FAILURE);
-		}
-
-		sigaction_status = sigaction(SIGINT, &default_action, NULL);
-		if (sigaction_status == -1) {
-			fprintf(error, "Error restoring default SIGINT signal handler\n");
-			exit(EXIT_FAILURE);
-		}
-
-
+		set_interactive(FALSE);
 		set_proc_IO(input, output, error);
 		argv = build_argv(command, args);
 		execve(command->value.executable.path, argv, environ);
@@ -2173,9 +2148,12 @@ datum *job_wait(datum *job) {
 
 		current = iterator->value.cons.car;
 		if (current->type == TYPE_PID) {
-			wait_status = waitpid((pid_t)current->value.integer, &proc_status, 0);
+			wait_status = waitpid((pid_t)current->value.integer, &proc_status, WUNTRACED);
 			if (wait_status == -1) {
-				gh_assert(WIFSTOPPED(proc_status) == 0, "runtime error", "error waiting for process to exit", gh_error());
+				current_job = NULL;
+				job_remove(job);
+				return &LANG_NIL_VALUE;
+			} else if (WIFSTOPPED(proc_status)) {
 				job->value.job.values = iterator;
 				current_job = NULL;
 				return job;
@@ -2457,4 +2435,33 @@ datum *lang_fg(datum **locals) {
 	return job_wait(job);
 }
 
+void set_interactive(bool value) {
+	int sigaction_status;
+
+	interactive = value;
+
+	if (value == TRUE) {
+		sigaction_status = sigaction(SIGTSTP, &sigstop_action, NULL);
+		if (sigaction_status == -1) {
+			fprintf(stderr, "error setting signal handler for SIGSTP: %s", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+		sigaction_status = sigaction(SIGINT, &siginterrupt_action, NULL);
+		if (sigaction_status == -1) {
+			fprintf(stderr, "error setting signal handler for SIGSTP: %s", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+	} else {
+		sigaction_status = sigaction(SIGTSTP, &default_action, NULL);
+		if (sigaction_status == -1) {
+			fprintf(stderr, "Error restoring default SIGTSTP signal handler\n");
+			exit(EXIT_FAILURE);
+		}
+		sigaction_status = sigaction(SIGINT, &default_action, NULL);
+		if (sigaction_status == -1) {
+			fprintf(stderr, "Error restoring default SIGINT signal handler\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+}
 
