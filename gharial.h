@@ -28,11 +28,11 @@
 #define TYPE_CAPTURE    18
 #define TYPE_JOB        19
 
-#define gh_assert(test, type, description, info) \
+#define gh_assert(test, type, fmt, fmt_args) \
 	do { \
 		if (test) \
 			; \
-		else return gh_eval(gh_exception(type, description, info, yylineno), locals); \
+		else return gh_eval(gh_exception(type, fmt, fmt_args, yylineno), locals); \
 	} while(0);
 
 typedef int bool;
@@ -67,8 +67,8 @@ typedef struct datum {
 
 		struct {
 			char *type;
-			char *description;
-			struct datum *info;
+			char *fmt;
+			struct datum *fmt_args;
 			int lineno;
 		} exception;
 
@@ -267,7 +267,7 @@ datum *string_split(const char *str, const char *delim);
 
 datum *lang_string_split(datum **locals);
 
-datum *gh_exception(char *type, char *description, datum *info, int lineno);
+datum *gh_exception(char *type, char *fmt, datum *fmg_args, int lineno);
 
 datum *gh_begin(datum *body, datum **locals);
 

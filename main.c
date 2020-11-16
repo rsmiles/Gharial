@@ -126,7 +126,7 @@ void init_builtins() {
 	symbol_set(&globals, "macroexpand", gh_cform(&lang_macroexpand, gh_cons(gh_symbol("#expr"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "gensym", gh_cform(&lang_gensym, gh_symbol("#name")));
 	symbol_set(&globals, "try", gh_cform(&lang_try, gh_cons(gh_symbol("#action"), gh_symbol("#except"))));
-	symbol_set(&globals, "exception", gh_cform(&lang_exception, gh_cons(gh_symbol("#type"), gh_cons(gh_symbol("#description"), gh_symbol("#info")))));
+	symbol_set(&globals, "exception", gh_cform(&lang_exception, gh_cons(gh_symbol("#type"), gh_cons(gh_symbol("#fmt"), gh_symbol("#fmt_args")))));
 	symbol_set(&globals, "eval", gh_cfunc(&lang_eval, gh_cons(gh_symbol("#expr"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "read-line", gh_cfunc(&lang_read_line, gh_symbol("#file")));
 	symbol_set(&globals, "exit", gh_cfunc(&lang_exit, gh_symbol("#status")));

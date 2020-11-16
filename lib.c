@@ -551,31 +551,26 @@ datum *lang_let(datum **locals) {
 }
 
 void print_exception(FILE *file, datum *expr) {
-	char *type;
-	char *description;
+	char *fmt;
+	char *fmt_args;
 	datum *info;
 	int lineno;
 
 	type = expr->value.exception.type;
-	description = expr->value.exception.description;
+	fmt = expr->value.exception.fmt;
+	fmt_args = expr->value.exception.fmt_args;
 	lineno = expr->value.exception.lineno;
-	info = expr->value.exception.info;
 
 	if (current_file != NULL) {
 		fprintf(file, "Uncaught EXCEPTION in file \"%s\":\n", current_file);
 	}
 
 	if (expr->value.exception.lineno >= 0) {
-		fprintf(file, "EXCEPTION line %d: %s: %s", lineno, type, description);
+		fprintf(file, "EXCEPTION line %d: %s", lineno, type);
+		gh_format(file, fmt, fmt_args);
 	} else {
-		fprintf(file, "EXCEPTION: %s: %s", type, description);
-	}
-
-	if (info != NULL) {
-		fprintf(file, ": ");
-		gh_print(file, info);
-	} else {
-		fprintf(file, "\n");
+		fprintf(file, "EXCEPTION: %s: %s", type);
+		gh_format(file, fmt, fmt_args);
 	}
 
 	if (gh_input != NULL) {
@@ -1341,7 +1336,7 @@ datum *lang_string_split(datum **locals) {
 	return string_split(str->value.string, delim->value.string);
 }
 
-datum *gh_exception(char *type, char *description, datum *info, int lineno) {
+datum *gh_exception(char *type, char *fmt, datum *fmt_args, int lineno) {
 	datum *ex;
 
 	ex = new_datum();
@@ -1351,11 +1346,11 @@ datum *gh_exception(char *type, char *description, datum *info, int lineno) {
 	gh_assert(ex->value.exception.type != NULL, "memory-error", "Out of memory in gh_exception!", NULL);
 	strcpy(ex->value.exception.type, type);
 	
-	ex->value.exception.description = GC_MALLOC(sizeof (char) * (strlen(description) + 1));
+	ex->value.exception.fmt = GC_MALLOC(sizeof (char) * (strlen(fmt) + 1));
 	gh_assert(ex->value.exception.description != NULL, "memory-error", "Out of memory in gh_exception!", NULL);
-	strcpy(ex->value.exception.description, description);
+	strcpy(ex->value.exception.fmt, fmt);
 
-	ex->value.exception.info = info;
+	ex->value.exception.fmt_args = fmt_args;
 
 	ex->value.exception.lineno = lineno;
 
@@ -1562,8 +1557,8 @@ datum *lang_try(datum **locals) {
 
 datum *lang_exception(datum **locals) {
 	datum *type;
-	datum *description;
-	datum *info;
+	datum *fmt;
+	datum *fmt_args;
 	int lineno;
 
 	type = var_get(locals, "#type");
@@ -1571,12 +1566,12 @@ datum *lang_exception(datum **locals) {
 				"type-error", "Expected symbol or string as first argument to exception",
 				type);
 
-	description = var_get(locals, "#description");
+	description = var_get(locals, "#fmt");
 	gh_assert(description->type == TYPE_STRING,
 				"type-error", "Expected  string as second argument to exception",
-				description);
+				fmt);
 
-	info = var_get(locals, "#info");
+	fmt_args = var_get(locals, "#fmt_args");
 
 	if (info->type != TYPE_CONS) {
 		info = NULL;
@@ -1586,7 +1581,7 @@ datum *lang_exception(datum **locals) {
 
 	lineno = yylineno;
 
-	return gh_eval(gh_exception(type->value.string, description->value.string, info, lineno), locals);
+	return gh_eval(gh_exception(type->value.string, fmt->value.string, fmt_args, lineno), locals);
 }
 
 char *gh_readline(FILE *file) {
