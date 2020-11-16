@@ -54,7 +54,7 @@ datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *lst) {
 	datum *iterator;
 	datum *result;
 
-	gh_assert(lst->type == TYPE_CONS || lst->type == TYPE_NIL, "type-error", "Argument 3 of fold is not a list", lst);
+	gh_assert(lst->type == TYPE_CONS || lst->type == TYPE_NIL, "type-error", "In \"fold\", argument 3: ~s is not a list", gh_cons(lst, &LANG_NIL_VALUE));
 
 	iterator = lst;
 	result = init;
@@ -64,7 +64,7 @@ datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *lst) {
 		iterator = iterator->value.cons.cdr;
 	}
 
-	gh_assert(iterator->type == TYPE_NIL, "type_error", "argument 3 of fold is an improper list", lst);
+	gh_assert(iterator->type == TYPE_NIL, "type_error", "In \"fold\", argument3: ~s is an improper list", gh_cons(lst, &LANG_NIL_VALUE));
 
 	return result;
 }
@@ -95,8 +95,8 @@ datum *combine(datum *lst1, datum *lst2) {
 datum *add2(datum *a, datum *b) {
 	int result_type;
 
-	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "Attempt to add a non-number", a);
-	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "Attempt to add a non-number", b);
+	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "In \"+\", non-number argument: ~s", gh_cons(a, &LANG_NIL_VALUE));
+	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "In \"+\", non-number argument: ~s", gh_cons(b, &LANG_NIL_VALUE));
 
 	if (a->type == TYPE_DECIMAL || b->type == TYPE_DECIMAL)
 		result_type = TYPE_DECIMAL;
@@ -114,8 +114,8 @@ datum *add2(datum *a, datum *b) {
 datum *sub2(datum *a, datum *b) {
 	int result_type;
 
-	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "Attempt to subtract a non-number", a);
-	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "ATTEMPT to sulbltract a non-number", b);
+	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "In \"-\", non-number argument ~s", gh_cons(a, &LANG_NIL_VALUE));
+	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "In \"-\", non-number argument ~s", gh_cons(b, &LANG_NIL_VALUE));
 
 	if (a->type == TYPE_DECIMAL || b->type == TYPE_DECIMAL)
 		result_type = TYPE_DECIMAL;
@@ -134,8 +134,8 @@ datum *sub2(datum *a, datum *b) {
 datum *mul2(datum *a, datum *b) {
 	int result_type;
 
-	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "Attempt to multiply a non-number", a);
-	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "Attempt to multiply a non-number", b);
+	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "In \"*\", non-number argument ~s", gh_cons(a, &LANG_NIL_VALUE));
+	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "In \"*\", non-number argument ~s", gh_cons(b, &LANG_NIL_VALUE));
 
 	if (a->type == TYPE_DECIMAL || b->type == TYPE_DECIMAL)
 		result_type = TYPE_DECIMAL;
@@ -151,13 +151,13 @@ datum *mul2(datum *a, datum *b) {
 }
 
 datum *div2(datum *a, datum *b) {
-	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "Attempt to divide a non-number", a);
-	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "Attempt to divide a non-number", b);
+	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "In \"/\", non-number argument ~s", gh_cons(a, &LANG_NIL_VALUE));
+	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "Attempt to divide a non-number ~s", gh_cons(b, &LANG_NIL_VALUE));
 
 	if (a->type == TYPE_INTEGER) {
-		gh_assert(a->value.integer != 0, "math-error", "Division by zero", a);
+		gh_assert(a->value.integer != 0, "math-error", "In \"/\", division by zero", &LANG_NIL_VALUE);
 	} else {
-		gh_assert(a->value.decimal != 0.0, "math-error", "Division by zero", a);
+		gh_assert(a->value.decimal != 0.0, "math-error", "In \"/\", division by zero", &LANG_NIL_VALUE);
 	}
 
 	return gh_decimal((b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal) /
@@ -165,8 +165,8 @@ datum *div2(datum *a, datum *b) {
 }
 
 datum *dpow(datum *a, datum *b) {
-	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "Attempt to find exponent of non-number", a);
-	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "Use of non-number as exponent", b);
+	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "In \"^\", non-number argument ~s", gh_cons(a, &LANG_NIL_VALUE));
+	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "In \"^\", non-number argument ~s", gh_cons(b, &LANG_NIL_VALUE));
 
 	return gh_decimal(pow(a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal,
 						b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal));
@@ -259,11 +259,11 @@ datum *lang_lambda(datum **locals) {
 	iterator = lambda_list;
 
 	while (iterator->type == TYPE_CONS) {
-		gh_assert(iterator->value.cons.car->type == TYPE_SYMBOL, "type-error", "Non-symbol in lambda list", iterator->value.cons.car);
+		gh_assert(iterator->value.cons.car->type == TYPE_SYMBOL, "type-error", "In \"lambda\": non-symbol in lambda list: ~s", gh_cons(iterator->value.cons.car, &LANG_NIL_VALUE));
 		iterator = iterator->value.cons.cdr;
 	}
 
-	gh_assert(iterator->type == TYPE_NIL || iterator->type == TYPE_SYMBOL, "type-error", "Non-symbol in lambda list", iterator);
+	gh_assert(iterator->type == TYPE_NIL || iterator->type == TYPE_SYMBOL, "type-error", "in \"lambda\": non-symbol in lambda list: ~s", gh_cons(iterator, &LANG_NIL_VALUE));
 
 	func = new_datum(sizeof(datum));
 	func->type = TYPE_FUNC;
@@ -285,11 +285,11 @@ datum *lang_macro(datum **locals) {
 	iterator = lambda_list;
 
 	while (iterator->type == TYPE_CONS) {
-		gh_assert(iterator->value.cons.car->type == TYPE_SYMBOL, "type-error", "Non-symbol in lambda list", iterator->value.cons.car);
+		gh_assert(iterator->value.cons.car->type == TYPE_SYMBOL, "type-error", "In \"macro\", non-symbol in lambda list: ~s", gh_cons(iterator->value.cons.car, &LANG_NIL_VALUE));
 		iterator = iterator->value.cons.cdr;
 	}
 
-	gh_assert(iterator->type == TYPE_NIL || iterator->type == TYPE_SYMBOL, "type-error", "Non-symbol in lambda list", iterator);
+	gh_assert(iterator->type == TYPE_NIL || iterator->type == TYPE_SYMBOL, "type-error", "In \"macro\", non-symbol in lambda list ~s", gh_cons(iterator, &LANG_NIL_VALUE);
 
 	mac = new_datum(sizeof(datum));
 	mac->type = TYPE_MACRO;
@@ -341,7 +341,7 @@ datum *lang_open(datum **locals) {
 	FILE *fptr;
 
 	path = var_get(locals, "#fname");
-	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "open requires string or symbol for first argument", path);
+	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "In \"open\", ", path);
 
 	mode = var_get(locals, "#mode");
 
