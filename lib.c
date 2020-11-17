@@ -270,6 +270,7 @@ datum *lang_lambda(datum **locals) {
 	func->value.func.lambda_list = lambda_list;
 	func->value.func.body = body;
 	func->value.func.closure = *locals;
+	func->value.func.name = gh_symbol("lambda");
 	return func;	
 }
 
@@ -295,6 +296,7 @@ datum *lang_macro(datum **locals) {
 	mac->type = TYPE_MACRO;
 	mac->value.func.lambda_list = lambda_list;
 	mac->value.func.body = body;
+	mac->value.func.name = gh_symbol("macro");
 	return mac;	
 }
 
@@ -853,6 +855,12 @@ char *symbol_set(datum **table, char *symbol, datum *value) {
 	current_sym = strtok(sym_copy, ".");
 	current_table = *table;
 
+	if (value->type == TYPE_FUNC || value->type == TYPE_MACRO) {
+		value->value.func.name = gh_symbol(symbol);
+	} else if (value->type == TYPE_CFUNC || value->type == TYPE_CFORM) {
+		value->value.c_code.name = gh_symbol(symbol);
+	}
+
 	do {
 		loc = symbol_loc_one(current_table, current_sym);
 		next_sym = strtok(NULL, ".");
@@ -1206,6 +1214,7 @@ datum *gh_cfunc(datum *(*addr)(datum **), datum *args) {
 	cf->type = TYPE_CFUNC;
 	cf->value.c_code.func = addr;
 	cf->value.c_code.lambda_list = args;
+	cf->value.name = gh_symbol("cfunc");
 	return cf;
 }
 
@@ -1214,6 +1223,7 @@ datum *gh_cform(datum *(*addr)(datum **), datum *args) {
 	cf->type = TYPE_CFORM;
 	cf->value.c_code.func = addr;
 	cf->value.c_code.lambda_list = args;
+	cf->value.name = gh_symbol("cform");
 	return cf;
 }
 

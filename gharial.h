@@ -48,6 +48,7 @@ typedef struct datum {
 		struct {
 			struct datum *(*func)(struct datum **);
 			struct datum *lambda_list;
+			struct datum *name;
 		} c_code; /* C function or special form */
 
 		struct {
@@ -59,6 +60,7 @@ typedef struct datum {
 			struct datum *lambda_list;
 			struct datum *body;
 			struct datum *closure;
+			struct datum *name;
 		} func; /* Function or macro */
 
 		struct {
