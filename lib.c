@@ -1396,12 +1396,19 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 	datum *new_locals;
 	datum *stack_frame;
 	datum *result;
+	datum *sf_file;
 
 	gh_assert(fn->type == TYPE_CFORM || fn->type == TYPE_CFUNC ||
 				fn->type == TYPE_FUNC || fn->type == TYPE_EXECUTABLE,
 				"type-error", "Attempt to call non-function", fn);
 
-	stack_frame = gh_cons("#stack-frame", fn.name);
+	if (current_file == NULL) {
+		sf_file = "<REPL>";
+	} else {
+		sf_file = current_file;
+	}
+
+	stack_frame = gh_cons("#stack-frame", gh_cons(gh_symbol(fn.name), gh_cons(gh_string(sf_file), gh_cons(gh_integer(yylineno), &LANG_NIL_VALUE))));
 
 	new_locals = gh_cons(stack_frame, *locals);
 
@@ -2551,9 +2558,13 @@ datum *gh_stacktrace(FILE *file, datum **locals) {
 		symbol = current->value.cons.car;
 		if (strcmp(current, "#stack-frame") == 0) {
 			datum *fname;
+			datum *ffile;
+			datum *flineno;
 
-			fname = current->value.cons.cdr;
-			fprintf(file, "in \"%s\"\n", fname);
+			fname = current->value.cons.cdr.value.cons.car;
+			ffile = current->value.cons.cdr.value.cons.cdr.value.cons.car;
+			flineno = current->value.cons.cdr.value.cons.cdr.value.cons.cdr.value.cons.car;
+			fprintf(file, "In %s: %s, line %d\n", fname.value.string, ffile.value.string, flineno.value.integer);
 		}
 		iterator = iterator->value.cons.cdr;
 	}
