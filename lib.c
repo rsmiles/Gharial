@@ -84,12 +84,16 @@ datum *map(datum *(*func)(datum *x), datum *lst) {
 }
 
 datum *combine(datum *lst1, datum *lst2) {
-	if (lst1->type == TYPE_NIL)
+	if (lst1->type == TYPE_NIL) {
 		return lst2;
-	else if (lst2->type == TYPE_NIL)
+	} else if (lst2->type == TYPE_NIL) {
 		return lst1;
-	else
-		return fold(&gh_cons, lst2, lst1);
+	} else {
+		datum *reversed1;
+
+		reversed1 = reverse(lst1);
+		return fold(&gh_cons, lst2, reversed1);
+	}
 }
 
 datum *add2(datum *a, datum *b) {
@@ -1389,11 +1393,16 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 	datum *evaluated_args;
 	datum *arg_bindings;
 	datum *new_locals;
+	datum *stack_frame;
 	datum *result;
 
 	gh_assert(fn->type == TYPE_CFORM || fn->type == TYPE_CFUNC ||
 				fn->type == TYPE_FUNC || fn->type == TYPE_EXECUTABLE,
 				"type-error", "Attempt to call non-function", fn);
+
+	stack_frame = gh_cons("#stack-frame", gh_cons(fn.name, gh_integer(yylineno)));
+
+	new_locals = gh_cons(stack_frame, *locals);
 
 	if (fn->type == TYPE_CFORM || fn->type == TYPE_EXECUTABLE) { /* Do not evaluate arguments if special form */
 		evaluated_args = args;
@@ -1412,7 +1421,7 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 	}
 
 	if (fn->type == TYPE_FUNC) {
-		new_locals = combine(fn->value.func.closure, *locals);
+		new_locals = combine(fn->value.func.closure, *new_locals);
 	} else {
 		new_locals = *locals;
 	}
