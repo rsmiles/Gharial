@@ -36,6 +36,7 @@ datum *eval_arglist(datum *args, datum **locals);
 bool is_path_executable(const char *path);
 void job_remove(datum *job);
 char *gh_read_all(FILE *f);
+datum *strip_stack_frames(datum *lst);
 datum *gh_stacktrace(FILE *file, datum **locals);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
@@ -252,6 +253,33 @@ datum *cdr(datum *pair) {
 	return pair->value.cons.cdr;
 }
 
+datum *strip_stack_frames(datum *lst) {
+	datum *result;
+	datum *prev;
+	datum *iterator;
+
+	result = reverse(lst);
+	prev = NULL;
+	iterator = result;
+
+	while (iterator->type == TYPE_CONS) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+		if (strcmp(current->value.cons.car.value.string, "#stack-frame")) {
+			if (prev != NULL) {
+				prev->value.cons.cdr = iterator->value.cons.cdr;
+			} else {
+				result = iterator->value.cons.cdr;
+			}
+		}
+		prev = iterator;
+		iterator = iterator->value.cons.cdr;
+	}
+
+	return result;
+}
+
 datum *lang_lambda(datum **locals) {
 	datum *lambda_list;
 	datum *body;
@@ -274,7 +302,7 @@ datum *lang_lambda(datum **locals) {
 	func->type = TYPE_FUNC;
 	func->value.func.lambda_list = lambda_list;
 	func->value.func.body = body;
-	func->value.func.closure = *locals;
+	func->value.func.closure = strip_stack_frames(*locals);
 	func->value.func.name = gh_symbol("lambda");
 	return func;	
 }
