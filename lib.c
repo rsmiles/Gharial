@@ -36,6 +36,7 @@ datum *eval_arglist(datum *args, datum **locals);
 bool is_path_executable(const char *path);
 void job_remove(datum *job);
 char *gh_read_all(FILE *f);
+datum *gh_stacktrace(FILE *file, datum **locals);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -1400,7 +1401,7 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 				fn->type == TYPE_FUNC || fn->type == TYPE_EXECUTABLE,
 				"type-error", "Attempt to call non-function", fn);
 
-	stack_frame = gh_cons("#stack-frame", gh_cons(fn.name, gh_integer(yylineno)));
+	stack_frame = gh_cons("#stack-frame", fn.name);
 
 	new_locals = gh_cons(stack_frame, *locals);
 
@@ -2536,3 +2537,24 @@ datum *lang_format(datum **locals) {
 	return gh_format(output->value.file, str->value.string, args);
 }
 
+datum *gh_stacktrace(FILE *file, datum **locals) {
+	datum *iterator;
+
+	iterator = *locals;
+
+	while (iterator->type == TYPE_CONS) {
+		datum *current;
+		datum *symbol;
+		datum *lineno;
+
+		current = iterator->value.cons.car
+		symbol = current->value.cons.car;
+		if (strcmp(current, "#stack-frame") == 0) {
+			datum *fname;
+
+			fname = current->value.cons.cdr;
+			fprintf(file, "in \"%s\"\n", fname);
+		}
+		iterator = iterator->value.cons.cdr;
+	}
+}
