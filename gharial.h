@@ -32,7 +32,7 @@
 	do { \
 		if (test) \
 			; \
-		else return gh_eval(gh_exception(type, fmt, fmt_args, yylineno), locals); \
+		else return gh_eval(gh_exception(type, fmt, fmt_args), locals); \
 	} while(0);
 
 typedef int bool;
@@ -269,7 +269,7 @@ datum *string_split(const char *str, const char *delim);
 
 datum *lang_string_split(datum **locals);
 
-datum *gh_exception(char *type, char *fmt, datum *fmg_args, int lineno);
+datum *gh_exception(char *type, char *fmt, datum *fmg_args);
 
 datum *gh_begin(datum *body, datum **locals);
 
