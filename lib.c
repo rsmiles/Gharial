@@ -376,7 +376,7 @@ datum *lang_open(datum **locals) {
 	FILE *fptr;
 
 	path = var_get(locals, "#fname");
-	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "In \"open\", ", path);
+	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "argument 1 is neither a string nor a symbol", gh_cons(path, &LANG_NIL_VALUE);
 
 	mode = var_get(locals, "#mode");
 
@@ -386,10 +386,10 @@ datum *lang_open(datum **locals) {
 		mode = mode->value.cons.car;
 	}
 
-	gh_assert(mode->type == TYPE_STRING || mode->type == TYPE_SYMBOL, "type-error", "Open requires string or symbol for second argument", mode);
+	gh_assert(mode->type == TYPE_STRING || mode->type == TYPE_SYMBOL, "type-error", "argument 2 is neither a string nor a symbol: ~s", gh_cons(mode, &LANG_NIL_VALUE);
 
 	fptr = fopen(path->value.string, mode->value.string);
-	gh_assert(fptr != NULL, "file-error", "Could not open file", path);
+	gh_assert(fptr != NULL, "file-error", "Could not open \"~a\": ~a", gh_cons(path, gh_cons(gh_error());
 
 	return gh_file(fptr);
 }
@@ -399,10 +399,10 @@ datum *lang_close(datum **locals) {
 	int result;
 
 	file = var_get(locals, "#file");
-	gh_assert(file->type == TYPE_FILE, "type-error", "Attempt to close a non-file", file);
+	gh_assert(file->type == TYPE_FILE, "type-error", "argument is not a file: ~s", gh_cons(file, &LANG_NIL_VALUE));
 
 	result = fclose(file->value.file);
-	gh_assert(result == 0, "file-error", "Error closing file", file);
+	gh_assert(result == 0, "file-error", "error closing file: ~a", gh_cons(gh_error, &LANG_NIL_VALUE));
 
 	return &LANG_TRUE_VALUE;
 }
@@ -414,9 +414,9 @@ datum *lang_read(datum **locals) {
 	file = var_get(locals, "#file");
 	if (file->type == TYPE_CONS) {
 		file = file->value.cons.car;
-		gh_assert(file->type == TYPE_FILE, "type-error", "read call on non-file", file);
+		gh_assert(file->type == TYPE_FILE, "type-error", "argument 1 is not a file: ~s", gh_cons(file, &LANG_NIL_VALUE);
 	} else { 
-		gh_assert(file->type == TYPE_NIL, "type-error", "read call on non-file", file);
+		gh_assert(file->type == TYPE_FILE, "type-error", "argument 1 is not a file: ~s", gh_cons(file, &LANG_NIL_VALUE);
 		file = var_get(locals, "input-file");
 	}
 
@@ -440,9 +440,8 @@ datum *lang_write(datum **locals) {
 	file = var_get(locals, "#file");
 	if (file->type == TYPE_CONS) {
 		file = file->value.cons.car;
-		gh_assert(file->type == TYPE_FILE, "type-error", "read call on non-file", file);
+		gh_assert(file->type == TYPE_FILE, "type-error", "argument 1 is not a file: ~s", gh_cons(file, &LANG_NIL_VALUE));
 	} else { 
-		gh_assert(file->type == TYPE_NIL, "type-error", "read call on non-file", file);
 		file = var_get(locals, "output-file");
 	}
 
@@ -454,7 +453,7 @@ datum *lang_load(datum **locals) {
 	datum *path;
 
 	path = var_get(locals, "#path");
-	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "Load requires string or symbol for path argument", path);
+	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "argument 1 is neither a string nor a symbol: ~s", gh_cons(path, &LANG_NIL_VALUE);
 
 	gh_load(path->value.string);
 	
@@ -484,7 +483,7 @@ datum *translate_bindings(datum *bindings) {
 	while (iterator->type == TYPE_CONS) {
 		datum *current;
 		current = iterator->value.cons.car;
-		gh_assert(current->type == TYPE_CONS, "type-error", "bindings must be lists", current);
+		gh_assert(current->type == TYPE_CONS, "type-error", "attempt to translate binding that is not a list: ~s", gh_cons(current, &LANG_NIL_VALUE));
 		iterator->value.cons.car = translate_binding(current);
 		iterator = iterator->value.cons.cdr;
 	}
@@ -532,7 +531,7 @@ datum *lang_loop(datum **locals) {
 	body = var_get(locals, "#body");
 
 	translated_bindings = translate_bindings(bindings);
-	gh_assert(translated_bindings->type == TYPE_CONS || translated_bindings->type == TYPE_NIL, "type-error", "error occured while translating bindings", bindings);
+	gh_assert(translated_bindings->type == TYPE_CONS || translated_bindings->type == TYPE_NIL, "type-error", "error occured while translating bindings: ~s", gh_cons(bindings, &LANG_NIL_VALUE));
 	new_locals = combine(translated_bindings, *locals);
 
 	result = &LANG_NIL_VALUE;
@@ -579,7 +578,7 @@ datum *lang_let(datum **locals) {
 
 
 	translated_bindings = translate_bindings(bindings);
-	gh_assert(translated_bindings->type == TYPE_CONS || translated_bindings->type == TYPE_NIL, "type-error", "error occured while translating bindings", bindings);
+	gh_assert(translated_bindings->type == TYPE_CONS || translated_bindings->type == TYPE_NIL, "type-error", "error occured while translating bindings: ~s", gh_cons(bindings, &LANG_NIL_VALUE));
 	new_locals = combine(translated_bindings, *locals);
 
 	return gh_begin(body, &new_locals);
@@ -862,7 +861,7 @@ datum *var_get(datum **locals, char *symbol) {
 				var = gh_string(env_var);
 			} else {
 				var = exec_lookup(symbol);
-				gh_assert(var != NULL, "ref-error", "Unbound variable", gh_symbol(symbol));
+				gh_assert(var != NULL, "ref-error", "Unbound variable: ~s", gh_cons(gh_symbol(symbol), &LANG_NIL_VALUE);
 			}
 		}
 	}
@@ -940,7 +939,7 @@ datum* gh_load(char *path) {
 	char *old_current_file;
 	
 	file = fopen(path, "r");
-	gh_assert(file != NULL, "file-error", "Could not open file", gh_string(path));
+	gh_assert(file != NULL, "file-error", "could not open file \"~a\": ~a", gh_cons(gh_string(path), gh_cons(gh_error(), &LANG_NIL_VALUE)));
 
 	old_current_file = current_file;
 	current_file = path;
@@ -1076,10 +1075,10 @@ datum *lang_append(datum **locals) {
 	datum *lst2;
 
 	lst1 = var_get(locals, "#lst1");
-	gh_assert(lst1->type == TYPE_CONS, "type-error", "first argument to append must be list", lst1);
+	gh_assert(lst1->type == TYPE_CONS, "type-error", "argument 1 is not a list: ~s", gh_cons(lst1, &LANG_NIL_VALUE);
 
 	lst2 = var_get(locals, "#lst2");
-	gh_assert(lst2->type == TYPE_CONS, "type-error", "first argument to append must be list", lst2);
+	gh_assert(lst2->type == TYPE_CONS, "type-error", "argument 2 is not a list: ~s", gh_cons(lst2, &LANG_NIL_VALUE);
 
 	return append(lst1, lst2);
 }
@@ -2531,6 +2530,14 @@ datum *gh_format(FILE *output, char *str, datum *args) {
 					i++;
 					break;
 
+				case 'A':
+				case 'a':
+					if (iterator->value.cons.car->type == TYPE_STRING) {
+						fprintf(output, iterator->value.cons.car->value.string);
+					} else {
+						print_datum(output, iterator->value.cons.car);
+					}
+					break;
 			}
 			iterator = iterator->value.cons.cdr;
 		} else {
