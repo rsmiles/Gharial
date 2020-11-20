@@ -46,7 +46,7 @@ datum LANG_EOF_VALUE = { TYPE_EOF, { 0 } };
 datum *new_datum() {
 	datum *d = GC_MALLOC(sizeof(datum));
 	if (d == NULL) {
-		fprintf(stderr, "Out of memory in new datum!");
+		fprintf(stderr, "memory-error: out of memory in new datum!");
 		exit(EXIT_FAILURE);
 	}
 	return d;
@@ -1075,10 +1075,10 @@ datum *lang_append(datum **locals) {
 	datum *lst2;
 
 	lst1 = var_get(locals, "#lst1");
-	gh_assert(lst1->type == TYPE_CONS, "type-error", "argument 1 is not a list: ~s", gh_cons(lst1, &LANG_NIL_VALUE);
+	gh_assert(lst1->type == TYPE_CONS, "type-error", "argument 1 is not a list: ~s", gh_cons(lst1, &LANG_NIL_VALUE));
 
 	lst2 = var_get(locals, "#lst2");
-	gh_assert(lst2->type == TYPE_CONS, "type-error", "argument 2 is not a list: ~s", gh_cons(lst2, &LANG_NIL_VALUE);
+	gh_assert(lst2->type == TYPE_CONS, "type-error", "argument 2 is not a list: ~s", gh_cons(lst2, &LANG_NIL_VALUE));
 
 	return append(lst1, lst2);
 }
@@ -1105,10 +1105,10 @@ datum *lang_setenv(datum **locals) {
 	datum *value;
 
 	symbol = var_get(locals, "#symbol");
-	gh_assert(symbol->type == TYPE_STRING || symbol->type == TYPE_SYMBOL, "type-error", "Variable name must by symbol or string in setenv", symbol);
+	gh_assert(symbol->type == TYPE_STRING || symbol->type == TYPE_SYMBOL, "type-error", "argument 1 is neither a symbol nor a string: ~s", gh_cons(symbol, &LANG_NIL_VALUE));
 
 	value = var_get(locals, "#value");
-	gh_assert(value->type == TYPE_STRING, "type-error", "Environment variables can only be set to string values", value);
+	gh_assert(value->type == TYPE_STRING, "type-error", "Environment variables can only be set to string values: ~s", gh_cons(value, &LANG_NIL_VALUE));
 
 	setenv(symbol->value.string, value->value.string, TRUE);
 
@@ -1130,7 +1130,7 @@ datum *lang_unquote(datum **locals) {
 }
 
 datum *lang_unquote_splice(datum **locals) {
-	gh_assert(TRUE, "runtime-error", "Call to unquote-splice", NULL);
+	gh_assert(TRUE, "runtime-error", "call to unquote-splice", &LANG_NIL_VALUE);
 	return &LANG_NIL_VALUE;
 }
 
@@ -1147,7 +1147,7 @@ datum *lang_car(datum **locals) {
 	datum *pair;
 
 	pair = var_get(locals, "#pair");
-	gh_assert(pair->type == TYPE_CONS, "type-error", "Not a pair or list", pair);
+	gh_assert(pair->type == TYPE_CONS, "type-error", "not a pair nor a list: ~s", gh_cons(pair, &LANG_NIL_VALUE));
 
 	return pair->value.cons.car;
 }
@@ -1156,7 +1156,7 @@ datum *lang_cdr(datum **locals) {
 	datum *pair;
 
 	pair = var_get(locals, "#pair");
-	gh_assert(pair->type == TYPE_CONS, "type-error", "Not a pair or list", pair);
+	gh_assert(pair->type == TYPE_CONS, "type-error", "not a pair nor a list: ~s", gh_cons(pair, &LANG_NIL_VALUE));
 
 	return pair->value.cons.cdr;
 }
@@ -1359,7 +1359,7 @@ datum *lang_string_split(datum **locals) {
 	datum *delim;
 
 	str = var_get(locals, "#str");
-	gh_assert(str->type == TYPE_STRING, "type-error", "string-split can only split strings", str)
+	gh_assert(str->type == TYPE_STRING, "type-error", "argument 1 is not a string ~s:", gh_cons(str, &LANG_NIL_VALUE));
 
 	delim = var_get(locals, "#delim");
 	if (delim->type == TYPE_NIL) {
@@ -1367,7 +1367,7 @@ datum *lang_string_split(datum **locals) {
 	} else {
 		delim = delim->value.cons.car;
 	}
-	gh_assert(delim->type == TYPE_STRING, "type-error", "string-split requires a string delimeter", delim);
+	gh_assert(delim->type == TYPE_STRING, "type-error", "argument 2 is not a string ~s:", gh_cons(delim, &LANG_NIL_VALUE));
 
 	return string_split(str->value.string, delim->value.string);
 }
@@ -1379,16 +1379,20 @@ datum *gh_exception(char *type, char *fmt, datum *fmt_args) {
 	ex->type = TYPE_EXCEPTION;
 
 	ex->value.exception.type = GC_MALLOC(sizeof (char) * (strlen(type) + 1));
-	gh_assert(ex->value.exception.type != NULL, "memory-error", "Out of memory in gh_exception!", NULL);
+	if (ex->value.exception.value == NULL) {
+		fprintf(stderr, "memory-error: out of memory in gh_exception!");
+		exit(EXIT_FAILURE);
+	}
 	strcpy(ex->value.exception.type, type);
 	
 	ex->value.exception.fmt = GC_MALLOC(sizeof (char) * (strlen(fmt) + 1));
-	gh_assert(ex->value.exception.description != NULL, "memory-error", "Out of memory in gh_exception!", NULL);
+	if (ex->value.exception.fmt == NULL) {
+		fprintf(stderr, "memory-error: out of memory in gh_exception!");
+		exit(EXIT_FAILURE);
+	}
 	strcpy(ex->value.exception.fmt, fmt);
 
 	ex->value.exception.fmt_args = fmt_args;
-
-	ex->value.exception.lineno = lineno;
 
 	return ex;
 }
@@ -1421,7 +1425,7 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 
 	gh_assert(fn->type == TYPE_CFORM || fn->type == TYPE_CFUNC ||
 				fn->type == TYPE_FUNC || fn->type == TYPE_EXECUTABLE,
-				"type-error", "Attempt to call non-function", fn);
+				"type-error", "attempt to call non-function", gh_cons(fn, &LANG_NIL_VALUE));
 
 	if (current_file == NULL) {
 		sf_file = "<REPL>";
@@ -1477,7 +1481,7 @@ datum *lang_apply(datum **locals) {
 		fn = var_get(locals, fn->value.string);
 	}
 
-	gh_assert(fn->type == TYPE_FUNC || fn->type == TYPE_CFUNC, "type-error", "Attempt to apply non function", fn)
+	gh_assert(fn->type == TYPE_FUNC || fn->type == TYPE_CFUNC, "type-error", "attempt to apply non function", gh_cons(fn, &LANG_NIL_VALUE))
 	return apply(fn, args, locals);
 }
 
@@ -1572,7 +1576,7 @@ datum *lang_gensym(datum **locals) {
 	}
 
 
-	gh_assert(name->type == TYPE_SYMBOL || name->type == TYPE_STRING, "type-error", "Non symbol or string passed to gensym", name);
+	gh_assert(name->type == TYPE_SYMBOL || name->type == TYPE_STRING, "type-error", "not a symbol or string: ~s", gh_cons(name, &LANG_NIL_VALUE);
 
 	return gensym(name->value.string);
 }
@@ -1586,14 +1590,14 @@ datum *lang_try(datum **locals) {
 	action = var_get(locals, "#action");
 	handlers = var_get(locals, "#except");
 	handlers = translate_bindings(handlers);
-	gh_assert(handlers->type == TYPE_CONS || handlers->type == TYPE_NIL, "type-error", "error occured while translating handler", var_get(locals, "#except"));
+	gh_assert(handlers->type == TYPE_CONS || handlers->type == TYPE_NIL, "type-error", "error occured while translating handler: ~s", gh_cons(var_get(locals, "#except"), &LANG_NIL_VALUE));
 
 	/* Evaluate the exception handler functions so that they are functions, not symbols or lists */
 	iterator = handlers;
 	while (iterator->type == TYPE_CONS) {
 		datum *handler;
 		handler = iterator->value.cons.car;
-		gh_assert(handler->type == TYPE_CONS, "type-error", "Expected exception handler in try statement", handler);
+		gh_assert(handler->type == TYPE_CONS, "type-error", "not an exception handler: ~s", gh_cons(handler, &LANG_NIL_VALUE));
 		handler->value.cons.cdr = gh_eval(handler->value.cons.cdr, locals);
 		iterator = iterator->value.cons.cdr;
 	}
@@ -1610,12 +1614,12 @@ datum *lang_exception(datum **locals) {
 
 	type = var_get(locals, "#type");
 	gh_assert(type->type == TYPE_SYMBOL || type->type == TYPE_STRING,
-				"type-error", "Expected symbol or string as first argument to exception",
-				type);
+				"type-error", "argument 1 is not a symbol nor a string: ~s",
+				gh_cons(type, &LANG_NIL_VALUE));
 
 	description = var_get(locals, "#fmt");
 	gh_assert(description->type == TYPE_STRING,
-				"type-error", "Expected  string as second argument to exception",
+				"type-error", "argumet 2 is not a string: ~s",
 				fmt);
 
 	fmt_args = var_get(locals, "#fmt_args");
@@ -1698,7 +1702,7 @@ datum *lang_read_line(datum **locals) {
 
 	if (file->type == TYPE_CONS) {
 		file = file->value.cons.car;
-		gh_assert(file->type == TYPE_FILE, "type-error", "Non-file passed to readline", file);
+		gh_assert(file->type == TYPE_FILE, "type-error", "not a file: ~s", gh_cons(file, &LANG_NIL_VALUE));
 	} else {
 		file = var_get(locals, "input-file");
 	}
@@ -1719,7 +1723,7 @@ datum *lang_exit(datum **locals) {
 		status = gh_integer(EXIT_SUCCESS);
 	} else {
 		status = status->value.cons.car;
-		gh_assert(status->type == TYPE_INTEGER, "type-error", "exit optional argument must be an integer", status);
+		gh_assert(status->type == TYPE_INTEGER, "type-error", "not an integer: ~s", gh_cons(status, &LANG_NIL_VALUE));
 	}
 	exit(status->value.integer);
 }
@@ -1735,7 +1739,7 @@ datum *lang_return_code(datum **locals) {
 	datum *num;
 
 	num = var_get(locals, "#num");
-	gh_assert(num->type == TYPE_INTEGER, "type-error", "return codes must be integers", num);
+	gh_assert(num->type == TYPE_INTEGER, "type-error", "not an integer: ~s", gh_cons(num, &LANG_NIL_VALUE));
 	return gh_return_code(num->value.integer);
 }
 
@@ -1818,7 +1822,7 @@ datum *lang_length(datum **locals) {
 	datum *lst;
 
 	lst = var_get(locals, "#lst");
-	gh_assert(lst->type == TYPE_CONS, "type-error", "length function requires a list argument", lst);
+	gh_assert(lst->type == TYPE_CONS, "type-error", "not a list: ~s", gh_cons(lst, &LANG_NIL_VALUE));
 
 	return gh_integer(gh_length(lst));
 }
@@ -1930,7 +1934,7 @@ datum *gh_proc(datum *commands, datum **locals, FILE *input, FILE *output, FILE 
 			exit(EXIT_SUCCESS);
 		}
 	} else {
-		gh_assert(pid != -1, "runtime-error", "could not create child process", gh_error());
+		gh_assert(pid != -1, "runtime-error", "could not create child process: ~a", gh_cons(gh_error(), &LANG_NIL_VALUE));
 		return gh_pid(pid);
 	}
 }
@@ -1943,13 +1947,13 @@ datum *lang_subproc_nowait(datum **locals) {
 	datum *error_file;
 
 	commands = var_get(locals, "#commands");
-	gh_assert(commands->type == TYPE_CONS, "type-error", "command list needs to be a list", commands);
+	gh_assert(commands->type == TYPE_CONS, "type-error", "argument 1 is not a list: ~s", gh_cons(commands, &LANG_NIL_VALUE));
 	input_file = var_get(locals, "input-file");
-	gh_assert(input_file->type == TYPE_FILE, "type-error", "input file is not a file", input_file);
+	gh_assert(input_file->type == TYPE_FILE, "type-error", "argument 2 is not a file: ~s", gh_cons(input_file, &LANG_NIL_VALUE));
 	output_file = var_get(locals, "output-file");
-	gh_assert(output_file->type == TYPE_FILE, "type-error", "output file is not a file", output_file);
+	gh_assert(output_file->type == TYPE_FILE, "type-error", "argument 3 is not a file: ~s", gh_cons(output_file, &LANG_NIL_VALUE));
 	error_file = var_get(locals, "error-file");
-	gh_assert(error_file->type == TYPE_FILE, "type-error", "error file is not a file", error_file);
+	gh_assert(error_file->type == TYPE_FILE, "type-error", "argument 4 is not a file: ~s", gh_cons(error_file, &LANG_NIL_VALUE));
 
 	return gh_proc(commands, locals, input_file->value.file, output_file->value.file, error_file->value.file);
 }
@@ -1977,7 +1981,7 @@ datum *gh_run(datum *command, datum *args, datum **locals, FILE *input, FILE *ou
 		fprintf(stderr, "exec failure: %s", strerror(errno));
 		exit(EXIT_FAILURE);
 	} else {
-		gh_assert(pid != -1, "runtime-error", "could not create child process", gh_error());
+		gh_assert(pid != -1, "runtime-error", "could not create child process: ~s", gh_cons(gh_error(), &LANG_NIL_VALUE));
 		return gh_pid(pid);
 	}
 }
@@ -2020,10 +2024,10 @@ datum *lang_cd(datum **locals) {
 	int result;
 
 	dir = var_get(locals, "#dir");
-	gh_assert(dir->type == TYPE_STRING || dir->type == TYPE_SYMBOL, "type-error", "cd must be given a string or symbol", dir);
+	gh_assert(dir->type == TYPE_STRING || dir->type == TYPE_SYMBOL, "type-error", "not a symbol nor a string: ~s", gh_cons(dir, &LANG_NIL_VALUE));
 
 	result = chdir(dir->value.string);
-	gh_assert(result == 0, "runtime-error", "could not change to directory", gh_error())
+	gh_assert(result == 0, "runtime-error", "could not change to directory \"~a\": ~a", gh_cons(dir, gh_cons(gh_error(), &LANG_NIL_VALUE)));
 	return dir;
 }
 
@@ -2032,7 +2036,7 @@ datum *pipe_eval(datum *expr, datum **locals) {
 	datum *command;
 	datum *args;
 
-	gh_assert(expr->type == TYPE_CONS, "type-error", "Cannot have atoms in a pipe", expr);
+	gh_assert(expr->type == TYPE_CONS, "type-error", "atom in pipeline: ~s", gh_cons(expr, &LANG_NIL_VALUE));
 
 	command = expr->value.cons.car;
 	args = expr->value.cons.cdr;
@@ -2047,9 +2051,9 @@ datum *pipe_eval(datum *expr, datum **locals) {
 	} else if (command == var_get(locals, "err-to+")) {
 		return apply(pipe_err_append, args, locals);
 	}
-	gh_assert(command != var_get(locals, "to"), "i/o-error", "cannot re-direct output within a pipeline", command);
-	gh_assert(command != var_get(locals, "to+"), "i/o-error", "cannot re-direct output within a pipeline", command);
-	gh_assert(command != var_get(locals, "from"), "i/o-error", "cannot re-direct input within a pipeline", command);
+	gh_assert(command != var_get(locals, "to"), "i/o-error", "cannot re-direct output within a pipeline: ~s", gh_cons(command, &LANG_NIL_VALUE));
+	gh_assert(command != var_get(locals, "to+"), "i/o-error", "cannot re-direct output within a pipeline: ~s", gh_cons(command, &LANG_NIL_VALUE));
+	gh_assert(command != var_get(locals, "from"), "i/o-error", "cannot re-direct input within a pipeline: ~s", gh_cons(command, &LANG_NIL_VALUE));
 
 	if (command->type == TYPE_EXECUTABLE) {
 		return run_exec_nowait(command, eval_arglist(args, locals), locals);
@@ -2096,7 +2100,7 @@ datum *gh_pipe() {
 	datum *gh_pipe_output;
 
 	pipe_status = pipe(pipe_fds);
-	gh_assert(pipe_status != -1, "i/o-error", "could not open pipe", gh_error());
+	gh_assert(pipe_status != -1, "i/o-error", "could not open pipe: ~s", gh_cons(gh_error(), &LANG_NIL_VALUE));
 	pipe_input = fdopen(pipe_fds[1], "w");
 	pipe_output = fdopen(pipe_fds[0], "r");
 	gh_pipe_input = gh_file(pipe_input);
@@ -2227,7 +2231,7 @@ datum *job_signal(datum *job, int sig) {
 			int kill_status;
 
 			kill_status = kill((pid_t)current->value.integer, sig);
-			gh_assert(kill_status != -1, "runtime-error", "error delivering signal to job", job);
+			gh_assert(kill_status != -1, "runtime-error", "error delivering signal to job ~s: ~a", gh_cons(job, gh_cons(gh_error, &LANG_NIL_VALUE)));
 			
 		}
 
@@ -2301,9 +2305,9 @@ datum *gh_redirect(datum *file_symbol, datum *path, char *file_mode,  bool in_pi
 
 	path = gh_eval(path, locals);
 
-	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "redirect path must be string or symbol", path);
+	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "neither a symbol, nor a string: ~a", gh_cons(path, &LANG_NIL_VALUE));
 	file = fopen(path->value.string, file_mode);
-	gh_assert(file != NULL, "i/o-error", "Could not open file", gh_error());
+	gh_assert(file != NULL, "i/o-error", "could not open file \"~a\"", gh_cons(file, gh_cons(gh_error(), &LANG_NIL_VALUE)));
 
 	file_datum = gh_file(file);
 
@@ -2453,7 +2457,7 @@ datum *lang_bg(datum **locals) {
 		job = job->value.cons.car;
 	}
 
-	gh_assert(job->type == TYPE_JOB, "type-error", "cannot bg non-job", job);
+	gh_assert(job->type == TYPE_JOB, "type-error", "not a job: ~s", gh_cons(job, &LANG_NIL_VALUE));
 
 	job_signal(job, SIGCONT);
 	job_remove(job);
@@ -2470,7 +2474,7 @@ datum *lang_fg(datum **locals) {
 		job = job->value.cons.car;
 	}
 
-	gh_assert(job->type == TYPE_JOB, "type-error", "cannot bg non-job", job);
+	gh_assert(job->type == TYPE_JOB, "type-error", "not a job: ~s", gh_cons(job, &LANG_NIL_VALUE));
 
 	job_signal(job, SIGCONT);
 	return job_wait(job);
@@ -2514,7 +2518,7 @@ datum *gh_format(FILE *output, char *str, datum *args) {
 
 	for (i = 0; str[i] != '\0'; i++) {
 		if (str[i] == '~') {
-			gh_assert(iterator->type == TYPE_CONS, "runtime-error", "not enough args to format string", gh_string(str));
+			gh_assert(iterator->type == TYPE_CONS, "runtime-error", "not enough args to format string: ~s", gh_cons(gh_string(str), &LANG_NIL_VALUE));
 			switch(str[i + 1]) {
 				case '~':
 					fprintf(output, "~~");
@@ -2544,7 +2548,7 @@ datum *gh_format(FILE *output, char *str, datum *args) {
 			fputc(str[i], output);
 		}
 	}
-	gh_assert(iterator->type == TYPE_NIL, "runtime-error", "too many args to format string", gh_string(str));
+	gh_assert(iterator->type == TYPE_NIL, "runtime-error", "too many args to format string: ~s", gh_cons(gh_string(str), &LANG_NIL_VALUE));
 	
 	fprintf(output, "\n");
 	return &LANG_NIL_VALUE;
@@ -2560,10 +2564,10 @@ datum *lang_format(datum **locals) {
 		output = var_get(locals, "output-file");
 	}
 
-	gh_assert(output->type == TYPE_FILE, "type-error", "cannot format to non-files", output);
+	gh_assert(output->type == TYPE_FILE, "type-error", "not a file nor t: ~s", gh_cons(output, &LANG_NIL_VALUE));
 
 	str = var_get(locals, "#str");
-	gh_assert(str->type == TYPE_STRING, "type-error", "invalid format string", str);
+	gh_assert(str->type == TYPE_STRING, "type-error", "not a string: ~s", gh_cons(str, &LANG_NIL_VALUE));
 
 	args = var_get(locals, "#args");
 
