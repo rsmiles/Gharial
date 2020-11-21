@@ -67,7 +67,7 @@ term: expr {
 	| error {
 				gh_input = $$;
 				depth = 0;
-				gh_result = gh_eval(gh_exception("SYNTAX-ERROR", "Syntax error", NULL, yylineno), &empty_locals);
+				gh_result = gh_eval(gh_exception("syntax-error", "syntax error", &LANG_NIL_VALUE), &empty_locals);
 				gh_print(stdout, gh_result);
 				if (print_flag)
 				YYACCEPT;

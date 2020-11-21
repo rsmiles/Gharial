@@ -143,7 +143,7 @@ datum *gh_cons(datum *car, datum *cdr);
 
 void gh_print(FILE *file, datum *expr);
 
-void print_exception(FILE *file, datum *expr);
+void print_exception(FILE *file, datum *expr, datum **locals);
 
 bool is_macro_call(datum *expr, datum **locals);
 
@@ -269,7 +269,7 @@ datum *string_split(const char *str, const char *delim);
 
 datum *lang_string_split(datum **locals);
 
-datum *gh_exception(char *type, char *fmt, datum *fmg_args);
+datum *gh_exception(char *type, char *fmt, datum *fmt_args);
 
 datum *gh_begin(datum *body, datum **locals);
 

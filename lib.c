@@ -266,7 +266,7 @@ datum *strip_stack_frames(datum *lst) {
 		datum *current;
 
 		current = iterator->value.cons.car;
-		if (strcmp(current->value.cons.car.value.string, "#stack-frame")) {
+		if (strcmp(current->value.cons.car->value.string, "#stack-frame")) {
 			if (prev != NULL) {
 				prev->value.cons.cdr = iterator->value.cons.cdr;
 			} else {
@@ -323,7 +323,7 @@ datum *lang_macro(datum **locals) {
 		iterator = iterator->value.cons.cdr;
 	}
 
-	gh_assert(iterator->type == TYPE_NIL || iterator->type == TYPE_SYMBOL, "type-error", "non-symbol in lambda list ~s", gh_cons(iterator, &LANG_NIL_VALUE);
+	gh_assert(iterator->type == TYPE_NIL || iterator->type == TYPE_SYMBOL, "type-error", "non-symbol in lambda list ~s", gh_cons(iterator, &LANG_NIL_VALUE));
 
 	mac = new_datum(sizeof(datum));
 	mac->type = TYPE_MACRO;
@@ -376,7 +376,7 @@ datum *lang_open(datum **locals) {
 	FILE *fptr;
 
 	path = var_get(locals, "#fname");
-	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "argument 1 is neither a string nor a symbol", gh_cons(path, &LANG_NIL_VALUE);
+	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "argument 1 is neither a string nor a symbol", gh_cons(path, &LANG_NIL_VALUE));
 
 	mode = var_get(locals, "#mode");
 
@@ -386,10 +386,10 @@ datum *lang_open(datum **locals) {
 		mode = mode->value.cons.car;
 	}
 
-	gh_assert(mode->type == TYPE_STRING || mode->type == TYPE_SYMBOL, "type-error", "argument 2 is neither a string nor a symbol: ~s", gh_cons(mode, &LANG_NIL_VALUE);
+	gh_assert(mode->type == TYPE_STRING || mode->type == TYPE_SYMBOL, "type-error", "argument 2 is neither a string nor a symbol: ~s", gh_cons(mode, &LANG_NIL_VALUE));
 
 	fptr = fopen(path->value.string, mode->value.string);
-	gh_assert(fptr != NULL, "file-error", "Could not open \"~a\": ~a", gh_cons(path, gh_cons(gh_error());
+	gh_assert(fptr != NULL, "file-error", "Could not open \"~a\": ~a", gh_cons(path, gh_cons(gh_error(), &LANG_NIL_VALUE)));
 
 	return gh_file(fptr);
 }
@@ -402,7 +402,7 @@ datum *lang_close(datum **locals) {
 	gh_assert(file->type == TYPE_FILE, "type-error", "argument is not a file: ~s", gh_cons(file, &LANG_NIL_VALUE));
 
 	result = fclose(file->value.file);
-	gh_assert(result == 0, "file-error", "error closing file: ~a", gh_cons(gh_error, &LANG_NIL_VALUE));
+	gh_assert(result == 0, "file-error", "error closing file: ~a", gh_cons(gh_error(), &LANG_NIL_VALUE));
 
 	return &LANG_TRUE_VALUE;
 }
@@ -414,9 +414,9 @@ datum *lang_read(datum **locals) {
 	file = var_get(locals, "#file");
 	if (file->type == TYPE_CONS) {
 		file = file->value.cons.car;
-		gh_assert(file->type == TYPE_FILE, "type-error", "argument 1 is not a file: ~s", gh_cons(file, &LANG_NIL_VALUE);
+		gh_assert(file->type == TYPE_FILE, "type-error", "argument 1 is not a file: ~s", gh_cons(file, &LANG_NIL_VALUE));
 	} else { 
-		gh_assert(file->type == TYPE_FILE, "type-error", "argument 1 is not a file: ~s", gh_cons(file, &LANG_NIL_VALUE);
+		gh_assert(file->type == TYPE_FILE, "type-error", "argument 1 is not a file: ~s", gh_cons(file, &LANG_NIL_VALUE));
 		file = var_get(locals, "input-file");
 	}
 
@@ -453,7 +453,7 @@ datum *lang_load(datum **locals) {
 	datum *path;
 
 	path = var_get(locals, "#path");
-	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "argument 1 is neither a string nor a symbol: ~s", gh_cons(path, &LANG_NIL_VALUE);
+	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "argument 1 is neither a string nor a symbol: ~s", gh_cons(path, &LANG_NIL_VALUE));
 
 	gh_load(path->value.string);
 	
@@ -585,6 +585,7 @@ datum *lang_let(datum **locals) {
 }
 
 void print_exception(FILE *file, datum *expr, datum **locals) {
+	datum *type;
 	char *fmt;
 	char *fmt_args;
 	datum *info;
@@ -603,7 +604,7 @@ void print_exception(FILE *file, datum *expr, datum **locals) {
 	fprintf(file, "Traceback:\n");
 	gh_stacktrace(file, locals);
 
-	fprintf(file, "EXCEPTION: %s", type);
+	fprintf(file, "EXCEPTION: %s", type->value.string);
 	gh_format(file, fmt, fmt_args);
 }
 
@@ -664,13 +665,13 @@ datum *gh_eval(datum *expr, datum **locals) {
 		case TYPE_EXCEPTION:
 			handlers = symbol_get(*locals, "#handlers");
 			if (handlers == NULL) {
-				print_exception(stderr, expr);
+				print_exception(stderr, expr, locals);
 				result = expr;
 			} else {
 				datum *handler;
 				handler = symbol_get(handlers, expr->value.exception.type);
 				if (handler == NULL) {
-					print_exception(stderr, expr);
+					print_exception(stderr, expr, locals);
 					result = expr;
 				} else {
 					result = apply(handler, expr, locals);
@@ -1658,7 +1659,7 @@ char *gh_readline(FILE *file) {
 		history(gh_history, &gh_last_histevent, H_ENTER, result);
 		return result;
 	} else {
-		#define BUFF_SIZE 512
+		const int BUFF_SIZE 512;
 		char buff[sizeof(char) * BUFF_SIZE];
 		int count;
 		int total;
@@ -2063,13 +2064,13 @@ datum *pipe_eval(datum *expr, datum **locals) {
 }
 
 bool gh_stream_to(FILE *input, FILE *output) {
-	#define REDIRECT_BUFF_SIZE 256
-	char buff[REDIRECT_BUFF_SIZE];
+	const int BUFF_SIZE 256;
+	char buff[BUFF_SIZE];
 	char *gets_status;
 	int puts_status;
 
 	do {
-		gets_status = fgets(buff, REDIRECT_BUFF_SIZE, input);
+		gets_status = fgets(buff, BUFF_SIZE, input);
 		if (gets_status != NULL) {
 			puts_status = fputs(buff, output);
 			if (puts_status == EOF) {
