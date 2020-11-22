@@ -303,7 +303,7 @@ datum *lang_lambda(datum **locals) {
 	func->value.func.lambda_list = lambda_list;
 	func->value.func.body = body;
 	func->value.func.closure = strip_stack_frames(*locals);
-	func->value.func.name = gh_symbol("lambda");
+	func->value.func.name = "lambda";
 	return func;	
 }
 
@@ -329,7 +329,7 @@ datum *lang_macro(datum **locals) {
 	mac->type = TYPE_MACRO;
 	mac->value.func.lambda_list = lambda_list;
 	mac->value.func.body = body;
-	mac->value.func.name = gh_symbol("macro");
+	mac->value.func.name = "macro";
 	return mac;	
 }
 
@@ -585,16 +585,13 @@ datum *lang_let(datum **locals) {
 }
 
 void print_exception(FILE *file, datum *expr, datum **locals) {
-	datum *type;
+	char *type;
 	char *fmt;
-	char *fmt_args;
-	datum *info;
-	int lineno;
+	datum *fmt_args;
 
 	type = expr->value.exception.type;
 	fmt = expr->value.exception.fmt;
 	fmt_args = expr->value.exception.fmt_args;
-	lineno = expr->value.exception.lineno;
 
 	if (gh_input != NULL) {
 		fprintf(file, "Uncaught Exception in expression: ");
@@ -604,7 +601,7 @@ void print_exception(FILE *file, datum *expr, datum **locals) {
 	fprintf(file, "Traceback:\n");
 	gh_stacktrace(file, locals);
 
-	fprintf(file, "EXCEPTION: %s", type->value.string);
+	fprintf(file, "EXCEPTION: %s", type);
 	gh_format(file, fmt, fmt_args);
 }
 
@@ -862,7 +859,7 @@ datum *var_get(datum **locals, char *symbol) {
 				var = gh_string(env_var);
 			} else {
 				var = exec_lookup(symbol);
-				gh_assert(var != NULL, "ref-error", "Unbound variable: ~s", gh_cons(gh_symbol(symbol), &LANG_NIL_VALUE);
+				gh_assert(var != NULL, "ref-error", "Unbound variable: ~s", gh_cons(gh_symbol(symbol), &LANG_NIL_VALUE));
 			}
 		}
 	}
@@ -883,9 +880,9 @@ char *symbol_set(datum **table, char *symbol, datum *value) {
 	current_table = *table;
 
 	if (value->type == TYPE_FUNC || value->type == TYPE_MACRO) {
-		value->value.func.name = gh_symbol(symbol);
+		value->value.func.name = symbol;
 	} else if (value->type == TYPE_CFUNC || value->type == TYPE_CFORM) {
-		value->value.c_code.name = gh_symbol(symbol);
+		value->value.c_code.name = symbol;
 	}
 
 	do {
@@ -1241,7 +1238,7 @@ datum *gh_cfunc(datum *(*addr)(datum **), datum *args) {
 	cf->type = TYPE_CFUNC;
 	cf->value.c_code.func = addr;
 	cf->value.c_code.lambda_list = args;
-	cf->value.name = gh_symbol("cfunc");
+	cf->value.c_code.name = "cfunc";
 	return cf;
 }
 
@@ -1250,7 +1247,7 @@ datum *gh_cform(datum *(*addr)(datum **), datum *args) {
 	cf->type = TYPE_CFORM;
 	cf->value.c_code.func = addr;
 	cf->value.c_code.lambda_list = args;
-	cf->value.name = gh_symbol("cform");
+	cf->value.c_code.name = "cform";
 	return cf;
 }
 
@@ -1380,7 +1377,7 @@ datum *gh_exception(char *type, char *fmt, datum *fmt_args) {
 	ex->type = TYPE_EXCEPTION;
 
 	ex->value.exception.type = GC_MALLOC(sizeof (char) * (strlen(type) + 1));
-	if (ex->value.exception.value == NULL) {
+	if (ex->value.exception.type == NULL) {
 		fprintf(stderr, "memory-error: out of memory in gh_exception!");
 		exit(EXIT_FAILURE);
 	}
@@ -1422,7 +1419,8 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 	datum *new_locals;
 	datum *stack_frame;
 	datum *result;
-	datum *sf_file;
+	char *sf_file;
+	char *fname;
 
 	gh_assert(fn->type == TYPE_CFORM || fn->type == TYPE_CFUNC ||
 				fn->type == TYPE_FUNC || fn->type == TYPE_EXECUTABLE,
@@ -1434,7 +1432,13 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 		sf_file = current_file;
 	}
 
-	stack_frame = gh_cons("#stack-frame", gh_cons(gh_symbol(fn.name), gh_cons(gh_string(sf_file), gh_cons(gh_integer(yylineno), &LANG_NIL_VALUE))));
+	if (fn->type == TYPE_FUNC || fn->type == TYPE_MACRO) {
+		fname = fn->value.func.name;
+	} else {
+		fname = fn->value.c_code.name;
+	}
+
+	stack_frame = gh_cons(gh_symbol("#stack-frame"), gh_cons(gh_symbol(fname), gh_cons(gh_string(sf_file), gh_cons(gh_integer(yylineno), &LANG_NIL_VALUE))));
 
 	new_locals = gh_cons(stack_frame, *locals);
 
@@ -1455,7 +1459,7 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 	}
 
 	if (fn->type == TYPE_FUNC) {
-		new_locals = combine(fn->value.func.closure, *new_locals);
+		new_locals = combine(fn->value.func.closure, new_locals);
 	} else {
 		new_locals = *locals;
 	}
@@ -1577,7 +1581,7 @@ datum *lang_gensym(datum **locals) {
 	}
 
 
-	gh_assert(name->type == TYPE_SYMBOL || name->type == TYPE_STRING, "type-error", "not a symbol or string: ~s", gh_cons(name, &LANG_NIL_VALUE);
+	gh_assert(name->type == TYPE_SYMBOL || name->type == TYPE_STRING, "type-error", "not a symbol or string: ~s", gh_cons(name, &LANG_NIL_VALUE));
 
 	return gensym(name->value.string);
 }
