@@ -17,6 +17,8 @@
 #include "y.tab.h"
 #include "lex.yy.h"
 
+#define BUFF_SIZE 512
+
 extern char **environ;
 
 datum *translate_binding(datum *let_binding);
@@ -37,7 +39,7 @@ bool is_path_executable(const char *path);
 void job_remove(datum *job);
 char *gh_read_all(FILE *f);
 datum *strip_stack_frames(datum *lst);
-datum *gh_stacktrace(FILE *file, datum **locals);
+void gh_stacktrace(FILE *file, datum **locals);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -601,7 +603,7 @@ void print_exception(FILE *file, datum *expr, datum **locals) {
 	fprintf(file, "Traceback:\n");
 	gh_stacktrace(file, locals);
 
-	fprintf(file, "EXCEPTION: %s", type);
+	fprintf(file, "EXCEPTION: %s: ", type);
 	gh_format(file, fmt, fmt_args);
 }
 
@@ -1622,18 +1624,15 @@ datum *lang_exception(datum **locals) {
 				"type-error", "argument 1 is not a symbol nor a string: ~s",
 				gh_cons(type, &LANG_NIL_VALUE));
 
-	description = var_get(locals, "#fmt");
-	gh_assert(description->type == TYPE_STRING,
+	fmt = var_get(locals, "#fmt");
+	gh_assert(fmt->type == TYPE_STRING,
 				"type-error", "argumet 2 is not a string: ~s",
 				fmt);
 
 	fmt_args = var_get(locals, "#fmt_args");
 
-	if (info->type != TYPE_CONS) {
-		info = NULL;
-	} else {
-		info = info->value.cons.car;
-	}
+
+	gh_assert(fmt_args->type == TYPE_CONS || fmt_args == TYPE_NIL, "type-error", "argument 3 is not a list: ~s", gh_cons(fmt_args, &LANG_NIL_VALUE));
 
 	return gh_eval(gh_exception(type->value.string, fmt->value.string, fmt_args), locals);
 }
@@ -1663,7 +1662,6 @@ char *gh_readline(FILE *file) {
 		history(gh_history, &gh_last_histevent, H_ENTER, result);
 		return result;
 	} else {
-		const int BUFF_SIZE 512;
 		char buff[sizeof(char) * BUFF_SIZE];
 		int count;
 		int total;
@@ -2068,8 +2066,7 @@ datum *pipe_eval(datum *expr, datum **locals) {
 }
 
 bool gh_stream_to(FILE *input, FILE *output) {
-	const int BUFF_SIZE 256;
-	char buff[BUFF_SIZE];
+	char buff[sizeof(char) * BUFF_SIZE];
 	char *gets_status;
 	int puts_status;
 
@@ -2236,7 +2233,7 @@ datum *job_signal(datum *job, int sig) {
 			int kill_status;
 
 			kill_status = kill((pid_t)current->value.integer, sig);
-			gh_assert(kill_status != -1, "runtime-error", "error delivering signal to job ~s: ~a", gh_cons(job, gh_cons(gh_error, &LANG_NIL_VALUE)));
+			gh_assert(kill_status != -1, "runtime-error", "error delivering signal to job ~s: ~a", gh_cons(job, gh_cons(gh_error(), &LANG_NIL_VALUE)));
 			
 		}
 
@@ -2312,7 +2309,7 @@ datum *gh_redirect(datum *file_symbol, datum *path, char *file_mode,  bool in_pi
 
 	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "neither a symbol, nor a string: ~a", gh_cons(path, &LANG_NIL_VALUE));
 	file = fopen(path->value.string, file_mode);
-	gh_assert(file != NULL, "i/o-error", "could not open file \"~a\"", gh_cons(file, gh_cons(gh_error(), &LANG_NIL_VALUE)));
+	gh_assert(file != NULL, "i/o-error", "could not open file \"~a\"", gh_cons(path, gh_cons(gh_error(), &LANG_NIL_VALUE)));
 
 	file_datum = gh_file(file);
 
@@ -2542,7 +2539,7 @@ datum *gh_format(FILE *output, char *str, datum *args) {
 				case 'A':
 				case 'a':
 					if (iterator->value.cons.car->type == TYPE_STRING) {
-						fprintf(output, iterator->value.cons.car->value.string);
+						fprintf(output, "%s", iterator->value.cons.car->value.string);
 					} else {
 						print_datum(output, iterator->value.cons.car);
 					}
@@ -2579,7 +2576,7 @@ datum *lang_format(datum **locals) {
 	return gh_format(output->value.file, str->value.string, args);
 }
 
-datum *gh_stacktrace(FILE *file, datum **locals) {
+void gh_stacktrace(FILE *file, datum **locals) {
 	datum *iterator;
 
 	iterator = reverse(*locals);
@@ -2587,19 +2584,18 @@ datum *gh_stacktrace(FILE *file, datum **locals) {
 	while (iterator->type == TYPE_CONS) {
 		datum *current;
 		datum *symbol;
-		datum *lineno;
 
-		current = iterator->value.cons.car
+		current = iterator->value.cons.car;
 		symbol = current->value.cons.car;
-		if (strcmp(current, "#stack-frame") == 0) {
+		if (strcmp(symbol->value.string, "#stack-frame") == 0) {
 			datum *fname;
 			datum *ffile;
 			datum *flineno;
 
-			fname = current->value.cons.cdr.value.cons.car;
-			ffile = current->value.cons.cdr.value.cons.cdr.value.cons.car;
-			flineno = current->value.cons.cdr.value.cons.cdr.value.cons.cdr.value.cons.car;
-			fprintf(file, "In %s: %s, line %d\n", fname.value.string, ffile.value.string, flineno.value.integer);
+			fname = current->value.cons.cdr->value.cons.car;
+			ffile = current->value.cons.cdr->value.cons.cdr->value.cons.car;
+			flineno = current->value.cons.cdr->value.cons.cdr->value.cons.cdr->value.cons.car;
+			fprintf(file, "In %s: %s, line %d\n", fname->value.string, ffile->value.string, flineno->value.integer);
 		}
 		iterator = iterator->value.cons.cdr;
 	}
