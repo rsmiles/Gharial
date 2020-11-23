@@ -40,6 +40,7 @@ void job_remove(datum *job);
 char *gh_read_all(FILE *f);
 datum *strip_stack_frames(datum *lst);
 void gh_stacktrace(FILE *file, datum **locals);
+datum *typecheck(datum *args, int type, datum **locals);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -2599,4 +2600,32 @@ void gh_stacktrace(FILE *file, datum **locals) {
 		}
 		iterator = iterator->value.cons.cdr;
 	}
+}
+
+datum *typecheck(datum *args, datum *types, char *mismatch_fmt, datum **locals) {
+	datum *iterator;
+
+	arg_iterator = args->value.cons.car;
+	while (iterator->type == TYPE_CONS) {
+		datum *current_arg;
+		datum *type_iterator;
+
+		current_arg = arg_iterator->value.cons.car;
+
+		type_iterator = types;
+		while (type_iterator->type == TYPE_CONS) {
+			datum *current_type;
+
+			current_type = type_iterator->value.cons.car;
+			if (current_type->value.integer == current_arg->type) {
+				goto pass_arg;
+			}	
+			type_iterator = type_iterator->value.cons.cdr;
+		}
+		gh_assert(TRUE, "type-error", mismatch_fmt, gh_cons(current_arg, &LANG_NIL_VALUE));
+		pass_arg:
+
+		arg_iterator = arg_iterator->value.cons.cdr;
+	}
+	return &LANG_NIL_VALUE;
 }
