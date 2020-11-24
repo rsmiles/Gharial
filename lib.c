@@ -41,6 +41,7 @@ char *gh_read_all(FILE *f);
 datum *strip_stack_frames(datum *lst);
 void gh_stacktrace(FILE *file, datum **locals);
 datum *typecheck(datum *args, datum * types, char *mismatch_fmt,  datum **locals);
+datum *gh_cons2(datum *car, datum *cdr, datum **locals);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -55,7 +56,7 @@ datum *new_datum() {
 	return d;
 }
 
-datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *lst) {
+datum *fold(datum *(*func)(datum *a, datum *b, datum **locals), datum *init, datum *lst, datum **locals) {
 	datum *iterator;
 	datum *result;
 
@@ -65,7 +66,7 @@ datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *lst) {
 	result = init;
 
 	while (iterator->type == TYPE_CONS) {
-		result = func(iterator->value.cons.car, result);
+		result = func(iterator->value.cons.car, result, locals);
 		iterator = iterator->value.cons.cdr;
 	}
 
@@ -88,7 +89,7 @@ datum *map(datum *(*func)(datum *x), datum *lst) {
 	return reverse(new_lst);
 }
 
-datum *combine(datum *lst1, datum *lst2) {
+datum *combine(datum *lst1, datum *lst2, datum **locals) {
 	if (lst1->type == TYPE_NIL) {
 		return lst2;
 	} else if (lst2->type == TYPE_NIL) {
@@ -97,11 +98,11 @@ datum *combine(datum *lst1, datum *lst2) {
 		datum *reversed1;
 
 		reversed1 = reverse(lst1);
-		return fold(&gh_cons, lst2, reversed1);
+		return fold(&gh_cons2, lst2, reversed1, locals);
 	}
 }
 
-datum *add2(datum *a, datum *b) {
+datum *add2(datum *a, datum *b, datum **locals) {
 	int result_type;
 
 	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "non-number argument: ~s", gh_cons(a, &LANG_NIL_VALUE));
@@ -120,7 +121,7 @@ datum *add2(datum *a, datum *b) {
 	}
 }
 
-datum *sub2(datum *a, datum *b) {
+datum *sub2(datum *a, datum *b, datum **locals) {
 	int result_type;
 
 	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "non-number argument ~s", gh_cons(a, &LANG_NIL_VALUE));
@@ -140,7 +141,7 @@ datum *sub2(datum *a, datum *b) {
 
 }
 
-datum *mul2(datum *a, datum *b) {
+datum *mul2(datum *a, datum *b, datum **locals) {
 	int result_type;
 
 	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "non-number argument ~s", gh_cons(a, &LANG_NIL_VALUE));
@@ -159,7 +160,7 @@ datum *mul2(datum *a, datum *b) {
 	}
 }
 
-datum *div2(datum *a, datum *b) {
+datum *div2(datum *a, datum *b, datum **locals) {
 	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "non-number argument ~s", gh_cons(a, &LANG_NIL_VALUE));
 	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "non-number argument ~s", gh_cons(b, &LANG_NIL_VALUE));
 
@@ -173,7 +174,7 @@ datum *div2(datum *a, datum *b) {
 						(a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal));
 }
 
-datum *dpow(datum *a, datum *b) {
+datum *dpow(datum *a, datum *b, datum **locals) {
 	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "non-number argument ~s", gh_cons(a, &LANG_NIL_VALUE));
 	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "non-number argument ~s", gh_cons(b, &LANG_NIL_VALUE));
 
@@ -246,6 +247,10 @@ datum *gh_cons(datum *car, datum *cdr) {
 	c->value.cons.car = car;
 	c->value.cons.cdr = cdr;
 	return c;
+}
+
+datum *gh_cons2(datum *car, datum *cdr, datum **locals) {
+	return gh_cons(car, cdr);
 }
 
 datum *car(datum *pair) {
@@ -535,7 +540,7 @@ datum *lang_loop(datum **locals) {
 
 	translated_bindings = translate_bindings(bindings);
 	gh_assert(translated_bindings->type == TYPE_CONS || translated_bindings->type == TYPE_NIL, "type-error", "error occured while translating bindings: ~s", gh_cons(bindings, &LANG_NIL_VALUE));
-	new_locals = combine(translated_bindings, *locals);
+	new_locals = combine(translated_bindings, *locals, locals);
 
 	result = &LANG_NIL_VALUE;
 
@@ -548,7 +553,7 @@ datum *lang_loop(datum **locals) {
 			datum *recur_bindings;
 
 			recur_bindings = bind_args(map(&car, translated_bindings), result->value.recur.bindings);
-			new_locals = combine(recur_bindings, *locals);
+			new_locals = combine(recur_bindings, *locals, locals);
 			iterator = body;
 			continue;
 		}
@@ -582,7 +587,7 @@ datum *lang_let(datum **locals) {
 
 	translated_bindings = translate_bindings(bindings);
 	gh_assert(translated_bindings->type == TYPE_CONS || translated_bindings->type == TYPE_NIL, "type-error", "error occured while translating bindings: ~s", gh_cons(bindings, &LANG_NIL_VALUE));
-	new_locals = combine(translated_bindings, *locals);
+	new_locals = combine(translated_bindings, *locals, locals);
 
 	return gh_begin(body, &new_locals);
 }
@@ -1197,7 +1202,7 @@ datum *lang_add(datum **locals) {
 
 	args = var_get(locals, "#args");
 
-	return fold(&add2, gh_integer(0), args);
+	return fold(&add2, gh_integer(0), args, locals);
 }
 
 datum *lang_sub(datum **locals) {
@@ -1207,7 +1212,7 @@ datum *lang_sub(datum **locals) {
 	first = var_get(locals, "#first");
 	rest = var_get(locals, "#rest");
 
-	return fold(&sub2, first, rest);
+	return fold(&sub2, first, rest, locals);
 }
 
 datum *lang_mul(datum **locals) {
@@ -1215,7 +1220,7 @@ datum *lang_mul(datum **locals) {
 
 	args = var_get(locals, "#args");
 
-	return fold(&mul2, gh_integer(1), args);
+	return fold(&mul2, gh_integer(1), args, locals);
 }
 
 datum *lang_div(datum **locals) {
@@ -1225,7 +1230,7 @@ datum *lang_div(datum **locals) {
 	first = var_get(locals, "#first");
 	rest = var_get(locals, "#rest");
 
-	return fold(&div2, first, rest);
+	return fold(&div2, first, rest, locals);
 }
 
 datum *lang_pow(datum **locals) {
@@ -1235,7 +1240,7 @@ datum *lang_pow(datum **locals) {
 	a = var_get(locals, "#a");
 	b = var_get(locals, "#b");
 
-	return(dpow(a, b));
+	return(dpow(a, b, locals));
 }
 
 datum *gh_cfunc(datum *(*addr)(datum **), datum *args) {
@@ -1464,12 +1469,12 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 	}
 
 	if (fn->type == TYPE_FUNC) {
-		new_locals = combine(fn->value.func.closure, new_locals);
+		new_locals = combine(fn->value.func.closure, new_locals, locals);
 	} else {
 		new_locals = *locals;
 	}
 
-	new_locals = combine(arg_bindings, new_locals);
+	new_locals = combine(arg_bindings, new_locals, locals);
 
 	if (fn->type == TYPE_CFUNC || fn->type == TYPE_CFORM) {
 		result = fn->value.c_code.func(&new_locals);
@@ -1501,7 +1506,7 @@ datum *apply_macro(datum *macro, datum *args, datum **locals) {
 	datum *result;
 
 	arg_bindings = bind_args(macro->value.func.lambda_list, args);
-	new_locals = combine(arg_bindings, *locals);
+	new_locals = combine(arg_bindings, *locals, locals);
 
 	result = gh_begin(macro->value.func.body, &new_locals);
 	return result;

@@ -163,7 +163,7 @@ datum *gh_cfunc(datum *(*addr)(datum **locals), datum *args);
 
 datum* gh_load(char *path);
 
-datum *combine(datum *lst1, datum *lst2);
+datum *combine(datum *lst1, datum *lst2, datum **locals);
 
 datum *var_get(datum **locals, char *symbol);
 
@@ -175,7 +175,7 @@ datum *list_copy(datum *lst);
 
 datum *append(datum *lst1, datum *lst2);
 
-datum *fold(datum *(*func)(datum *a, datum *b), datum *init, datum *list);
+datum *fold(datum *(*func)(datum *a, datum *b, datum **locals), datum *init, datum *list, datum **locals);
 
 datum *map(datum *(*func)(datum *x), datum *lst);
 
@@ -185,15 +185,15 @@ datum *gh_car(datum *pair);
 
 datum *gh_cdr(datum *pair);
 
-datum *add2(datum *a, datum *b);
+datum *add2(datum *a, datum *b, datum **locals);
 
-datum *sub2(datum *a, datum *b);
+datum *sub2(datum *a, datum *b, datum **locals);
 
-datum *mul2(datum *a, datum *b);
+datum *mul2(datum *a, datum *b, datum **locals);
 
-datum *div2(datum *a, datum *b);
+datum *div2(datum *a, datum *b, datum **locals);
 
-datum *dpow(datum *a, datum *b);
+datum *dpow(datum *a, datum *b, datum **locals);
 
 datum *do_unquotes(datum *expr, datum **locals);
 
