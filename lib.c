@@ -882,10 +882,12 @@ char *symbol_set(datum **table, char *symbol, datum *value) {
 	current_sym = strtok(sym_copy, ".");
 	current_table = *table;
 
-	if (value->type == TYPE_FUNC || value->type == TYPE_MACRO) {
-		value->value.func.name = symbol;
-	} else if (value->type == TYPE_CFUNC || value->type == TYPE_CFORM) {
-		value->value.c_code.name = symbol;
+	if (strcmp(symbol, "*?*") != 0) {
+		if (value->type == TYPE_FUNC || value->type == TYPE_MACRO) {
+			value->value.func.name = symbol;
+		} else if (value->type == TYPE_CFUNC || value->type == TYPE_CFORM) {
+			value->value.c_code.name = symbol;
+		}
 	}
 
 	do {
@@ -2581,10 +2583,12 @@ void gh_stacktrace(FILE *file, datum **locals) {
 	datum *iterator;
 
 	iterator = reverse(*locals);
+	printf("locals: ");
 
 	while (iterator->type == TYPE_CONS) {
 		datum *current;
 		datum *symbol;
+
 
 		current = iterator->value.cons.car;
 		symbol = current->value.cons.car;
@@ -2596,7 +2600,7 @@ void gh_stacktrace(FILE *file, datum **locals) {
 			fname = current->value.cons.cdr->value.cons.car;
 			ffile = current->value.cons.cdr->value.cons.cdr->value.cons.car;
 			flineno = current->value.cons.cdr->value.cons.cdr->value.cons.cdr->value.cons.car;
-			fprintf(file, "In %s: %s, line %d\n", fname->value.string, ffile->value.string, flineno->value.integer);
+			fprintf(file, "In function \"%s\" in \"%s\" line %d\n", fname->value.string, ffile->value.string, flineno->value.integer);
 		}
 		iterator = iterator->value.cons.cdr;
 	}
