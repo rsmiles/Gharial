@@ -1468,10 +1468,8 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 		arg_bindings = bind_args(fn->value.func.lambda_list, evaluated_args);
 	}
 
-	if (fn->type == TYPE_FUNC) {
+	if (fn->type == TYPE_FUNC || fn->type == TYPE_CFORM) {
 		new_locals = combine(fn->value.func.closure, new_locals, locals);
-	} else {
-		new_locals = *locals;
 	}
 
 	new_locals = combine(arg_bindings, new_locals, locals);
@@ -2588,7 +2586,6 @@ void gh_stacktrace(FILE *file, datum **locals) {
 	datum *iterator;
 
 	iterator = reverse(*locals);
-	printf("locals: ");
 
 	while (iterator->type == TYPE_CONS) {
 		datum *current;
