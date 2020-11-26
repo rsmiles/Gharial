@@ -670,6 +670,7 @@ datum *gh_eval(datum *expr, datum **locals) {
 		case TYPE_EXCEPTION:
 			handlers = symbol_get(*locals, "#handlers");
 			if (handlers == NULL) {
+				raise(SIGTRAP);
 				print_exception(stderr, expr, locals);
 				result = expr;
 			} else {
@@ -2504,6 +2505,11 @@ void set_interactive(bool value) {
 			fprintf(stderr, "error setting signal handler for SIGSTP: %s", strerror(errno));
 			exit(EXIT_FAILURE);
 		}
+		sigaction_status = sigaction(SIGTRAP, &exception_action_interactive, NULL);
+		if (sigaction_status == -1) {
+			fprintf(stderr, "error setting signal handler for SIGTRAP: %s", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
 	} else {
 		sigaction_status = sigaction(SIGTSTP, &default_action, NULL);
 		if (sigaction_status == -1) {
@@ -2513,6 +2519,11 @@ void set_interactive(bool value) {
 		sigaction_status = sigaction(SIGINT, &default_action, NULL);
 		if (sigaction_status == -1) {
 			fprintf(stderr, "Error restoring default SIGINT signal handler\n");
+			exit(EXIT_FAILURE);
+		}
+		sigaction_status = sigaction(SIGTRAP, &exception_action_script, NULL);
+		if (sigaction_status == -1) {
+			fprintf(stderr, "error setting signal handler for SIGTRAP: %s", strerror(errno));
 			exit(EXIT_FAILURE);
 		}
 	}
