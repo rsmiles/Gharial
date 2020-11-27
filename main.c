@@ -57,6 +57,9 @@ EditLine *gh_editline;
 History *gh_history;
 HistEvent gh_last_histevent;
 
+datum *last_exception;
+datum **last_locals;
+
 void sig_stop(int signum) {
 	if (current_job != NULL) {
 		job_signal(current_job, SIGTSTP);
@@ -74,11 +77,13 @@ void sig_interrupt(int signum) {
 }
 
 void sig_exception_interactive(int signum) {
-	printf("interactive exception\n");
+	print_exception(stderr, last_exception, last_locals);
+	exit(EXIT_FAILURE);
 }
 
 void sig_exception_script(int signum) {
-	printf("script exception\n");
+	print_exception(stderr, last_exception, last_locals);
+	exit(EXIT_FAILURE);
 }
 
 void init_globals(char **argv){

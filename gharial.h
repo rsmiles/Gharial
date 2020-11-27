@@ -113,6 +113,8 @@ extern datum *pipe_err_to;
 extern datum *pipe_err_append;
 extern datum *jobs;
 extern datum *current_job;
+extern datum *last_exception;
+extern datum **last_locals;
 extern struct sigaction default_action;
 extern struct sigaction sigstop_action;
 extern struct sigaction siginterrupt_action;

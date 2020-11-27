@@ -602,14 +602,14 @@ void print_exception(FILE *file, datum *expr, datum **locals) {
 	fmt_args = expr->value.exception.fmt_args;
 
 	if (gh_input != NULL) {
-		fprintf(file, "Uncaught Exception in expression: ");
+		fprintf(file, "Uncaught exception in expression: ");
 		gh_print(file, gh_input);
 	}
 
 	fprintf(file, "Traceback:\n");
 	gh_stacktrace(file, locals);
 
-	fprintf(file, "EXCEPTION: %s: ", type);
+	fprintf(file, "%s: ", type);
 	gh_format(file, fmt, fmt_args);
 }
 
@@ -670,8 +670,9 @@ datum *gh_eval(datum *expr, datum **locals) {
 		case TYPE_EXCEPTION:
 			handlers = symbol_get(*locals, "#handlers");
 			if (handlers == NULL) {
+				last_exception = expr;
+				last_locals = locals;
 				raise(SIGTRAP);
-				print_exception(stderr, expr, locals);
 				result = expr;
 			} else {
 				datum *handler;
