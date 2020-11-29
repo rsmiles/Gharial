@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <libgen.h>
+#include <setjmp.h>
 #include <signal.h>
 #include <string.h>
 #include <time.h>
@@ -43,6 +44,7 @@ struct sigaction exception_action_script;
 datum *subproc_nowait;
 datum *pipe_err_to;
 datum *pipe_err_append;
+jmp_buf toplevel;
 
 char *current_file = NULL;
 
@@ -78,7 +80,8 @@ void sig_interrupt(int signum) {
 
 void sig_exception_interactive(int signum) {
 	print_exception(stderr, last_exception, last_locals);
-	exit(EXIT_FAILURE);
+	depth = 0;
+	longjmp(toplevel, TRUE);
 }
 
 void sig_exception_script(int signum) {
@@ -307,6 +310,7 @@ int main(int argc, char **argv) {
 	
 	yyin = stdin;
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
+	setjmp(toplevel);
 	do {
 		yyparse();
 	} while(gh_result->type != TYPE_EOF);

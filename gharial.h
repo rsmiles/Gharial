@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <histedit.h>
+#include <setjmp.h>
 
 #define TRUE  1
 #define FALSE 0
@@ -120,6 +121,7 @@ extern struct sigaction sigstop_action;
 extern struct sigaction siginterrupt_action;
 extern struct sigaction exception_action_interactive;
 extern struct sigaction exception_action_script;
+extern jmp_buf toplevel;
 
 datum *symbol_loc_one(datum *table, char *symbol);
 
