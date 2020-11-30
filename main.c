@@ -39,8 +39,6 @@ bool interactive = FALSE;
 struct sigaction default_action;
 struct sigaction sigstop_action;
 struct sigaction siginterrupt_action;
-struct sigaction exception_action_interactive;
-struct sigaction exception_action_script;
 datum *subproc_nowait;
 datum *pipe_err_to;
 datum *pipe_err_append;
@@ -59,9 +57,6 @@ EditLine *gh_editline;
 History *gh_history;
 HistEvent gh_last_histevent;
 
-datum *last_exception;
-datum **last_locals;
-
 void sig_stop(int signum) {
 	if (current_job != NULL) {
 		job_signal(current_job, SIGTSTP);
@@ -76,17 +71,6 @@ void sig_interrupt(int signum) {
 		current_job = NULL;
 	}
 	
-}
-
-void sig_exception_interactive(int signum) {
-	print_exception(stderr, last_exception, last_locals);
-	depth = 0;
-	longjmp(toplevel, TRUE);
-}
-
-void sig_exception_script(int signum) {
-	print_exception(stderr, last_exception, last_locals);
-	exit(EXIT_FAILURE);
 }
 
 void init_globals(char **argv){
@@ -184,14 +168,6 @@ void init_signals() {
 	siginterrupt_action.sa_handler = &sig_interrupt;
 	sigemptyset(&siginterrupt_action.sa_mask);
 	siginterrupt_action.sa_flags = 0;
-
-	exception_action_interactive.sa_handler = &sig_exception_interactive;
-	sigemptyset(&exception_action_interactive.sa_mask);
-	exception_action_interactive.sa_flags = 0;
-
-	exception_action_script.sa_handler = &sig_exception_script;
-	sigemptyset(&exception_action_interactive.sa_mask);
-	exception_action_script.sa_flags = 0;
 
 	if (isatty(fileno(stdin))) {
 		set_interactive(TRUE);

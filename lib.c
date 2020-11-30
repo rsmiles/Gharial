@@ -650,6 +650,7 @@ datum *gh_eval(datum *expr, datum **locals) {
 	datum *expanded;
 	datum *handlers;
 	datum *result;
+	datum *handler;
 
 	switch (expr->type) {
 		case TYPE_CONS:
@@ -670,19 +671,24 @@ datum *gh_eval(datum *expr, datum **locals) {
 		case TYPE_EXCEPTION:
 			handlers = symbol_get(*locals, "#handlers");
 			if (handlers == NULL) {
-				last_exception = expr;
-				last_locals = locals;
-				raise(SIGTRAP);
-				result = expr;
+				handler = NULL;
 			} else {
-				datum *handler;
 				handler = symbol_get(handlers, expr->value.exception.type);
-				if (handler == NULL) {
-					print_exception(stderr, expr, locals);
-					result = expr;
+			}
+
+			if (handler == NULL) {
+				datum *out;
+
+				out = var_get(locals, "error-file");
+				print_exception(out->value.file, expr, locals);
+				if (interactive) {
+					depth = 0;
+					longjmp(toplevel, TRUE);
 				} else {
-					result = apply(handler, expr, locals);
+					exit(EXIT_FAILURE);
 				}
+			} else {
+				result = apply(handler, expr, locals);
 			}
 			break;
 		default:
@@ -1269,7 +1275,7 @@ datum *eval_arglist(datum *args, datum **locals) {
 
 	argscopy = list_copy(args);	
 	iterator = argscopy;
-	while (iterator->type != TYPE_NIL) {
+	while (iterator->type == TYPE_CONS) {
 		iterator->value.cons.car = gh_eval(iterator->value.cons.car, locals);
 		iterator = iterator->value.cons.cdr;
 	}
@@ -2506,11 +2512,6 @@ void set_interactive(bool value) {
 			fprintf(stderr, "error setting signal handler for SIGSTP: %s", strerror(errno));
 			exit(EXIT_FAILURE);
 		}
-		sigaction_status = sigaction(SIGTRAP, &exception_action_interactive, NULL);
-		if (sigaction_status == -1) {
-			fprintf(stderr, "error setting signal handler for SIGTRAP: %s", strerror(errno));
-			exit(EXIT_FAILURE);
-		}
 	} else {
 		sigaction_status = sigaction(SIGTSTP, &default_action, NULL);
 		if (sigaction_status == -1) {
@@ -2520,11 +2521,6 @@ void set_interactive(bool value) {
 		sigaction_status = sigaction(SIGINT, &default_action, NULL);
 		if (sigaction_status == -1) {
 			fprintf(stderr, "Error restoring default SIGINT signal handler\n");
-			exit(EXIT_FAILURE);
-		}
-		sigaction_status = sigaction(SIGTRAP, &exception_action_script, NULL);
-		if (sigaction_status == -1) {
-			fprintf(stderr, "error setting signal handler for SIGTRAP: %s", strerror(errno));
 			exit(EXIT_FAILURE);
 		}
 	}
