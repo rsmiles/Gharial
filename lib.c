@@ -2649,7 +2649,7 @@ datum *typecheck(datum *args, datum *types, char *mismatch_fmt, datum **locals) 
 	return &LANG_NIL_VALUE;
 }
 
-datum *lang_read_pass(datum **locals) {
+datum *lang_read_password(datum **locals) {
 	datum *prompt;
 	datum *file;
 	datum *result;

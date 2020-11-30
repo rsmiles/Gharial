@@ -367,7 +367,7 @@ datum *gh_format(FILE *output, char *str, datum *args);
 
 datum *lang_format(datum **locals);
 
-datum *lang_read_pass(datum **locals);
+datum *lang_read_password(datum **locals);
 
 #endif
 
