@@ -2657,6 +2657,7 @@ datum *lang_read_pass(datum **locals) {
 	struct termios terminfo;
 	int old_flags;
 	int fd;
+	int status;
 
 	old_interactive = interactive;
 	interactive = FALSE;
@@ -2675,17 +2676,20 @@ datum *lang_read_pass(datum **locals) {
 
 	fd = fileno(file->value.file);
 	if (isatty(fd)) {
-		tcgetattr(fd, &terminfo);
+		status = tcgetattr(fd, &terminfo);
+		gh_assert(status != -1, "i/o-error", "~a", gh_cons(gh_error(), &LANG_NIL_VALUE));
 		old_flags = terminfo.c_lflag;
 		terminfo.c_lflag |= ECHO;
-		tcsetattr(fd, TCSANOW, &terminfo);
+		status = tcsetattr(fd, TCSANOW, &terminfo);
+		gh_assert(status != -1, "i/o-error", "~a", gh_cons(gh_error(), &LANG_NIL_VALUE));
 	} 
 
 	result = gh_string(gh_readline(file->value.file));
 
 	if (isatty(fd)) {
 		terminfo.c_lflag = old_flags;
-		tcsetattr(fd, TCSANOW, &terminfo);
+		status = tcsetattr(fd, TCSANOW, &terminfo);
+		gh_assert(status != -1, "i/o-error", "~a", gh_cons(gh_error(), &LANG_NIL_VALUE));
 	}
 
 	interactive = old_interactive;
