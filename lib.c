@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <termios.h>
 #include <gc.h>
 #include <histedit.h>
 
@@ -2653,6 +2654,9 @@ datum *lang_read_pass(datum **locals) {
 	datum *file;
 	datum *result;
 	bool old_interactive;
+	struct termios terminfo;
+	int old_flags;
+	int fd;
 
 	old_interactive = interactive;
 	interactive = FALSE;
@@ -2669,14 +2673,19 @@ datum *lang_read_pass(datum **locals) {
 	file = var_get(locals, "input-file");
 	gh_assert(file->type == TYPE_FILE, "type-error", "input-file is not a file: ~s", gh_cons(file, &LANG_NIL_VALUE));
 
-	if (isatty(fileno(file->value.file))) {
-
+	fd = fileno(file->value.file);
+	if (isatty(fd)) {
+		tcgetattr(fd, &terminfo);
+		old_flags = terminfo.c_lflag;
+		terminfo.c_lflag |= ECHO;
+		tcsetattr(fd, TCSANOW, &terminfo);
 	} 
 
 	result = gh_string(gh_readline(file->value.file));
 
-	if (isatty(fileno(file->value.file))) {
-
+	if (isatty(fd)) {
+		terminfo.c_lflag = old_flags;
+		tcsetattr(fd, TCSANOW, &terminfo);
 	}
 
 	interactive = old_interactive;
