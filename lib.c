@@ -1275,6 +1275,7 @@ datum *eval_arglist(datum *args, datum **locals) {
 
 	argscopy = list_copy(args);	
 	iterator = argscopy;
+
 	while (iterator->type == TYPE_CONS) {
 		iterator->value.cons.car = gh_eval(iterator->value.cons.car, locals);
 		iterator = iterator->value.cons.cdr;
