@@ -149,7 +149,8 @@ void init_builtins() {
 	symbol_set(&globals, "jobs", gh_cfunc(&lang_jobs, &LANG_NIL_VALUE));
 	symbol_set(&globals, "bg", gh_cfunc(&lang_bg, gh_symbol("#job")));
 	symbol_set(&globals, "fg", gh_cfunc(&lang_fg, gh_symbol("#job")));
-	symbol_set(&globals, "format", gh_cfunc(&lang_format, (gh_cons(gh_symbol("#output"), gh_cons(gh_symbol("#str"), gh_symbol("#args"))))));
+	symbol_set(&globals, "format", gh_cfunc(&lang_format, gh_cons(gh_symbol("#output"), gh_cons(gh_symbol("#str"), gh_symbol("#args")))));
+	symbol_set(&globals, "read-pass", gh_cfunc(&lang_read_pass, gh_symbol("#prompt")));
 
 	subproc_nowait = gh_cform(&lang_subproc_nowait, gh_symbol("#commands"));
 	pipe_err_to = gh_cform(&lang_pipe_err_to, gh_cons(gh_symbol("#path"), gh_symbol("#commands")));

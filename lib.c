@@ -198,6 +198,9 @@ datum *gh_decimal(double value) { datum *d;
 
 datum *gh_string(char* value) {
 	datum *s;
+	if (value == NULL) {
+		return NULL;
+	}
 	s = new_datum();
 	s->type = TYPE_STRING;
 	s->value.string = GC_MALLOC(sizeof(char) * (strlen(value) + 1));
@@ -1655,7 +1658,7 @@ datum *lang_exception(datum **locals) {
 char *gh_readline(FILE *file) {
 	char *result;
 
-	if (file == stdin && isatty(fileno(stdin))) {
+	if (file == stdin && interactive) {
 		int count;
 		const char *el_str = el_gets(gh_editline, &count);
 
@@ -2644,3 +2647,44 @@ datum *typecheck(datum *args, datum *types, char *mismatch_fmt, datum **locals) 
 	}
 	return &LANG_NIL_VALUE;
 }
+
+datum *lang_read_pass(datum **locals) {
+	datum *prompt;
+	datum *file;
+	datum *result;
+	bool old_interactive;
+
+	old_interactive = interactive;
+	interactive = FALSE;
+
+	prompt = var_get(locals, "#prompt");
+	if (prompt->type == TYPE_NIL) {
+		prompt = gh_string("");
+	} else {
+		prompt = prompt->value.cons.car;
+	}
+
+	gh_assert(prompt->type == TYPE_STRING, "type-error", "not a string: ~s", gh_cons(prompt, &LANG_NIL_VALUE));
+
+	file = var_get(locals, "input-file");
+	gh_assert(file->type == TYPE_FILE, "type-error", "input-file is not a file: ~s", gh_cons(file, &LANG_NIL_VALUE));
+
+	if (isatty(fileno(file->value.file))) {
+
+	} 
+
+	result = gh_string(gh_readline(file->value.file));
+
+	if (isatty(fileno(file->value.file))) {
+
+	}
+
+	interactive = old_interactive;
+
+	if (result == NULL) {
+		return &LANG_EOF_VALUE;
+	} else {
+		return result;
+	}
+}
+
