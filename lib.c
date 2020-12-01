@@ -2703,3 +2703,24 @@ datum *lang_read_password(datum **locals) {
 	}
 }
 
+datum *lang_string_append(datum **locals) {
+	datum *args;
+	datum *iterator;
+	char *result;
+
+	args = var_get(locals, "#args");
+	result = "";
+
+	iterator = args;
+	while (iterator->type == TYPE_CONS) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+		gh_assert(current->type == TYPE_STRING, "type-error", "not a string: ~s", gh_cons(current, &LANG_NIL_VALUE));
+		result = string_append(result, current->value.string);
+
+		iterator = iterator->value.cons.cdr;
+	}
+
+	return gh_string(result);
+}
