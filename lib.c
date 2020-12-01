@@ -1461,7 +1461,9 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 		fname = fn->value.c_code.name;
 	}
 
-	stack_frame = gh_cons(gh_symbol("#stack-frame"), gh_cons(gh_symbol(fname), gh_cons(gh_string(sf_file), gh_cons(gh_integer(yylineno), &LANG_NIL_VALUE))));
+	if (fn->type == TYPE_FUNC || fn->type == TYPE_MACRO || fn->type == TYPE_CFUNC || fn->type == TYPE_CFORM) {
+		stack_frame = gh_cons(gh_symbol("#stack-frame"), gh_cons(gh_symbol(fname), gh_cons(gh_string(sf_file), gh_cons(gh_integer(yylineno), &LANG_NIL_VALUE))));
+	}
 
 	new_locals = gh_cons(stack_frame, *locals);
 
