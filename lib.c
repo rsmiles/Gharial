@@ -666,6 +666,7 @@ datum *gh_eval(datum *expr, datum **locals) {
 	datum *handlers;
 	datum *result;
 	datum *handler;
+	datum *args;
 
 	switch (expr->type) {
 		case TYPE_CONS:
@@ -676,7 +677,13 @@ datum *gh_eval(datum *expr, datum **locals) {
 
 			value = gh_eval(expanded->value.cons.car, locals);
 
-			result = apply(value, expanded->value.cons.cdr, locals);
+			if (value->type == TYPE_CFUNC || value->type == TYPE_FUNC) {
+				args = eval_arglist(expanded->value.cons.cdr, locals);
+			} else {
+				args = expanded->value.cons.cdr;
+			}
+
+			result = apply(value, args, locals);
 			break;
 		case TYPE_SYMBOL:
 			symbol = expr->value.string;
@@ -1397,7 +1404,7 @@ datum *lang_string_split(datum **locals) {
 	datum *delim;
 
 	str = var_get(locals, "#str");
-	gh_assert(str->type == TYPE_STRING, "type-error", "argument 1 is not a string ~s:", gh_cons(str, &LANG_NIL_VALUE));
+	gh_assert(str->type == TYPE_STRING, "type-error", "argument 1 is not a string: ~s", gh_cons(str, &LANG_NIL_VALUE));
 
 	delim = var_get(locals, "#delim");
 	if (delim->type == TYPE_NIL) {
@@ -1405,7 +1412,7 @@ datum *lang_string_split(datum **locals) {
 	} else {
 		delim = delim->value.cons.car;
 	}
-	gh_assert(delim->type == TYPE_STRING, "type-error", "argument 2 is not a string ~s:", gh_cons(delim, &LANG_NIL_VALUE));
+	gh_assert(delim->type == TYPE_STRING, "type-error", "argument 2 is not a string: ~s", gh_cons(delim, &LANG_NIL_VALUE));
 
 	return string_split(str->value.string, delim->value.string);
 }
@@ -1454,7 +1461,6 @@ datum *gh_begin(datum *body, datum **locals) {
 }
 
 datum *apply(datum *fn, datum *args, datum **locals) {
-	datum *evaluated_args;
 	datum *arg_bindings;
 	datum *new_locals;
 	datum *stack_frame;
@@ -1464,7 +1470,7 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 
 	gh_assert(fn->type == TYPE_CFORM || fn->type == TYPE_CFUNC ||
 				fn->type == TYPE_FUNC || fn->type == TYPE_EXECUTABLE,
-				"type-error", "attempt to call non-function: ~s", gh_cons(fn, &LANG_NIL_VALUE));
+				"type-error", "not a function, macro, special form, or executable: ~s", gh_cons(fn, &LANG_NIL_VALUE));
 
 	if (current_file == NULL) {
 		sf_file = "<REPL>";
@@ -1484,20 +1490,14 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 
 	new_locals = gh_cons(stack_frame, *locals);
 
-	if (fn->type == TYPE_CFORM || fn->type == TYPE_EXECUTABLE) { /* Do not evaluate arguments if special form */
-		evaluated_args = args;
-	} else {
-		evaluated_args = eval_arglist(args, locals);
-	}
-
 	if (fn->type == TYPE_EXECUTABLE) {
-		return run_exec(fn, evaluated_args, locals);
+		return run_exec(fn, args, locals);
 	}
 
 	if (fn->type == TYPE_CFUNC || fn->type == TYPE_CFORM) {
-		arg_bindings = bind_args(fn->value.c_code.lambda_list, evaluated_args);
+		arg_bindings = bind_args(fn->value.c_code.lambda_list, args);
 	} else {
-		arg_bindings = bind_args(fn->value.func.lambda_list, evaluated_args);
+		arg_bindings = bind_args(fn->value.func.lambda_list, args);
 	}
 
 	if (fn->type == TYPE_FUNC || fn->type == TYPE_CFORM) {
@@ -1521,10 +1521,6 @@ datum *lang_apply(datum **locals) {
 
 	fn = var_get(locals, "#fn");
 	args = var_get(locals, "#args");
-
-	if (fn->type == TYPE_SYMBOL) {
-		fn = var_get(locals, fn->value.string);
-	}
 
 	return apply(fn, args, locals);
 }
