@@ -832,6 +832,10 @@ datum *symbol_loc_one(datum *table, char *symbol) {
 	datum *iterator;
 
 
+	if (symbol == NULL) {
+		return NULL;
+	}
+
 	iterator = table;
 	while (iterator->type == TYPE_CONS) {
 		datum *current;
@@ -840,6 +844,7 @@ datum *symbol_loc_one(datum *table, char *symbol) {
 		if (current->type != TYPE_CONS) {
 			return NULL;
 		}
+
 		if (strcmp(current->value.cons.car->value.string, symbol) == 0)
 			return current;
 		iterator = iterator->value.cons.cdr;
@@ -1835,7 +1840,7 @@ datum *exec_lookup(char *name) {
 			dir = iterator->value.cons.car;
 			path = string_append(dir->value.string, "/");
 			path = string_append(path, name);
-			if (access(path, X_OK) == 0) {
+			if (is_path_executable(path)) {
 				return gh_exec(path);
 			}
 			iterator = iterator->value.cons.cdr;
