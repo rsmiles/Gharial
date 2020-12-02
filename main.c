@@ -35,6 +35,7 @@ char *PROGNAME;
 bool eval_flag = TRUE;
 bool print_flag = TRUE;
 bool capture_flag = FALSE;
+bool prompt_flag = TRUE;
 bool interactive = FALSE;
 struct sigaction default_action;
 struct sigaction sigstop_action;
@@ -136,7 +137,7 @@ void init_builtins() {
 	symbol_set(&globals, "return-code", gh_cfunc(&lang_return_code, gh_cons(gh_symbol("#num"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "length", gh_cfunc(&lang_length, gh_cons(gh_symbol("#lst"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "subproc", gh_cform(&lang_subproc, gh_symbol("#commands")));
-	symbol_set(&globals, "cd", gh_cfunc(&lang_cd, gh_cons(gh_symbol("#dir"), &LANG_NIL_VALUE)));
+	symbol_set(&globals, "--cd", gh_cfunc(&lang_cd, gh_cons(gh_symbol("#dir"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "|", gh_cform(&lang_pipe, gh_symbol("#commands")));
 	symbol_set(&globals, "$", gh_cform(&lang_capture, gh_symbol("#commands")));
 	symbol_set(&globals, "&", gh_cform(&lang_disown, gh_cons(gh_symbol("#command"), &LANG_NIL_VALUE)));
@@ -179,8 +180,13 @@ void init_signals() {
 }
 
 char *el_prompt(EditLine *el) {
-	if (depth == 0) {
-		return "$ ";
+	if (depth == 0 && prompt_flag == TRUE) {
+		datum *prompt_fn;
+		datum *prompt;
+
+		prompt_fn = symbol_get(globals, "*prompt*");
+		prompt = apply(prompt_fn, &LANG_NIL_VALUE, &empty_locals);
+		return prompt->value.string;
 	} else {
 		return "";
 	}

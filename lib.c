@@ -584,6 +584,7 @@ datum *lang_let(datum **locals) {
 	datum *body;
 	datum *new_locals;
 	datum *translated_bindings;
+	datum *iterator;
 
 	bindings = var_get(locals, "#bindings");
 	body = var_get(locals, "#body");
@@ -591,6 +592,16 @@ datum *lang_let(datum **locals) {
 
 	translated_bindings = translate_bindings(bindings);
 	gh_assert(translated_bindings->type == TYPE_CONS || translated_bindings->type == TYPE_NIL, "type-error", "error occured while translating bindings: ~s", gh_cons(bindings, &LANG_NIL_VALUE));
+
+	iterator = translated_bindings;
+	while (iterator->type == TYPE_CONS) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+		current->value.cons.cdr = gh_eval(current->value.cons.cdr, locals);
+		iterator = iterator->value.cons.cdr;
+	}
+
 	new_locals = combine(translated_bindings, *locals, locals);
 
 	return gh_begin(body, &new_locals);
@@ -1128,6 +1139,7 @@ datum *lang_setenv(datum **locals) {
 	gh_assert(symbol->type == TYPE_STRING || symbol->type == TYPE_SYMBOL, "type-error", "argument 1 is neither a symbol nor a string: ~s", gh_cons(symbol, &LANG_NIL_VALUE));
 
 	value = var_get(locals, "#value");
+	value = gh_eval(value, locals);
 	gh_assert(value->type == TYPE_STRING, "type-error", "Environment variables can only be set to string values: ~s", gh_cons(value, &LANG_NIL_VALUE));
 
 	setenv(symbol->value.string, value->value.string, TRUE);
@@ -1721,6 +1733,7 @@ char *gh_readline(FILE *file) {
 datum *lang_read_line(datum **locals) {
 	datum *file;
 	datum *result;
+	bool old_prompt_flag;
 
 	file = var_get(locals, "#file");
 
@@ -1731,7 +1744,10 @@ datum *lang_read_line(datum **locals) {
 		file = var_get(locals, "input-file");
 	}
 
+	old_prompt_flag = prompt_flag;
+	prompt_flag = FALSE;
 	result = gh_string(gh_readline(file->value.file));
+	prompt_flag = old_prompt_flag;
 	if (result == NULL) {
 		return &LANG_EOF_VALUE;
 	} else {

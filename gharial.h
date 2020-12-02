@@ -93,6 +93,7 @@ typedef struct datum {
 extern bool eval_flag;
 extern bool print_flag;
 extern bool capture_flag;
+extern bool prompt_flag;
 extern bool interactive;
 extern int yylineno;
 extern FILE *yyin;
