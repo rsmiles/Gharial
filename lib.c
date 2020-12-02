@@ -980,7 +980,7 @@ datum* gh_load(char *path) {
 	FILE *oldyyin;
 	int old_print_flag;
 	char *old_current_file;
-	
+
 	file = fopen(path, "r");
 	gh_assert(file != NULL, "file-error", "could not open file \"~a\": ~a", gh_cons(gh_string(path), gh_cons(gh_error(), &LANG_NIL_VALUE)));
 
@@ -1000,11 +1000,11 @@ datum* gh_load(char *path) {
 	print_flag = old_print_flag;
 	yypop_buffer_state();
 	yyin = oldyyin;
-	yylex_destroy();
 
 	fclose(file);
 
 	current_file = old_current_file;
+
 	if (gh_result->type == TYPE_EXCEPTION) {
 		return gh_result;
 	} else {
@@ -2051,7 +2051,7 @@ datum *run_exec(datum *command, datum *args, datum **locals) {
 
 	commands = gh_cons(gh_cons(command, args), &LANG_NIL_VALUE);
 
-	job = job_start(commands, input_file, output_file, error_file);
+	job = job_start(commands, input_file, output_file, error_file, locals);
 	return job_wait(job);
 }
 
@@ -2152,7 +2152,7 @@ datum *gh_pipe() {
 	return gh_cons(gh_pipe_output, gh_pipe_input);
 }
 
-datum *job_start(datum *commands, datum *input_file, datum *output_file, datum *error_file) {
+datum *job_start(datum *commands, datum *input_file, datum *output_file, datum *error_file, datum **locals) {
 	datum *job;
 	datum *last_output;
 	datum *iterator;
@@ -2174,7 +2174,7 @@ datum *job_start(datum *commands, datum *input_file, datum *output_file, datum *
 		command = iterator->value.cons.car;
 
 		command_input = last_output;
-		command_locals = gh_cons(gh_cons(gh_symbol("input-file"), command_input), &LANG_NIL_VALUE);
+		command_locals = gh_cons(gh_cons(gh_symbol("input-file"), command_input), *locals);
 
 		if (iterator->value.cons.cdr->type != TYPE_CONS) {
 			command_output = output_file;
@@ -2296,7 +2296,7 @@ datum *lang_pipe(datum **locals) {
 	output_file = var_get(locals, "output-file");
 	error_file = var_get(locals, "error-file");
 
-	job = job_start(commands, input_file, output_file, error_file);
+	job = job_start(commands, input_file, output_file, error_file, locals);
 	return job_wait(job);
 }
 
@@ -2484,7 +2484,7 @@ datum *lang_disown(datum **locals) {
 
 	printf("command: ");
 
-	return job_start(command, input_file, output_file, error_file);
+	return job_start(command, input_file, output_file, error_file, locals);
 }
 
 datum *lang_jobs(datum **locals) {

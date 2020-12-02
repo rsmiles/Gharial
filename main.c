@@ -183,9 +183,12 @@ char *el_prompt(EditLine *el) {
 	if (depth == 0 && prompt_flag == TRUE) {
 		datum *prompt_fn;
 		datum *prompt;
+		datum *old_status;
 
 		prompt_fn = symbol_get(globals, "*prompt*");
+		old_status = symbol_get(globals, "*?*");
 		prompt = apply(prompt_fn, &LANG_NIL_VALUE, &empty_locals);
+		symbol_set(&globals, "*?*", old_status);
 		return prompt->value.string;
 	} else {
 		return "";

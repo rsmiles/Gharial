@@ -35,6 +35,7 @@
 	(string-append USER "@" HOSTNAME ":" PWD "$ "))
 
 (let ([rc (string-append HOME "/.gharialrc")])
-	(cond
-		[(test '-d rc) (load rc)]
-		[t nil]))
+	(if (test '-f rc)
+		(load rc)
+		nil))
+
