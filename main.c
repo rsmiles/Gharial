@@ -290,7 +290,9 @@ int main(int argc, char **argv) {
 	current_job = NULL;
 
 	symbol_set(&globals, "*?*", gh_integer(0));
-	gh_load(INIT_FILE);
+	if (setjmp(toplevel) != TRUE) {
+		gh_load(INIT_FILE);
+	}
 	
 	yyin = stdin;
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
