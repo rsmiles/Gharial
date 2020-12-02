@@ -137,7 +137,7 @@ void init_builtins() {
 	symbol_set(&globals, "return-code", gh_cfunc(&lang_return_code, gh_cons(gh_symbol("#num"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "length", gh_cfunc(&lang_length, gh_cons(gh_symbol("#lst"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "subproc", gh_cform(&lang_subproc, gh_symbol("#commands")));
-	symbol_set(&globals, "--cd", gh_cfunc(&lang_cd, gh_cons(gh_symbol("#dir"), &LANG_NIL_VALUE)));
+	symbol_set(&globals, "--cd", gh_cfunc(&lang_cd, gh_symbol("#dir")));
 	symbol_set(&globals, "|", gh_cform(&lang_pipe, gh_symbol("#commands")));
 	symbol_set(&globals, "$", gh_cform(&lang_capture, gh_symbol("#commands")));
 	symbol_set(&globals, "&", gh_cform(&lang_disown, gh_cons(gh_symbol("#command"), &LANG_NIL_VALUE)));

@@ -26,8 +26,8 @@
 
 (setenv HOSTNAME (car ($ (hostname))))
 
-(defn cd (path)
-	(let ([result (--cd path)])
+(defn cd path
+	(let ([result (apply --cd path)])
 		(setenv PWD (car ($ (pwd))))
 		result))
 

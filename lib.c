@@ -1459,7 +1459,7 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 
 	gh_assert(fn->type == TYPE_CFORM || fn->type == TYPE_CFUNC ||
 				fn->type == TYPE_FUNC || fn->type == TYPE_EXECUTABLE,
-				"type-error", "attempt to call non-function", gh_cons(fn, &LANG_NIL_VALUE));
+				"type-error", "attempt to call non-function: ~s", gh_cons(fn, &LANG_NIL_VALUE));
 
 	if (current_file == NULL) {
 		sf_file = "<REPL>";
@@ -1521,7 +1521,6 @@ datum *lang_apply(datum **locals) {
 		fn = var_get(locals, fn->value.string);
 	}
 
-	gh_assert(fn->type == TYPE_FUNC || fn->type == TYPE_CFUNC, "type-error", "attempt to apply non function", gh_cons(fn, &LANG_NIL_VALUE))
 	return apply(fn, args, locals);
 }
 
@@ -2064,6 +2063,11 @@ datum *lang_cd(datum **locals) {
 	int result;
 
 	dir = var_get(locals, "#dir");
+	if (dir->type == TYPE_NIL) {
+		dir = gh_string(getenv("HOME"));
+	} else {
+		dir = dir->value.cons.car;
+	}
 	gh_assert(dir->type == TYPE_STRING || dir->type == TYPE_SYMBOL, "type-error", "not a symbol nor a string: ~s", gh_cons(dir, &LANG_NIL_VALUE));
 
 	result = chdir(dir->value.string);
