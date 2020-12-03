@@ -2751,9 +2751,13 @@ datum *lang_test_expr(datum **locals) {
 	datum *expr;
 	bool result;
 	datum *out;
+	datum *fmt;
+	datum *fmt_args;
 
 	test_name = var_get(locals, "#test-name");
 	expr = var_get(locals, "#expr");
+	fmt = var_get(locals, "#fmt");
+	fmt_args = var_get(locals, "#fmt_args");
 	out = var_get(locals, "output-file");
 
 	if (expr->type == TYPE_INTEGER || expr->type == TYPE_RETURNCODE) {
@@ -2792,8 +2796,8 @@ datum *lang_test_expr(datum **locals) {
 		fprintf(out->value.file, "FAIL\n");
 		if (isatty(fileno((out->value.file)))) {
 			fprintf(out->value.file, "\033[0m");
+			fflush(out->value.file);
 		}
-		exit(EXIT_FAILURE);
+		gh_assert(FALSE, "test-failure", fmt->value.string, fmt_args);
 	}
 }
-
