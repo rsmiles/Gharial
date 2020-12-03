@@ -979,6 +979,7 @@ datum* gh_load(char *path) {
 	FILE *file;
 	FILE *oldyyin;
 	int old_print_flag;
+	int old_lineno;
 	char *old_current_file;
 
 	file = fopen(path, "r");
@@ -988,6 +989,7 @@ datum* gh_load(char *path) {
 	current_file = path;
 	oldyyin = yyin;
 	yyin = file;
+	old_lineno = yylineno;
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
 	old_print_flag = print_flag;
 	print_flag = FALSE;
@@ -1004,6 +1006,11 @@ datum* gh_load(char *path) {
 	fclose(file);
 
 	current_file = old_current_file;
+
+	yylineno = old_lineno;
+	if (yylineno == 0) {
+		yylineno++;
+	}
 
 	if (gh_result->type == TYPE_EXCEPTION) {
 		return gh_result;
