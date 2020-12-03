@@ -2745,3 +2745,55 @@ datum *lang_string_append(datum **locals) {
 
 	return gh_string(result);
 }
+
+datum *lang_test_expr(datum **locals) {
+	datum *test_name;
+	datum *expr;
+	bool result;
+	datum *out;
+
+	test_name = var_get(locals, "#test-name");
+	expr = var_get(locals, "#expr");
+	out = var_get(locals, "output-file");
+
+	if (expr->type == TYPE_INTEGER || expr->type == TYPE_RETURNCODE) {
+		if (expr->value.integer == 0) {
+			result = TRUE;
+		} else {
+			result = FALSE;
+		}
+	} else if (expr->type == TYPE_DECIMAL) {
+		if (expr->value.decimal == 0.0) {
+			result = TRUE;
+		} else {
+			result = FALSE;
+		}
+	} else if (expr->type == TYPE_NIL) {
+		result = FALSE;
+	} else {
+		result = TRUE;
+	}
+
+	printf("%s: ", test_name->value.string);
+
+	if (result == TRUE) {
+		if (isatty(fileno((out->value.file)))) {
+			fprintf(out->value.file, "\033[;32m");
+		}
+		fprintf(out->value.file, "OK\n");
+		if (isatty(fileno((out->value.file)))) {
+			fprintf(out->value.file, "\033[0m");
+		}
+		return gh_return_code(0);
+	} else {
+		if (isatty(fileno((out->value.file)))) {
+			fprintf(out->value.file, "\033[0;31m");
+		}
+		fprintf(out->value.file, "FAIL\n");
+		if (isatty(fileno((out->value.file)))) {
+			fprintf(out->value.file, "\033[0m");
+		}
+		exit(EXIT_FAILURE);
+	}
+}
+

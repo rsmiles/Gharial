@@ -372,5 +372,7 @@ datum *lang_read_password(datum **locals);
 
 datum *lang_string_append(datum **locals);
 
+datum *lang_test_expr(datum **locals);
+
 #endif
 
