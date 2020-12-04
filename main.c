@@ -278,6 +278,8 @@ void cleanup(){
 }
 
 int main(int argc, char **argv) {
+	FILE *input;
+
 	yylineno = 0;
 	init_globals(argv);
 	init_io();
@@ -287,12 +289,26 @@ int main(int argc, char **argv) {
 	atexit(&cleanup);
 
 	jobs = &LANG_NIL_VALUE;
+
 	current_job = NULL;
 
 	symbol_set(&globals, "*?*", gh_integer(0));
+
+	if (argc == 1) {
+		input = stdin;
+	} else if (argc == 2) {
+		input = fopen(argv[1], "r");
+		if (input == NULL) {
+			fprintf(stderr, "%s: could not open file \"%s\": %s", argv[0], argv[1], strerror(errno));
+		}
+	} else {
+		fprintf(stderr, "%s: usage: %s: [file]\n", argv[0], argv[0]);
+		exit(EXIT_FAILURE);
+	}
+
 	gh_load(INIT_FILE);
 	
-	yyin = stdin;
+	yyin = input;
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
 	setjmp(toplevel);
 	do {
