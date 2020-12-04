@@ -153,6 +153,7 @@ void init_builtins() {
 	symbol_set(&globals, "format", gh_cfunc(&lang_format, gh_cons(gh_symbol("#output"), gh_cons(gh_symbol("#str"), gh_symbol("#args")))));
 	symbol_set(&globals, "read-password", gh_cfunc(&lang_read_password, gh_symbol("#prompt")));
 	symbol_set(&globals, "string-append", gh_cfunc(&lang_string_append, gh_symbol("#args")));
+	symbol_set(&globals, "test-expr", gh_cfunc(&lang_test_expr, gh_cons(gh_symbol("#test-name"), gh_cons(gh_symbol("#expr"), gh_cons(gh_symbol("#fmt"), gh_symbol("#fmt_args"))))));
 
 	subproc_nowait = gh_cform(&lang_subproc_nowait, gh_symbol("#commands"));
 	pipe_err_to = gh_cform(&lang_pipe_err_to, gh_cons(gh_symbol("#path"), gh_symbol("#commands")));
@@ -183,9 +184,12 @@ char *el_prompt(EditLine *el) {
 	if (depth == 0 && prompt_flag == TRUE) {
 		datum *prompt_fn;
 		datum *prompt;
+		datum *old_status;
 
 		prompt_fn = symbol_get(globals, "*prompt*");
+		old_status = symbol_get(globals, "*?*");
 		prompt = apply(prompt_fn, &LANG_NIL_VALUE, &empty_locals);
+		symbol_set(&globals, "*?*", old_status);
 		return prompt->value.string;
 	} else {
 		return "";
@@ -238,6 +242,11 @@ unsigned char insert_doublequotes(EditLine *el, int ch) {
 	return CC_REFRESH;
 }
 
+unsigned char clear(EditLine *el, int ch) {
+	system("clear");
+	return CC_REDISPLAY;
+}
+
 void init_editline(int argc, char **argv) {
 
 	gh_history = history_init();
@@ -265,6 +274,9 @@ void init_editline(int argc, char **argv) {
 
 	el_set(gh_editline, EL_ADDFN, "insert_doublequotes", "insert a pair of double quotation marks", &insert_doublequotes);
 	el_set(gh_editline, EL_BIND, "\"", "insert_doublequotes", NULL);
+
+	el_set(gh_editline, EL_ADDFN, "clear", "clear terminal screen", &clear);
+	el_set(gh_editline, EL_BIND, "^l", "clear", NULL);
 }
 
 void cleanup_editline() {
@@ -307,6 +319,9 @@ int main(int argc, char **argv) {
 	}
 
 	gh_load(INIT_FILE);
+	if (setjmp(toplevel) != TRUE) {
+		gh_load(INIT_FILE);
+	}
 	
 	yyin = input;
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));

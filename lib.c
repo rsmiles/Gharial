@@ -666,6 +666,7 @@ datum *gh_eval(datum *expr, datum **locals) {
 	datum *handlers;
 	datum *result;
 	datum *handler;
+	datum *args;
 
 	switch (expr->type) {
 		case TYPE_CONS:
@@ -676,7 +677,13 @@ datum *gh_eval(datum *expr, datum **locals) {
 
 			value = gh_eval(expanded->value.cons.car, locals);
 
-			result = apply(value, expanded->value.cons.cdr, locals);
+			if (value->type == TYPE_CFUNC || value->type == TYPE_FUNC) {
+				args = eval_arglist(expanded->value.cons.cdr, locals);
+			} else {
+				args = expanded->value.cons.cdr;
+			}
+
+			result = apply(value, args, locals);
 			break;
 		case TYPE_SYMBOL:
 			symbol = expr->value.string;
@@ -832,6 +839,10 @@ datum *symbol_loc_one(datum *table, char *symbol) {
 	datum *iterator;
 
 
+	if (symbol == NULL) {
+		return NULL;
+	}
+
 	iterator = table;
 	while (iterator->type == TYPE_CONS) {
 		datum *current;
@@ -840,6 +851,7 @@ datum *symbol_loc_one(datum *table, char *symbol) {
 		if (current->type != TYPE_CONS) {
 			return NULL;
 		}
+
 		if (strcmp(current->value.cons.car->value.string, symbol) == 0)
 			return current;
 		iterator = iterator->value.cons.cdr;
@@ -967,8 +979,9 @@ datum* gh_load(char *path) {
 	FILE *file;
 	FILE *oldyyin;
 	int old_print_flag;
+	int old_lineno;
 	char *old_current_file;
-	
+
 	file = fopen(path, "r");
 	gh_assert(file != NULL, "file-error", "could not open file \"~a\": ~a", gh_cons(gh_string(path), gh_cons(gh_error(), &LANG_NIL_VALUE)));
 
@@ -976,6 +989,7 @@ datum* gh_load(char *path) {
 	current_file = path;
 	oldyyin = yyin;
 	yyin = file;
+	old_lineno = yylineno;
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
 	old_print_flag = print_flag;
 	print_flag = FALSE;
@@ -988,11 +1002,16 @@ datum* gh_load(char *path) {
 	print_flag = old_print_flag;
 	yypop_buffer_state();
 	yyin = oldyyin;
-	yylex_destroy();
 
 	fclose(file);
 
 	current_file = old_current_file;
+
+	yylineno = old_lineno;
+	if (yylineno == 0) {
+		yylineno++;
+	}
+
 	if (gh_result->type == TYPE_EXCEPTION) {
 		return gh_result;
 	} else {
@@ -1392,7 +1411,7 @@ datum *lang_string_split(datum **locals) {
 	datum *delim;
 
 	str = var_get(locals, "#str");
-	gh_assert(str->type == TYPE_STRING, "type-error", "argument 1 is not a string ~s:", gh_cons(str, &LANG_NIL_VALUE));
+	gh_assert(str->type == TYPE_STRING, "type-error", "argument 1 is not a string: ~s", gh_cons(str, &LANG_NIL_VALUE));
 
 	delim = var_get(locals, "#delim");
 	if (delim->type == TYPE_NIL) {
@@ -1400,7 +1419,7 @@ datum *lang_string_split(datum **locals) {
 	} else {
 		delim = delim->value.cons.car;
 	}
-	gh_assert(delim->type == TYPE_STRING, "type-error", "argument 2 is not a string ~s:", gh_cons(delim, &LANG_NIL_VALUE));
+	gh_assert(delim->type == TYPE_STRING, "type-error", "argument 2 is not a string: ~s", gh_cons(delim, &LANG_NIL_VALUE));
 
 	return string_split(str->value.string, delim->value.string);
 }
@@ -1449,7 +1468,6 @@ datum *gh_begin(datum *body, datum **locals) {
 }
 
 datum *apply(datum *fn, datum *args, datum **locals) {
-	datum *evaluated_args;
 	datum *arg_bindings;
 	datum *new_locals;
 	datum *stack_frame;
@@ -1459,7 +1477,7 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 
 	gh_assert(fn->type == TYPE_CFORM || fn->type == TYPE_CFUNC ||
 				fn->type == TYPE_FUNC || fn->type == TYPE_EXECUTABLE,
-				"type-error", "attempt to call non-function: ~s", gh_cons(fn, &LANG_NIL_VALUE));
+				"type-error", "not a function, macro, special form, or executable: ~s", gh_cons(fn, &LANG_NIL_VALUE));
 
 	if (current_file == NULL) {
 		sf_file = "<REPL>";
@@ -1479,20 +1497,14 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 
 	new_locals = gh_cons(stack_frame, *locals);
 
-	if (fn->type == TYPE_CFORM || fn->type == TYPE_EXECUTABLE) { /* Do not evaluate arguments if special form */
-		evaluated_args = args;
-	} else {
-		evaluated_args = eval_arglist(args, locals);
-	}
-
 	if (fn->type == TYPE_EXECUTABLE) {
-		return run_exec(fn, evaluated_args, locals);
+		return run_exec(fn, args, locals);
 	}
 
 	if (fn->type == TYPE_CFUNC || fn->type == TYPE_CFORM) {
-		arg_bindings = bind_args(fn->value.c_code.lambda_list, evaluated_args);
+		arg_bindings = bind_args(fn->value.c_code.lambda_list, args);
 	} else {
-		arg_bindings = bind_args(fn->value.func.lambda_list, evaluated_args);
+		arg_bindings = bind_args(fn->value.func.lambda_list, args);
 	}
 
 	if (fn->type == TYPE_FUNC || fn->type == TYPE_CFORM) {
@@ -1516,10 +1528,6 @@ datum *lang_apply(datum **locals) {
 
 	fn = var_get(locals, "#fn");
 	args = var_get(locals, "#args");
-
-	if (fn->type == TYPE_SYMBOL) {
-		fn = var_get(locals, fn->value.string);
-	}
 
 	return apply(fn, args, locals);
 }
@@ -1835,7 +1843,7 @@ datum *exec_lookup(char *name) {
 			dir = iterator->value.cons.car;
 			path = string_append(dir->value.string, "/");
 			path = string_append(path, name);
-			if (access(path, X_OK) == 0) {
+			if (is_path_executable(path)) {
 				return gh_exec(path);
 			}
 			iterator = iterator->value.cons.cdr;
@@ -2050,7 +2058,7 @@ datum *run_exec(datum *command, datum *args, datum **locals) {
 
 	commands = gh_cons(gh_cons(command, args), &LANG_NIL_VALUE);
 
-	job = job_start(commands, input_file, output_file, error_file);
+	job = job_start(commands, input_file, output_file, error_file, locals);
 	return job_wait(job);
 }
 
@@ -2151,7 +2159,7 @@ datum *gh_pipe() {
 	return gh_cons(gh_pipe_output, gh_pipe_input);
 }
 
-datum *job_start(datum *commands, datum *input_file, datum *output_file, datum *error_file) {
+datum *job_start(datum *commands, datum *input_file, datum *output_file, datum *error_file, datum **locals) {
 	datum *job;
 	datum *last_output;
 	datum *iterator;
@@ -2173,7 +2181,7 @@ datum *job_start(datum *commands, datum *input_file, datum *output_file, datum *
 		command = iterator->value.cons.car;
 
 		command_input = last_output;
-		command_locals = gh_cons(gh_cons(gh_symbol("input-file"), command_input), &LANG_NIL_VALUE);
+		command_locals = gh_cons(gh_cons(gh_symbol("input-file"), command_input), *locals);
 
 		if (iterator->value.cons.cdr->type != TYPE_CONS) {
 			command_output = output_file;
@@ -2295,7 +2303,7 @@ datum *lang_pipe(datum **locals) {
 	output_file = var_get(locals, "output-file");
 	error_file = var_get(locals, "error-file");
 
-	job = job_start(commands, input_file, output_file, error_file);
+	job = job_start(commands, input_file, output_file, error_file, locals);
 	return job_wait(job);
 }
 
@@ -2483,7 +2491,7 @@ datum *lang_disown(datum **locals) {
 
 	printf("command: ");
 
-	return job_start(command, input_file, output_file, error_file);
+	return job_start(command, input_file, output_file, error_file, locals);
 }
 
 datum *lang_jobs(datum **locals) {
@@ -2743,4 +2751,60 @@ datum *lang_string_append(datum **locals) {
 	}
 
 	return gh_string(result);
+}
+
+datum *lang_test_expr(datum **locals) {
+	datum *test_name;
+	datum *expr;
+	bool result;
+	datum *out;
+	datum *fmt;
+	datum *fmt_args;
+
+	test_name = var_get(locals, "#test-name");
+	expr = var_get(locals, "#expr");
+	fmt = var_get(locals, "#fmt");
+	fmt_args = var_get(locals, "#fmt_args");
+	out = var_get(locals, "output-file");
+
+	if (expr->type == TYPE_INTEGER || expr->type == TYPE_RETURNCODE) {
+		if (expr->value.integer == 0) {
+			result = TRUE;
+		} else {
+			result = FALSE;
+		}
+	} else if (expr->type == TYPE_DECIMAL) {
+		if (expr->value.decimal == 0.0) {
+			result = TRUE;
+		} else {
+			result = FALSE;
+		}
+	} else if (expr->type == TYPE_NIL) {
+		result = FALSE;
+	} else {
+		result = TRUE;
+	}
+
+	printf("%s: ", test_name->value.string);
+
+	if (result == TRUE) {
+		if (isatty(fileno((out->value.file)))) {
+			fprintf(out->value.file, "\033[;32m");
+		}
+		fprintf(out->value.file, "OK\n");
+		if (isatty(fileno((out->value.file)))) {
+			fprintf(out->value.file, "\033[0m");
+		}
+		return gh_return_code(0);
+	} else {
+		if (isatty(fileno((out->value.file)))) {
+			fprintf(out->value.file, "\033[0;31m");
+		}
+		fprintf(out->value.file, "FAIL\n");
+		if (isatty(fileno((out->value.file)))) {
+			fprintf(out->value.file, "\033[0m");
+			fflush(out->value.file);
+		}
+		gh_assert(FALSE, "test-failure", fmt->value.string, fmt_args);
+	}
 }

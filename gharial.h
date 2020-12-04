@@ -322,7 +322,7 @@ datum *lang_subproc(datum **locals);
 
 datum *lang_cd(datum **locals);
 
-datum *job_start(datum *commands, datum *input_file, datum *output_file, datum *error_file);
+datum *job_start(datum *commands, datum *input_file, datum *output_file, datum *error_file, datum **locals);
 
 datum *job_wait(datum *job);
 
@@ -371,6 +371,8 @@ datum *lang_format(datum **locals);
 datum *lang_read_password(datum **locals);
 
 datum *lang_string_append(datum **locals);
+
+datum *lang_test_expr(datum **locals);
 
 #endif
 

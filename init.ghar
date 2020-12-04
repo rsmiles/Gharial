@@ -34,4 +34,8 @@
 (defn *prompt* ()
 	(string-append USER "@" HOSTNAME ":" PWD "$ "))
 
+(let ([rc (string-append HOME "/.gharialrc")])
+	(if (test '-f rc)
+		(load rc)
+		nil))
 
