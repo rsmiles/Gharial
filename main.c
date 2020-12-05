@@ -1,10 +1,13 @@
 #define _POSIX_C_SOURCE 199309L
 
+#include <ctype.h>
+#include <dirent.h>
 #include <errno.h>
 #include <libgen.h>
 #include <setjmp.h>
 #include <signal.h>
 #include <string.h>
+#include <sys/types.h>
 #include <time.h>
 #include <histedit.h>
 #include <gc.h>
@@ -23,6 +26,9 @@ unsigned char insert_parens(EditLine *el, int ch);
 unsigned char insert_newline(EditLine *el, int ch);
 unsigned char next_closeparen(EditLine *el, int ch);
 unsigned char insert_doublequotes(EditLine *el, int ch);
+static unsigned char
+complete(EditLine *el, int ch __attribute__((__unused__)));
+
 void init_editline();
 char *el_prompt(EditLine *el);
 void cleanup();
@@ -247,6 +253,41 @@ unsigned char clear(EditLine *el, int ch) {
 	return CC_REDISPLAY;
 }
 
+/* copied from example tc1.c found in EditLine examples */
+static unsigned char
+complete(EditLine *el, int ch __attribute__((__unused__)))
+{
+	DIR *dd = opendir(".");
+	struct dirent *dp;
+	const char* ptr;
+	const LineInfo *lf = el_line(el);
+	size_t len;
+	int res = CC_ERROR;
+
+	/*
+	 * Find the last word
+	 */
+	for (ptr = lf->cursor - 1;
+	    !isspace((unsigned char)*ptr) && ptr > lf->buffer; ptr--)
+		continue;
+	len = lf->cursor - ++ptr;
+
+	for (dp = readdir(dd); dp != NULL; dp = readdir(dd)) {
+		if (len > strlen(dp->d_name))
+			continue;
+		if (strncmp(dp->d_name, ptr, len) == 0) {
+			if (el_insertstr(el, &dp->d_name[len]) == -1)
+				res = CC_ERROR;
+			else
+				res = CC_REFRESH;
+			break;
+		}
+	}
+
+	closedir(dd);
+	return res;
+}
+
 void init_editline(int argc, char **argv) {
 
 	gh_history = history_init();
@@ -277,6 +318,9 @@ void init_editline(int argc, char **argv) {
 
 	el_set(gh_editline, EL_ADDFN, "clear", "clear terminal screen", &clear);
 	el_set(gh_editline, EL_BIND, "^l", "clear", NULL);
+
+	el_set(gh_editline, EL_ADDFN, "complete", "tab completion", &complete);
+	el_set(gh_editline, EL_BIND, "^I", "complete", NULL);
 }
 
 void cleanup_editline() {
