@@ -254,7 +254,7 @@ unsigned char clear(EditLine *el, int ch) {
 }
 
 /*
- Below function was copied from example tc1.c found in EditLine examples. Original copyright notice:
+ Below function was modified from the "complete" function in example tc1.c found in EditLine examples. Original copyright notice:
 
  * Copyright (c) 1992, 1993
  *  The Regents of the University of California.  All rights reserved.
@@ -287,7 +287,8 @@ unsigned char clear(EditLine *el, int ch) {
  * SUCH DAMAGE.
 
 
- */
+*/
+
 static unsigned char
 complete(EditLine *el, int ch __attribute__((__unused__)))
 {
@@ -302,7 +303,7 @@ complete(EditLine *el, int ch __attribute__((__unused__)))
 	 * Find the last word
 	 */
 	for (ptr = lf->cursor - 1;
-	    !isspace((unsigned char)*ptr) && ptr > lf->buffer; ptr--)
+		*ptr != '\'' && *ptr != '"' && ptr > lf->buffer; ptr--)
 		continue;
 	len = lf->cursor - ++ptr;
 
