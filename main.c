@@ -292,12 +292,16 @@ unsigned char clear(EditLine *el, int ch) {
 static unsigned char
 complete(EditLine *el, int ch __attribute__((__unused__)))
 {
-	DIR *dd = opendir(".");
+	DIR *dd;
 	struct dirent *dp;
 	const char* ptr;
 	const LineInfo *lf = el_line(el);
 	size_t len;
 	int res = CC_ERROR;
+	char *copy1;
+	char *copy2;
+	char *dir;
+	char *file;
 
 	/*
 	 * Find the last word
@@ -307,15 +311,31 @@ complete(EditLine *el, int ch __attribute__((__unused__)))
 		continue;
 	len = lf->cursor - ++ptr;
 
+	copy1 = GC_MALLOC(sizeof(char) * (len + 1));
+	strncpy(copy1, ptr, len);
+	copy1[len] = '\0';
+
+	copy2 = GC_MALLOC(sizeof(char) * (len + 1));
+	strncpy(copy2, ptr, len);
+	copy2[len] = '\0';
+
+	dir = dirname(copy1);
+	dd = opendir(dir);
+
+	file = basename(copy2);
+
+	len = strlen(file);
+
 	for (dp = readdir(dd); dp != NULL; dp = readdir(dd)) {
 		if (len > strlen(dp->d_name))
 			continue;
-		if (strncmp(dp->d_name, ptr, len) == 0) {
+		if (strncmp(dp->d_name, file, len) == 0) {
 			if (el_insertstr(el, &dp->d_name[len]) == -1)
 				res = CC_ERROR;
 			else
 				res = CC_REFRESH;
 			break;
+		} else {
 		}
 	}
 
