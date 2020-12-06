@@ -373,17 +373,6 @@ datum *lang_cond(datum **locals) {
 	return &LANG_NIL_VALUE;
 }
 
-datum *lang_is_eof_object(datum **locals) {
-	datum *expr;
-
-	expr = var_get(locals, "#expr");
-
-	if (expr->type == TYPE_EOF)
-		return &LANG_TRUE_VALUE;
-	else 
-		return &LANG_NIL_VALUE;
-}
-
 datum *lang_open(datum **locals) {
 	datum *path;
 	datum *mode;
