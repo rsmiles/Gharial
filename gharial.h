@@ -376,5 +376,14 @@ datum *lang_test_expr(datum **locals);
 
 datum *lang_type(datum **locals);
 
+datum *lang_and(datum **locals);
+
+datum *lang_or(datum **locals);
+
+datum *lang_xor(datum **locals);
+
+datum *lang_not(datum **locals);
+
+
 #endif
 

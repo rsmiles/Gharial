@@ -45,6 +45,7 @@ datum *typecheck(datum *args, datum * types, char *mismatch_fmt,  datum **locals
 datum *gh_cons2(datum *car, datum *cdr, datum **locals);
 datum *gh_equal(datum *a, datum *b);
 bool listcmp(datum *a, datum *b);
+bool gh_is_true(datum *expr);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -347,26 +348,35 @@ datum *lang_macro(datum **locals) {
 	return mac;	
 }
 
+bool gh_is_true(datum *expr) {
+	if (expr->type == TYPE_NIL) {
+		return FALSE;
+	} else if ((expr->type == TYPE_INTEGER || expr->type == TYPE_RETURNCODE) && expr->value.integer != 0) {
+		return FALSE;
+	} else if (expr->type == TYPE_DECIMAL && expr->value.decimal != 0.0) {
+		return FALSE;
+	} else {
+		return TRUE;
+	}
+}
+
 datum *lang_cond(datum **locals) {
 	datum *iterator;
 
 	iterator = var_get(locals, "#conditions");
 
-	while (iterator->type != TYPE_NIL) {
+	while (iterator->type != TYPE_CONS) {
 		datum *current_cond;
 		datum *eval_cond;
 
 		current_cond = iterator->value.cons.car;
+		iterator = iterator->value.cons.cdr;
 		eval_cond = gh_eval(current_cond->value.cons.car, locals);
 
-		if (eval_cond->type == TYPE_NIL) {
-			iterator = iterator->value.cons.cdr;
-			continue;
-		} else if ((eval_cond->type == TYPE_RETURNCODE || eval_cond->type == TYPE_INTEGER) && eval_cond->value.integer != 0) {
-			iterator = iterator->value.cons.cdr;
-			continue;
-		} else {
+		if (gh_is_true(eval_cond)) {
 			return gh_eval(current_cond->value.cons.cdr->value.cons.car, locals);
+		} else {
+			continue;
 		}
 	}
 
@@ -2816,23 +2826,7 @@ datum *lang_test_expr(datum **locals) {
 	fmt_args = var_get(locals, "#fmt_args");
 	out = var_get(locals, "output-file");
 
-	if (expr->type == TYPE_INTEGER || expr->type == TYPE_RETURNCODE) {
-		if (expr->value.integer == 0) {
-			result = TRUE;
-		} else {
-			result = FALSE;
-		}
-	} else if (expr->type == TYPE_DECIMAL) {
-		if (expr->value.decimal == 0.0) {
-			result = TRUE;
-		} else {
-			result = FALSE;
-		}
-	} else if (expr->type == TYPE_NIL) {
-		result = FALSE;
-	} else {
-		result = TRUE;
-	}
+	result = gh_is_true(expr);
 
 	printf("%s: ", test_name->value.string);
 
@@ -2926,5 +2920,87 @@ datum *lang_type(datum **locals) {
 	}
 
 	return gh_string(type);
+}
+
+datum *lang_and(datum **locals) {
+	datum *args;
+	datum *iterator;
+
+	args = var_get(locals, "#args");
+
+	iterator = args;
+	while (iterator->type == TYPE_CONS) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+		if (!gh_is_true(current)) {
+			return &LANG_NIL_VALUE;
+		}
+		iterator = iterator->value.cons.cdr;
+	}
+	return &LANG_TRUE_VALUE;
+}
+
+datum *lang_or(datum **locals) {
+	datum *args;
+	datum *iterator;
+
+	args = var_get(locals, "#args");
+
+	iterator = args;
+	while (iterator->type == TYPE_CONS) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+		if (gh_is_true(current)) {
+			return &LANG_TRUE_VALUE;
+		}
+		iterator = iterator->value.cons.cdr;
+	}
+	return &LANG_NIL_VALUE;
+	
+}
+
+datum *lang_xor(datum **locals) {
+	datum *args;
+	datum *iterator;
+	bool have_true;
+
+	args = var_get(locals, "#args");
+
+	iterator = args;
+	have_true = FALSE;
+	while (iterator->type == TYPE_CONS) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+		if (gh_is_true(current)) {
+			if (have_true) {
+				return &LANG_NIL_VALUE;
+			} else {
+				have_true = TRUE;
+			}
+		}
+		iterator = iterator->value.cons.cdr;
+	}
+
+	if (have_true) {
+		return &LANG_TRUE_VALUE;
+	} else {
+		return &LANG_NIL_VALUE;
+	}
+
+}
+
+datum *lang_not(datum **locals) {
+	datum *expr;
+
+	expr = var_get(locals, "#expr");
+
+	if (gh_is_true(expr)) {
+		return &LANG_NIL_VALUE;
+	} else {
+		return &LANG_TRUE_VALUE;
+	}
 }
 
