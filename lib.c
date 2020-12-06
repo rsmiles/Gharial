@@ -2808,3 +2808,74 @@ datum *lang_test_expr(datum **locals) {
 		gh_assert(FALSE, "test-failure", fmt->value.string, fmt_args);
 	}
 }
+
+datum *lang_type(datum **locals) {
+	datum *obj;
+	char *type;
+
+	obj = var_get(locals, "#obj");
+	switch (obj->type) {
+		case TYPE_NIL:
+			type = "nil";
+			break;
+		case TYPE_TRUE:
+			type = "t";
+			break;
+		case TYPE_INTEGER:
+			type = "int";
+			break;
+		case TYPE_DECIMAL:
+			type = "dec";
+			break;
+		case TYPE_STRING:
+			type = "string";
+			break;
+		case TYPE_SYMBOL:
+			type = "symbol";
+			break;
+		case TYPE_CONS:
+			type = "cons";
+			break;
+		case TYPE_CFORM:
+			type = "c_form";
+			break;
+		case TYPE_CFUNC:
+			type = "c_func";
+			break;
+		case TYPE_FUNC:
+			type = "function";
+			break;
+		case TYPE_MACRO:
+			type = "macro";
+			break;
+		case TYPE_RECUR:
+			type = "recur";
+			break;
+		case TYPE_FILE:
+			type = "file";
+			break;
+		case EOF:
+			type = "eof";
+			break;
+		case TYPE_EXCEPTION:
+			type = "exception";
+			break;
+		case TYPE_RETURNCODE:
+			type = "return_code";
+			break;
+		case TYPE_EXECUTABLE:
+			type = "executable";
+			break;
+		case TYPE_CAPTURE:
+			type = "capture";
+			break;
+		case TYPE_JOB:
+			type = "job";
+			break;
+		default:
+			gh_assert(TRUE, "type-error", "unkown type: ~s", gh_cons(obj, &LANG_NIL_VALUE));
+	}
+
+	return gh_string(type);
+}
+

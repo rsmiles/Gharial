@@ -374,5 +374,7 @@ datum *lang_string_append(datum **locals);
 
 datum *lang_test_expr(datum **locals);
 
+datum *lang_type(datum **locals);
+
 #endif
 
