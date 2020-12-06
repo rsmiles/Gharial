@@ -113,6 +113,7 @@ void init_builtins() {
 	symbol_set(&globals, "reverse", gh_cfunc(&lang_reverse, gh_cons(gh_symbol("#lst"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "list", gh_cfunc(&lang_list, gh_symbol("#args")));
 	symbol_set(&globals, "append", gh_cfunc(&lang_append, gh_cons(gh_symbol("#lst1"), gh_cons(gh_symbol("#lst2"), &LANG_NIL_VALUE))));
+	symbol_set(&globals, "is", gh_cfunc(&lang_is, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "=", gh_cfunc(&lang_equal, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "+", gh_cfunc(&lang_add, gh_symbol("#args")));
 	symbol_set(&globals, "-", gh_cfunc(&lang_sub, gh_cons(gh_symbol("#first"), gh_symbol("#rest"))));

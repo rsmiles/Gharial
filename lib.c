@@ -43,6 +43,8 @@ datum *strip_stack_frames(datum *lst);
 void gh_stacktrace(FILE *file, datum **locals);
 datum *typecheck(datum *args, datum * types, char *mismatch_fmt,  datum **locals);
 datum *gh_cons2(datum *car, datum *cdr, datum **locals);
+datum *gh_equal(datum *a, datum *b);
+bool listcmp(datum *a, datum *b);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -1220,24 +1222,82 @@ datum *lang_reverse(datum **locals) {
 	return reverse(lst);
 }
 
-datum *lang_equal(datum **locals) {
+datum *lang_is(datum **locals) {
 	datum *a;
 	datum *b;
-	int result;
 
 	a = var_get(locals, "#a");
 	b = var_get(locals, "#b");
+
+	if (a == b) {
+		return &LANG_TRUE_VALUE;
+	} else {
+		return &LANG_NIL_VALUE;
+	}
+}
+
+datum *gh_equal(datum *a, datum *b) {
+	bool result;
 
 	if ((a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL) &&
 		(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL)) {
 		result = (float)(a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal) ==
 					(float)(b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal);
+	} else if (a->type != b->type) {
+		result = FALSE;
+	} else if (a->type == TYPE_STRING || a->type == TYPE_SYMBOL) {
+		result = (strcmp(a->value.string, b->value.string) == 0);
+	} else if (a->type == TYPE_CONS) {
+		result = listcmp(a, b);
+	} else if (a == b) {
+		result = TRUE;
+	} else {
+		result = FALSE;
 	}
+
 
 	if (result == TRUE)
 		return &LANG_TRUE_VALUE;
 	else
 		return &LANG_NIL_VALUE;
+}
+
+bool listcmp(datum *a, datum *b) {
+	datum *iterator_a;
+	datum *iterator_b;
+
+	iterator_a = a;
+	iterator_b = b;
+	while (iterator_a->type == TYPE_CONS && iterator_b->type == TYPE_CONS) {
+		datum *current_a;
+		datum *current_b;
+
+		current_a = iterator_a->value.cons.car;
+		current_b = iterator_b->value.cons.car;
+
+		if (!gh_equal(current_a, current_b)) {
+			return FALSE;
+		}
+
+		iterator_a = iterator_a->value.cons.cdr;
+		iterator_b = iterator_b->value.cons.cdr;
+	}
+
+	if (!gh_equal(iterator_a, iterator_b)) {
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+datum *lang_equal(datum **locals) {
+	datum *a;
+	datum *b;
+
+	a = var_get(locals, "#a");
+	b = var_get(locals, "#b");
+
+	return gh_equal(a, b);
 }
 
 datum *lang_add(datum **locals) {

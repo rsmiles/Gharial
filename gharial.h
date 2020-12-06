@@ -226,6 +226,8 @@ datum *lang_list(datum **locals);
 
 datum *lang_append(datum **locals);
 
+datum *lang_is(datum **locals);
+
 datum *lang_equal(datum **locals);
 
 datum *lang_add(datum **locals);
