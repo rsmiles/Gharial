@@ -384,6 +384,9 @@ datum *lang_xor(datum **locals);
 
 datum *lang_not(datum **locals);
 
+datum *lang_globals(datum **locals);
+
+datum *lang_locals(datum **locals);
 
 #endif
 

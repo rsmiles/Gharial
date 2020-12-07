@@ -165,6 +165,8 @@ void init_builtins() {
 	symbol_set(&globals, "or", gh_cfunc(&lang_or, gh_symbol("#args")));
 	symbol_set(&globals, "xor", gh_cfunc(&lang_xor, gh_symbol("#args")));
 	symbol_set(&globals, "not", gh_cfunc(&lang_not, gh_cons(gh_symbol("#expr"), &LANG_NIL_VALUE)));
+	symbol_set(&globals, "globals", gh_cfunc(&lang_globals, &LANG_NIL_VALUE));
+	symbol_set(&globals, "locals", gh_cfunc(&lang_locals, &LANG_NIL_VALUE));
 
 	subproc_nowait = gh_cform(&lang_subproc_nowait, gh_symbol("#commands"));
 	pipe_err_to = gh_cform(&lang_pipe_err_to, gh_cons(gh_symbol("#path"), gh_symbol("#commands")));

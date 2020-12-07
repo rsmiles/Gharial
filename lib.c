@@ -1576,10 +1576,10 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 	}
 
 	if (fn->type == TYPE_FUNC || fn->type == TYPE_CFORM) {
-		new_locals = combine(fn->value.func.closure, new_locals, locals);
+		new_locals = combine(fn->value.func.closure, new_locals, &new_locals);
 	}
 
-	new_locals = combine(arg_bindings, new_locals, locals);
+	new_locals = combine(arg_bindings, new_locals, &new_locals);
 
 	if (fn->type == TYPE_CFUNC || fn->type == TYPE_CFORM) {
 		result = fn->value.c_code.func(&new_locals);
@@ -3011,5 +3011,13 @@ datum *lang_not(datum **locals) {
 	} else {
 		return &LANG_TRUE_VALUE;
 	}
+}
+
+datum *lang_globals(datum **locals) {
+	return globals;
+}
+
+datum *lang_locals(datum **locals) {
+	return *locals;
 }
 
