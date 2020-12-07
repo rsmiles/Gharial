@@ -388,5 +388,7 @@ datum *lang_globals(datum **locals);
 
 datum *lang_locals(datum **locals);
 
+datum *lang_print(datum **locals);
+
 #endif
 
