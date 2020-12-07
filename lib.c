@@ -474,8 +474,7 @@ datum *lang_load(datum **locals) {
 }
 
 datum *translate_binding(datum *let_binding) {
-	datum *iterator;
-	datum *first;
+	datum *iterator; datum *first;
 	datum *second;
 
 	iterator = let_binding;
