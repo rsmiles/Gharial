@@ -365,7 +365,7 @@ datum *lang_cond(datum **locals) {
 
 	iterator = var_get(locals, "#conditions");
 
-	while (iterator->type != TYPE_CONS) {
+	while (iterator->type == TYPE_CONS) {
 		datum *current_cond;
 		datum *eval_cond;
 
@@ -544,6 +544,16 @@ datum *lang_loop(datum **locals) {
 
 	translated_bindings = translate_bindings(bindings);
 	gh_assert(translated_bindings->type == TYPE_CONS || translated_bindings->type == TYPE_NIL, "type-error", "error occured while translating bindings: ~s", gh_cons(bindings, &LANG_NIL_VALUE));
+
+	iterator = translated_bindings;
+	while (iterator->type == TYPE_CONS) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+		current->value.cons.cdr = gh_eval(current->value.cons.cdr, locals);
+		iterator = iterator->value.cons.cdr;
+	}
+
 	new_locals = combine(translated_bindings, *locals, locals);
 
 	result = &LANG_NIL_VALUE;

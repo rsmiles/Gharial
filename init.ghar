@@ -34,6 +34,22 @@
 (defn *prompt* ()
 	(string-append USER "@" HOSTNAME ":" PWD "$ "))
 
+(defn fold (fn seed lst)
+	(loop ([res seed] [l lst])
+		(if (= l nil)
+			res
+			(recur (fn (car l) res) (cdr l)))))
+
+(defn map (fn lst)
+	(fold
+		(lambda (el l) (cons (fn el) l))
+		nil
+		lst))
+
+(defn for-each (fn lst)
+	(map fn lst)
+	nil)
+
 # load user's gharialrc file if it exists
 (let ([rc (string-append HOME "/.gharialrc")])
 	(if (test '-f rc)
