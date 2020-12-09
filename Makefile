@@ -20,6 +20,9 @@ parse.o: parse.y gharial.h
 lex.o: lex.l parse.o gharial.h
 	lex --header-file=lex.yy.h $<; $(CC) $(CFLAGS) -c -o $@ lex.yy.c
 
+test: gharial test.ghar
+	./gharial test.ghar
+
 clean:
 	$(RM) gharial *.o *.yy.c *.tab.c *.yy.h *.tab.h .*.swp
 
