@@ -723,7 +723,7 @@ datum *gh_eval(datum *expr, datum **locals) {
 	} else if(result->type == TYPE_CAPTURE) {
 		symbol_set(&globals, "*?*", result->value.cons.cdr);
 		return result->value.cons.car;
-	} else if (result == globals || result == *locals) {
+	} else if (result == globals || result == &LANG_NIL_VALUE) {
 		symbol_set(&globals, "*?*", gh_integer(0));
 	} else {
 		symbol_set(&globals, "*?*", result);
