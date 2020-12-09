@@ -1577,11 +1577,12 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 		arg_bindings = bind_args(fn->value.func.lambda_list, args);
 	}
 
-	new_locals = combine(arg_bindings, new_locals, locals);
-
 	if (fn->type == TYPE_FUNC || fn->type == TYPE_CFUNC) {
 		new_locals = combine(fn->value.func.closure, new_locals, locals);
 	} 
+
+	new_locals = combine(arg_bindings, new_locals, locals);
+
 
 	if (fn->type == TYPE_CFUNC || fn->type == TYPE_CFORM) {
 		result = fn->value.c_code.func(&new_locals);
