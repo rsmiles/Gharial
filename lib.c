@@ -94,16 +94,7 @@ datum *map(datum *(*func)(datum *x), datum *lst) {
 }
 
 datum *combine(datum *lst1, datum *lst2, datum **locals) {
-	if (lst1->type == TYPE_NIL) {
-		return lst2;
-	} else if (lst2->type == TYPE_NIL) {
-		return lst1;
-	} else {
-		datum *reversed1;
-
-		reversed1 = reverse(lst1);
-		return fold(&gh_cons2, lst2, reversed1, locals);
-	}
+	return append(lst1, lst2);
 }
 
 datum *add2(datum *a, datum *b, datum **locals) {
@@ -528,7 +519,7 @@ datum *bind_args(datum *symbols, datum *values) {
 		result = gh_cons(gh_cons(symbol_iterator, value_iterator), result);
 	}
 
-	return result;
+	return reverse(result);
 }
 
 datum *lang_loop(datum **locals) {
@@ -1532,6 +1523,15 @@ datum *gh_begin(datum *body, datum **locals) {
 		iterator = iterator->value.cons.cdr;
 	}
 
+
+	while (iterator->type == TYPE_CONS) {
+		result = gh_eval(iterator->value.cons.car, locals);
+		if (result->type == TYPE_EXCEPTION) {
+			return result;
+		}
+		iterator = iterator->value.cons.cdr;
+	}
+
 	return result;
 }
 
@@ -1575,11 +1575,11 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 		arg_bindings = bind_args(fn->value.func.lambda_list, args);
 	}
 
-	if (fn->type == TYPE_FUNC || fn->type == TYPE_CFORM) {
-		new_locals = combine(fn->value.func.closure, new_locals, &new_locals);
-	}
+	new_locals = combine(arg_bindings, new_locals, locals);
 
-	new_locals = combine(arg_bindings, new_locals, &new_locals);
+	if (fn->type == TYPE_FUNC || fn->type == TYPE_CFUNC) {
+		new_locals = combine(fn->value.func.closure, new_locals, locals);
+	} 
 
 	if (fn->type == TYPE_CFUNC || fn->type == TYPE_CFORM) {
 		result = fn->value.c_code.func(&new_locals);

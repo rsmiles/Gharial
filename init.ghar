@@ -41,10 +41,11 @@
 			(recur (fn (car l) res) (cdr l)))))
 
 (defn map (fn lst)
-	(fold
-		(lambda (el l) (cons (fn el) l))
-		nil
-		lst))
+	(reverse
+		(fold
+			(lambda (el l) (cons (fn el) l))
+			nil
+			lst)))
 
 (defn for-each (fn lst)
 	(map fn lst)
