@@ -425,7 +425,6 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
-	gh_load(INIT_FILE);
 	if (setjmp(toplevel) != TRUE) {
 		gh_load(INIT_FILE);
 	}
