@@ -51,7 +51,7 @@ datum *pipe_err_to;
 datum *pipe_err_append;
 jmp_buf toplevel;
 
-char *current_file = NULL;
+char *current_file = "<REPL>";
 
 datum *gh_input = &LANG_NIL_VALUE;
 datum *gh_result = &LANG_NIL_VALUE;

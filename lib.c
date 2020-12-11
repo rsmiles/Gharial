@@ -617,8 +617,10 @@ void print_exception(FILE *file, datum *expr, datum **locals) {
 	fmt = expr->value.exception.fmt;
 	fmt_args = expr->value.exception.fmt_args;
 
+	fprintf(file, "Uncaught exception in: \"%s\", line %d\n", current_file, yylineno);
+
 	if (gh_input != NULL) {
-		fprintf(file, "Uncaught exception in expression: ");
+		fprintf(file, "In expression: ");
 		gh_print(file, gh_input);
 	}
 
@@ -1542,18 +1544,11 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 	datum *new_locals;
 	datum *stack_frame;
 	datum *result;
-	char *sf_file;
 	char *fname;
 
 	gh_assert(fn->type == TYPE_CFORM || fn->type == TYPE_CFUNC ||
 				fn->type == TYPE_FUNC || fn->type == TYPE_EXECUTABLE,
 				"type-error", "not a function, macro, special form, or executable: ~s", gh_cons(fn, &LANG_NIL_VALUE));
-
-	if (current_file == NULL) {
-		sf_file = "<REPL>";
-	} else {
-		sf_file = current_file;
-	}
 
 	if (fn->type == TYPE_FUNC || fn->type == TYPE_MACRO) {
 		fname = fn->value.func.name;
@@ -1562,7 +1557,7 @@ datum *apply(datum *fn, datum *args, datum **locals) {
 	}
 
 	if (fn->type == TYPE_FUNC || fn->type == TYPE_MACRO || fn->type == TYPE_CFUNC || fn->type == TYPE_CFORM) {
-		stack_frame = gh_cons(gh_symbol("#stack-frame"), gh_cons(gh_symbol(fname), gh_cons(gh_string(sf_file), gh_cons(gh_integer(yylineno), &LANG_NIL_VALUE))));
+		stack_frame = gh_cons(gh_symbol("#stack-frame"), gh_cons(gh_symbol(fname), gh_cons(gh_string(current_file), gh_cons(gh_integer(yylineno), &LANG_NIL_VALUE))));
 	}
 
 	new_locals = gh_cons(stack_frame, *locals);
