@@ -2613,7 +2613,7 @@ void set_interactive(bool value) {
 			fprintf(stderr, "error setting signal handler for SIGSTP: %s", strerror(errno));
 			exit(EXIT_FAILURE);
 		}
-		print_flag = FALSE;
+		print_flag = TRUE;
 	} else {
 		sigaction_status = sigaction(SIGTSTP, &default_action, NULL);
 		if (sigaction_status == -1) {
@@ -2625,7 +2625,7 @@ void set_interactive(bool value) {
 			fprintf(stderr, "Error restoring default SIGINT signal handler\n");
 			exit(EXIT_FAILURE);
 		}
-		print_flag = TRUE;
+		print_flag = FALSE;
 	}
 }
 
@@ -2637,32 +2637,35 @@ datum *gh_format(FILE *output, char *str, datum *args) {
 
 	for (i = 0; str[i] != '\0'; i++) {
 		if (str[i] == '~') {
-			gh_assert(iterator->type == TYPE_CONS, "runtime-error", "not enough args to format string: ~s", gh_cons(gh_string(str), &LANG_NIL_VALUE));
 			switch(str[i + 1]) {
 				case '~':
-					fprintf(output, "~~");
+					fprintf(output, "~");
 					break;
 
 				case '%':
 					fprintf(output, "\n");
+					i++;
 					break;
 
 				case 'S':
 				case 's':
+					gh_assert(iterator->type == TYPE_CONS, "runtime-error", "not enough args to format string: ~s", gh_cons(gh_string(str), &LANG_NIL_VALUE));
 					print_datum(output, iterator->value.cons.car);
 					i++;
+					iterator = iterator->value.cons.cdr;
 					break;
 
 				case 'A':
 				case 'a':
+					gh_assert(iterator->type == TYPE_CONS, "runtime-error", "not enough args to format string: ~s", gh_cons(gh_string(str), &LANG_NIL_VALUE));
 					if (iterator->value.cons.car->type == TYPE_STRING) {
 						fprintf(output, "%s", iterator->value.cons.car->value.string);
 					} else {
 						print_datum(output, iterator->value.cons.car);
 					}
+					iterator = iterator->value.cons.cdr;
 					break;
 			}
-			iterator = iterator->value.cons.cdr;
 		} else {
 			fputc(str[i], output);
 		}

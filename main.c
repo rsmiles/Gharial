@@ -187,7 +187,7 @@ void init_signals() {
 	sigemptyset(&siginterrupt_action.sa_mask);
 	siginterrupt_action.sa_flags = 0;
 
-	if (isatty(fileno(stdin)) || yyin == stdin) {
+	if (isatty(fileno(stdin)) && (yyin == stdin)) {
 		set_interactive(TRUE);
 	} else {
 		set_interactive(FALSE);
@@ -422,6 +422,10 @@ int main(int argc, char **argv) {
 	} else {
 		fprintf(stderr, "%s: usage: %s: [file]\n", argv[0], argv[0]);
 		exit(EXIT_FAILURE);
+	}
+
+	if (input == stdin && isatty(fileno(stdin))) {
+		set_interactive(TRUE);
 	}
 
 	if (setjmp(toplevel) != TRUE) {
