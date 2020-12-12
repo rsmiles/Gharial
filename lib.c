@@ -2613,6 +2613,7 @@ void set_interactive(bool value) {
 			fprintf(stderr, "error setting signal handler for SIGSTP: %s", strerror(errno));
 			exit(EXIT_FAILURE);
 		}
+		print_flag = FALSE;
 	} else {
 		sigaction_status = sigaction(SIGTSTP, &default_action, NULL);
 		if (sigaction_status == -1) {
@@ -2624,6 +2625,7 @@ void set_interactive(bool value) {
 			fprintf(stderr, "Error restoring default SIGINT signal handler\n");
 			exit(EXIT_FAILURE);
 		}
+		print_flag = TRUE;
 	}
 }
 

@@ -187,7 +187,7 @@ void init_signals() {
 	sigemptyset(&siginterrupt_action.sa_mask);
 	siginterrupt_action.sa_flags = 0;
 
-	if (isatty(fileno(stdin))) {
+	if (isatty(fileno(stdin)) || yyin == stdin) {
 		set_interactive(TRUE);
 	} else {
 		set_interactive(FALSE);
@@ -282,8 +282,7 @@ unsigned char clear(EditLine *el, int ch) {
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
