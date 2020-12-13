@@ -1047,6 +1047,7 @@ datum *do_unquotes(datum *expr, datum **locals) {
 				return gh_eval(iterator->value.cons.cdr->value.cons.car, locals);
 			} else if (strcmp(current->value.string, "unquote-splice") == 0) {
 				datum *splice;
+
 				splice = gh_eval(iterator->value.cons.cdr->value.cons.car, locals);
 				if (splice->type != TYPE_CONS) {
 					if (prev != NULL) {
@@ -3038,6 +3039,21 @@ datum *lang_print(datum **locals) {
 	} else {
 		gh_print(file->value.file, obj);
 	}
+	return &LANG_NIL_VALUE;
+}
+
+datum *lang_assert(datum **locals) {
+	datum *test;
+	datum *type;
+	datum *fmt;
+	datum *fmt_args;
+
+	test = var_get(locals, "#test");
+	type = var_get(locals, "#type");
+	fmt = var_get(locals, "#fmt");
+	fmt_args = var_get(locals, "#fmt-args");
+
+	gh_assert(gh_is_true(test), type->value.string, fmt->value.string, fmt_args);
 	return &LANG_NIL_VALUE;
 }
 

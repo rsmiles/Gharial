@@ -51,9 +51,14 @@
 	(map fn lst)
 	nil)
 
+(set for (macro (var in lst . body)
+	(assert (= in 'in) "syntax-error" "missing keyword: in")
+	'(for-each
+		(lambda (,var) . @body)
+		,lst)))
+
 # load user's gharialrc file if it exists
 (let ([rc (string-append HOME "/.gharialrc")])
 	(if (test '-f rc)
 		(load rc)
 		nil))
-
