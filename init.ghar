@@ -57,6 +57,13 @@
 		(lambda (,var) . @body)
 		,lst))
 
+(defmacro while (con . body)
+	'(loop ()
+		(if ,con
+			(begin (begin . @body) (recur))
+			nil)))
+			
+
 # load user's gharialrc file if it exists
 (let ([rc (string-append HOME "/.gharialrc")])
 	(if (test '-f rc)
