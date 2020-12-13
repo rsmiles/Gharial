@@ -433,10 +433,13 @@ int main(int argc, char **argv) {
 	if (setjmp(toplevel) != TRUE) {
 		gh_load(INIT_FILE);
 	}
-	
+
 	yyin = input;
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
 	setjmp(toplevel);
+	if (input == stdin && isatty(fileno(stdin))) {
+		set_interactive(TRUE);
+	}
 	do {
 		yyparse();
 	} while(gh_result->type != TYPE_EOF);
