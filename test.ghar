@@ -4,4 +4,8 @@
 
 (test-expr "always pass" t)
 
+(defmacro ten () 10)
+
+(test-expr "macro segfault" (= (ten) 10))
+
 

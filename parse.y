@@ -19,6 +19,7 @@ extern char* yytext;
 	char character;
 	char *string;
 	char *symbol;
+	char *syntax_err;
 }
 
 %token <gh_datum>  TOK_NIL
@@ -40,7 +41,7 @@ extern char* yytext;
 %token <string>    TOK_STRING
 %token <string>    TOK_SYMBOL
 
-%type <t_datum> atom list expr term dotted_body list_body
+%type <t_datum> atom list expr term dotted_body list_body syntax_err
 
 %start prog
 
@@ -64,14 +65,16 @@ term: expr {
 				}
 			}
 	| TOK_EOF { gh_result = &LANG_EOF_VALUE; YYACCEPT; }
-	| error {
-				gh_input = $$;
+	| syntax_err{
 				depth = 0;
-				gh_result = gh_eval(gh_exception("syntax-error", "syntax error", &LANG_NIL_VALUE), &empty_locals);
+				gh_result = gh_eval(gh_exception("syntax-error", $$->value.string, &LANG_NIL_VALUE), &empty_locals);
 				gh_print(stdout, gh_result);
 				if (print_flag)
 				YYACCEPT;
-			};
+			}
+	| error {
+
+	};
 
 expr: atom
 	| list
@@ -102,6 +105,11 @@ dotted_body: expr TOK_DOT expr { $$ = gh_cons($1, $3); }
 
 list_body: expr { $$ = gh_cons($1, &LANG_NIL_VALUE); }
 		 | expr list_body { $$ = gh_cons($1, $2); };
+
+syntax_err: TOK_DOT { gh_input = $$; $$ = gh_string("Dot \".\" not a part of a symbol or list"); }
+          | TOK_CLOSEPAREN { gh_input = $$; $$ = gh_string("Expected \"(\" before \")\""); }
+          | TOK_CLOSESQUARE { gh_input = $$; $$ = gh_string("Expected \"[\" before \"]\""); }
+          | TOK_CLOSECURLY { gh_input = $$; $$ = gh_string("Expected \"{\" before \"}\""); };
 
 %%
 
