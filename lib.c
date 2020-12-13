@@ -1059,6 +1059,8 @@ datum *do_unquotes(datum *expr, datum **locals) {
 				}
 				iterator->value.cons.car = splice->value.cons.car;
 				iterator->value.cons.cdr = splice->value.cons.cdr;
+			} else if (strcmp(current->value.string, "quote") == 0) {
+				continue;
 			}
 		} else if (current->type == TYPE_CONS) {
 			iterator->value.cons.car = do_unquotes(iterator->value.cons.car, locals);
