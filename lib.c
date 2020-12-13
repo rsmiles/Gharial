@@ -1030,6 +1030,7 @@ datum *do_unquotes(datum *expr, datum **locals) {
 	datum *copy;
 	datum *prev;
 
+
 	if (expr->type == TYPE_CONS) {
 		copy = list_copy(expr);
 	} else {
@@ -1060,7 +1061,7 @@ datum *do_unquotes(datum *expr, datum **locals) {
 				iterator->value.cons.car = splice->value.cons.car;
 				iterator->value.cons.cdr = splice->value.cons.cdr;
 			} else if (strcmp(current->value.string, "quote") == 0) {
-				continue;
+				return copy;
 			}
 		} else if (current->type == TYPE_CONS) {
 			iterator->value.cons.car = do_unquotes(iterator->value.cons.car, locals);
