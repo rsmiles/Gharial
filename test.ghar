@@ -1,1 +1,7 @@
-(+ 1 1)
+(try
+	(test-expr "always fail" f)
+	(test-failure (lambda (exn) nil)))
+
+(test-expr "always pass" t)
+
+

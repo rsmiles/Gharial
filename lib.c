@@ -2644,14 +2644,12 @@ datum *gh_format(FILE *output, char *str, datum *args) {
 
 				case '%':
 					fprintf(output, "\n");
-					i++;
 					break;
 
 				case 'S':
 				case 's':
 					gh_assert(iterator->type == TYPE_CONS, "runtime-error", "not enough args to format string: ~s", gh_cons(gh_string(str), &LANG_NIL_VALUE));
 					print_datum(output, iterator->value.cons.car);
-					i++;
 					iterator = iterator->value.cons.cdr;
 					break;
 
@@ -2666,6 +2664,7 @@ datum *gh_format(FILE *output, char *str, datum *args) {
 					iterator = iterator->value.cons.cdr;
 					break;
 			}
+			i++;
 		} else {
 			fputc(str[i], output);
 		}
@@ -2829,13 +2828,9 @@ datum *lang_test_expr(datum **locals) {
 	datum *expr;
 	bool result;
 	datum *out;
-	datum *fmt;
-	datum *fmt_args;
 
 	test_name = var_get(locals, "#test-name");
 	expr = var_get(locals, "#expr");
-	fmt = var_get(locals, "#fmt");
-	fmt_args = var_get(locals, "#fmt_args");
 	out = var_get(locals, "output-file");
 
 	result = gh_is_true(expr);
@@ -2860,7 +2855,7 @@ datum *lang_test_expr(datum **locals) {
 			fprintf(out->value.file, "\033[0m");
 			fflush(out->value.file);
 		}
-		gh_assert(FALSE, "test-failure", fmt->value.string, fmt_args);
+		gh_assert(FALSE, "test-failure", "test \"~a\" failed", gh_cons(test_name, &LANG_NIL_VALUE)) ;
 	}
 }
 
@@ -2909,7 +2904,7 @@ datum *lang_type(datum **locals) {
 		case TYPE_FILE:
 			type = "file";
 			break;
-		case EOF:
+		case TYPE_EOF:
 			type = "eof";
 			break;
 		case TYPE_EXCEPTION:

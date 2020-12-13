@@ -159,7 +159,7 @@ void init_builtins() {
 	symbol_set(&globals, "format", gh_cfunc(&lang_format, gh_cons(gh_symbol("#output"), gh_cons(gh_symbol("#str"), gh_symbol("#args")))));
 	symbol_set(&globals, "read-password", gh_cfunc(&lang_read_password, gh_symbol("#prompt")));
 	symbol_set(&globals, "string-append", gh_cfunc(&lang_string_append, gh_symbol("#args")));
-	symbol_set(&globals, "test-expr", gh_cfunc(&lang_test_expr, gh_cons(gh_symbol("#test-name"), gh_cons(gh_symbol("#expr"), gh_cons(gh_symbol("#fmt"), gh_symbol("#fmt_args"))))));
+	symbol_set(&globals, "test-expr", gh_cfunc(&lang_test_expr, gh_cons(gh_symbol("#test-name"), gh_cons(gh_symbol("#expr"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "type", gh_cfunc(&lang_type, gh_cons(gh_symbol("#obj"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "and", gh_cfunc(&lang_and, gh_symbol("#args")));
 	symbol_set(&globals, "or", gh_cfunc(&lang_or, gh_symbol("#args")));
@@ -415,6 +415,7 @@ int main(int argc, char **argv) {
 	if (argc == 1) {
 		input = stdin;
 	} else if (argc == 2) {
+		current_file = argv[1];
 		input = fopen(argv[1], "r");
 		if (input == NULL) {
 			fprintf(stderr, "%s: could not open file \"%s\": %s", argv[0], argv[1], strerror(errno));
