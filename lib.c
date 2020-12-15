@@ -678,6 +678,11 @@ datum *gh_eval(datum *expr, datum **locals) {
 				expanded = macroexpand(expanded, locals);
 			}
 
+			if (expanded->type != TYPE_CONS) {
+				result = gh_eval(expanded, locals);
+				break;
+			}
+
 			value = gh_eval(expanded->value.cons.car, locals);
 
 			if (value->type == TYPE_CFUNC || value->type == TYPE_FUNC) {
