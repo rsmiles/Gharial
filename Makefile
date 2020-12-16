@@ -35,9 +35,9 @@ uninstall:
 	$(RM) /usr/local/bin/gharial
 	$(RM) /usr/local/lib/init.ghar
 
-install-user:
-	install -m 500 gharial ~/.local/bin
-	install -m 500 init.ghar ~/.local/lib
+install-user: gharial
+	install -m 555 gharial ~/.local/bin
+	install -m 555 init.ghar ~/.local/lib
 
 uninstall-user:
 	$(RM) rm ~/.local/bin/gharial

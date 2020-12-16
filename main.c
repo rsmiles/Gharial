@@ -55,6 +55,7 @@ jmp_buf toplevel;
 
 char *current_file = "<REPL>";
 
+#define NUM_INIT_FILES 4
 const char *INIT_FILES[] = {"./init.ghar", "/.local/lib/init.ghar", "/usr/local/lib/init.ghar", "/usr/lib/init.ghar"};
 
 datum *gh_input = &LANG_NIL_VALUE;
@@ -73,7 +74,7 @@ const char *init_file() {
 	int i;
 	const char *path;
 
-	for (i = 0; i < sizeof(INIT_FILES); i++) {
+	for (i = 0; i < NUM_INIT_FILES; i++) {
 		int stat_result;
 
 		if (i == 1) {
@@ -84,7 +85,7 @@ const char *init_file() {
 
 		stat_result = stat(path, &file_stat);
 
-		if (stat_result == -1 && errno != ENOENT && errno != EACCES && errno != EFAULT) {
+		if (stat_result == -1 && errno != ENOENT && errno != EACCES) {
 			fprintf(stderr, "fatal-error: error while searching for init file: %s\n", strerror(errno));
 			exit(EXIT_FAILURE);
 		}
