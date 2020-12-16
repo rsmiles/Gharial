@@ -859,7 +859,8 @@ datum *symbol_loc_one(datum *table, char *symbol) {
 
 		current = iterator->value.cons.car;
 		if (current->type != TYPE_CONS) {
-			return NULL;
+			iterator = iterator->value.cons.cdr;
+			continue;
 		}
 
 		if (strcmp(current->value.cons.car->value.string, symbol) == 0)

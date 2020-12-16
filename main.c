@@ -22,6 +22,7 @@ void init_globals();
 void init_io();
 void init_builtins();
 void init_signals();
+void init_argv(int argc, char **argv);
 const char *init_file();
 unsigned char insert_parens(EditLine *el, int ch);
 unsigned char insert_newline(EditLine *el, int ch);
@@ -99,6 +100,34 @@ const char *init_file() {
 	fprintf(stderr, "fatal-error: no init file\n");
 	exit(EXIT_FAILURE);
 	return NULL;
+}
+
+void init_argv(int argc, char **argv) {
+	datum *lang_argv;
+	int i;
+
+	lang_argv = &LANG_NIL_VALUE;
+
+	for (i = 0; i < argc; i++) {
+		char *arg_copy;
+		char *var;
+		char *val;
+		datum *arg;
+
+		arg_copy = string_append("", argv[i]);
+		var = strtok(arg_copy, "=");
+		val = strtok(NULL, "=");
+
+		if (val == NULL) {
+			arg = gh_symbol(var);
+		} else {
+			arg = gh_cons(gh_symbol(var), gh_symbol(val));
+		}
+
+		lang_argv = gh_cons(arg, lang_argv);
+	}
+
+	symbol_set(&globals, "*ARGV*", reverse(lang_argv));
 }
 
 void sig_stop(int signum) {
@@ -434,14 +463,13 @@ void cleanup(){
 }
 
 int main(int argc, char **argv) {
-	FILE *input;
-
 	yylineno = 0;
 	init_globals(argv);
 	init_io();
 	init_builtins();
 	init_editline(argc, argv);
 	init_signals();
+	init_argv(argc, argv);
 	atexit(&cleanup);
 
 	jobs = &LANG_NIL_VALUE;
@@ -450,20 +478,8 @@ int main(int argc, char **argv) {
 
 	symbol_set(&globals, "*?*", gh_integer(0));
 
-	if (argc == 1) {
-		input = stdin;
-	} else if (argc == 2) {
-		current_file = argv[1];
-		input = fopen(argv[1], "r");
-		if (input == NULL) {
-			fprintf(stderr, "%s: could not open file \"%s\": %s", argv[0], argv[1], strerror(errno));
-		}
-	} else {
-		fprintf(stderr, "%s: usage: %s: [file]\n", argv[0], argv[0]);
-		exit(EXIT_FAILURE);
-	}
 
-	if (input == stdin && isatty(fileno(stdin))) {
+	if (isatty(fileno(stdin))) {
 		set_interactive(TRUE);
 	}
 
@@ -471,10 +487,10 @@ int main(int argc, char **argv) {
 		gh_load(init_file());
 	}
 
-	yyin = input;
+	yyin = stdin;
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
 	setjmp(toplevel);
-	if (input == stdin && isatty(fileno(stdin))) {
+	if (isatty(fileno(stdin))) {
 		set_interactive(TRUE);
 	}
 	do {
