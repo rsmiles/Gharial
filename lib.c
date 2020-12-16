@@ -191,7 +191,7 @@ datum *gh_decimal(double value) { datum *d;
 	return d;
 }
 
-datum *gh_string(char* value) {
+datum *gh_string(const char* value) {
 	datum *s;
 	if (value == NULL) {
 		return NULL;
@@ -985,7 +985,7 @@ void symbol_unset(datum **table, char *symbol) {
 	}
 }
 
-datum* gh_load(char *path) {
+datum* gh_load(const char *path) {
 	FILE *file;
 	FILE *oldyyin;
 	int old_print_flag;
@@ -996,7 +996,7 @@ datum* gh_load(char *path) {
 	gh_assert(file != NULL, "file-error", "could not open file \"~a\": ~a", gh_cons(gh_string(path), gh_cons(gh_error(), &LANG_NIL_VALUE)));
 
 	old_current_file = current_file;
-	current_file = path;
+	current_file = string_append("", path);
 	oldyyin = yyin;
 	yyin = file;
 	old_lineno = yylineno;
@@ -1439,7 +1439,7 @@ char *typestring(datum *obj) {
 	}
 }
 
-char *string_append(char *str1, char *str2) {
+char *string_append(const char *str1, const char *str2) {
 	int len1;
 	int len2;
 	char *result;
@@ -1885,11 +1885,12 @@ bool is_path_executable(const char *path) {
 		return FALSE;
 	}
 
-	if (!(statbuff.st_mode & X_OK)) {
-		return FALSE;
+	if (S_ISREG(statbuff.st_mode)) {
+		if (statbuff.st_mode & X_OK) {
+			return TRUE;
+		}
 	}
-
-	return S_ISREG(statbuff.st_mode);
+	return FALSE;
 }
 
 datum *gh_exec(char *name) {

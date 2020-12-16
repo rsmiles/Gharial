@@ -7,8 +7,10 @@
 #include <setjmp.h>
 #include <signal.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
+#include <unistd.h>
 #include <histedit.h>
 #include <gc.h>
 
@@ -16,12 +18,11 @@
 #include "y.tab.h"
 #include "lex.yy.h"
 
-#define INIT_FILE "init.ghar"
-
 void init_globals();
 void init_io();
 void init_builtins();
 void init_signals();
+const char *init_file();
 unsigned char insert_parens(EditLine *el, int ch);
 unsigned char insert_newline(EditLine *el, int ch);
 unsigned char next_closeparen(EditLine *el, int ch);
@@ -53,6 +54,8 @@ jmp_buf toplevel;
 
 char *current_file = "<REPL>";
 
+const char *INIT_FILES[] = {"./init.ghar", "/.local/etc/init.ghar", "/usr/local/etc/init.ghar", "/etc/init.ghar"};
+
 datum *gh_input = &LANG_NIL_VALUE;
 datum *gh_result = &LANG_NIL_VALUE;
 datum *globals = &LANG_NIL_VALUE;
@@ -63,6 +66,40 @@ datum *current_job;
 EditLine *gh_editline;
 History *gh_history;
 HistEvent gh_last_histevent;
+
+const char *init_file() {
+	struct stat file_stat;
+	int i;
+	const char *path;
+
+	for (i = 0; i < sizeof(INIT_FILES); i++) {
+		int stat_result;
+
+		if (i == 1) {
+			path = string_append(getenv("home"), INIT_FILES[i]);
+		} else {
+			path = INIT_FILES[i];
+		}
+
+		stat_result = stat(path, &file_stat);
+
+		if (stat_result == -1 && errno != ENOENT && errno != EACCES) {
+			fprintf(stderr, "fatal-error: error while searching for init file: %s\n", strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+
+		if (S_ISREG(file_stat.st_mode)) {
+			if (file_stat.st_mode & R_OK) {
+				return path;
+			}
+		}
+
+	}
+
+	fprintf(stderr, "fatal-error: no init file\n");
+	exit(EXIT_FAILURE);
+	return NULL;
+}
 
 void sig_stop(int signum) {
 	if (current_job != NULL) {
@@ -431,7 +468,7 @@ int main(int argc, char **argv) {
 	}
 
 	if (setjmp(toplevel) != TRUE) {
-		gh_load(INIT_FILE);
+		gh_load(init_file());
 	}
 
 	yyin = input;

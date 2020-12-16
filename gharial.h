@@ -136,7 +136,7 @@ datum *gh_integer(int value);
 
 datum *gh_decimal(double value);
 
-datum *gh_string(char *value);
+datum *gh_string(const char *value);
 
 datum *gh_substring(int start, int end, char *value);
 
@@ -166,7 +166,7 @@ datum *gh_cform(datum *(*addr)(datum **locals), datum *args);
 
 datum *gh_cfunc(datum *(*addr)(datum **locals), datum *args);
 
-datum* gh_load(char *path);
+datum* gh_load(const char *path);
 
 datum *combine(datum *lst1, datum *lst2, datum **locals);
 
@@ -266,7 +266,7 @@ datum *lang_load(datum **locals);
 
 char *typestring(datum *obj);
 
-char *string_append(char *str1, char *str2);
+char *string_append(const char *str1, const char *str2);
 
 char *string_copy(const char *str);
 
