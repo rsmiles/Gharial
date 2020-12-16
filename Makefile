@@ -1,9 +1,10 @@
-.PHONY: clean
+.PHONY: clean install uninstall install-user uninstall-user
 
 CFLAGS= --std=c89 -pedantic -Wall -Werror -g
 LDFLAGS=-ll -lm -lgc -lcurses -ledit
 
 all: gharial
+
 
 gharial: main.o lib.o parse.o lex.o
 	$(CC) -o $@ $^ $(LDFLAGS)
@@ -26,3 +27,18 @@ test: gharial test.ghar
 clean:
 	$(RM) gharial *.o *.yy.c *.tab.c *.yy.h *.tab.h .*.swp
 
+install: gharial
+	install -m 555 gharial /usr/local/bin/
+	install -m 555 init.ghar /usr/local/lib/
+
+uninstall:
+	$(RM) /usr/local/bin/gharial
+	$(RM) /usr/local/lib/init.ghar
+
+install-user:
+	install -m 500 gharial ~/.local/bin
+	install -m 500 init.ghar ~/.local/lib
+
+uninstall-user:
+	$(RM) rm ~/.local/bin/gharial
+	$(RM) rm ~/.local/lib/init.ghar
