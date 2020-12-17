@@ -76,6 +76,18 @@
 (defn != (a b)
 	(not (= a b)))
 
+(defn is-member (x lst)
+	(let ([result (filter (lambda (y) (= x y)) lst)])
+		(if (= result nil)
+			nil
+			t)))
+
+(defn obj-is-member (x lst)
+	(let ([result (filter (lambda (y) (is x y)) lst)])
+		(if (= result nil)
+			nil
+			t)))
+
 # load user's gharialrc file if it exists
 (let ([rc (string-append HOME "/.gharialrc")])
 	(if (test '-f rc)
