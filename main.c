@@ -182,10 +182,10 @@ void init_builtins() {
 	symbol_set(&globals, "append", gh_cfunc(&lang_append, gh_cons(gh_symbol("#lst1"), gh_cons(gh_symbol("#lst2"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "is", gh_cfunc(&lang_is, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "=", gh_cfunc(&lang_equal, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b"), &LANG_NIL_VALUE))));
-	symbol_set(&globals, ">", gh_cfunc(&lang_gt, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b") &LANG_NIL_VALUE))));
-	symbol_set(&globals, ">=", gh_cfunc(&lang_gt_eq, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b") &LANG_NIL_VALUE))));
-	symbol_set(&globals, "<", gh_cfunc(&lang_lt, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b") &LANG_NIL_VALUE))));
-	symbol_set(&globals, "<=", gh_cfunc(&lang_lt_eq, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b") &LANG_NIL_VALUE))));
+	symbol_set(&globals, ">", gh_cfunc(&lang_gt, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b"), &LANG_NIL_VALUE))));
+	symbol_set(&globals, ">=", gh_cfunc(&lang_gt_eq, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b"), &LANG_NIL_VALUE))));
+	symbol_set(&globals, "<", gh_cfunc(&lang_lt, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b"), &LANG_NIL_VALUE))));
+	symbol_set(&globals, "<=", gh_cfunc(&lang_lt_eq, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "+", gh_cfunc(&lang_add, gh_symbol("#args")));
 	symbol_set(&globals, "-", gh_cfunc(&lang_sub, gh_cons(gh_symbol("#first"), gh_symbol("#rest"))));
 	symbol_set(&globals, "*", gh_cfunc(&lang_mul, gh_symbol("#args")));

@@ -43,7 +43,7 @@ datum *strip_stack_frames(datum *lst);
 void gh_stacktrace(FILE *file, datum **locals);
 datum *typecheck(datum *args, datum * types, char *mismatch_fmt,  datum **locals);
 datum *gh_cons2(datum *car, datum *cdr, datum **locals);
-datum *gh_comp(datum *a, datum *b);
+double gh_comp(datum *a, datum *b);
 bool listcmp(datum *a, datum *b);
 bool gh_is_true(datum *expr);
 
@@ -179,12 +179,8 @@ datum *mod2(datum *a, datum *b, datum **locals) {
 		gh_assert(a->value.decimal != 0.0, "math-error", "division by zero", &LANG_NIL_VALUE);
 	}
 
-	if (a->type == TYPE_INTEGER && b->type == TYPE_INTEGER) {
-		return gh_integer(a->value.integer % b->value.integer);
-	}
-
-	return gh_decimal((b->type == TYPE_INTEGER ? (double)b->value.integer : b->value.decimal) %
-						(a->type == TYPE_INTEGER ? (double)a->value.integer : a->value.decimal));
+	return gh_integer((b->type == TYPE_INTEGER ? b->value.integer : (int)b->value.decimal) %
+						(a->type == TYPE_INTEGER ? a->value.integer : (int)a->value.decimal));
 }
 
 datum *dpow(datum *a, datum *b, datum **locals) {
@@ -1269,14 +1265,11 @@ datum *lang_is(datum **locals) {
 
 /* compare two values. Return 0 if they are equal, a negative number if b is
    greater than a, and a positive number if a is greater than b, or -1.0 if
-   they are diffrent types */
-double gh_comp(datum *a, datum *b) {
-	bool result;
-
+   they are diffrent types */ double gh_comp(datum *a, datum *b) {
 	if ((a->type == TYPE_INTEGER || a->type == TYPE_RETURNCODE || a->type == TYPE_DECIMAL) &&
 		(b->type == TYPE_INTEGER || b->type == TYPE_RETURNCODE || b->type == TYPE_DECIMAL)) {
 		return (a->type == TYPE_INTEGER ? (double)a->value.integer : a->value.decimal) -
-				(b->type == TYPE_INTEGER ? (double)b->value.integer: b->value.decimal)
+				(b->type == TYPE_INTEGER ? (double)b->value.integer: b->value.decimal);
 	} else if (a->type != b->type) {
 		return -1.0;
 	} else if (a->type == TYPE_STRING || a->type == TYPE_SYMBOL) {
@@ -1284,7 +1277,7 @@ double gh_comp(datum *a, datum *b) {
 	} else if (a->type == TYPE_CONS) {
 		return (double) !listcmp(a, b);
 	} else {
-		return -1.0
+		return -1.0;
 	}
 }
 
@@ -1301,7 +1294,7 @@ bool listcmp(datum *a, datum *b) {
 		current_a = iterator_a->value.cons.car;
 		current_b = iterator_b->value.cons.car;
 
-		if (!gh_equal(current_a, current_b)) {
+		if (gh_comp(current_a, current_b) != 0) {
 			return FALSE;
 		}
 
@@ -1309,7 +1302,7 @@ bool listcmp(datum *a, datum *b) {
 		iterator_b = iterator_b->value.cons.cdr;
 	}
 
-	if (!gh_equal(iterator_a, iterator_b)) {
+	if (gh_comp(iterator_a, iterator_b) != 0) {
 		return FALSE;
 	}
 
@@ -1324,9 +1317,26 @@ datum *lang_equal(datum **locals) {
 	a = var_get(locals, "#a");
 	b = var_get(locals, "#b");
 
-	result = gh_cmp(a, b);
+	result = gh_comp(a, b);
 
 	if (result == 0.0) {
+		return &LANG_TRUE_VALUE;
+	} else {
+		return &LANG_NIL_VALUE;
+	}
+}
+
+datum *lang_gt(datum **locals) {
+	datum *a;
+	datum *b;
+	double result;
+
+	a = var_get(locals, "#a");
+	b = var_get(locals, "#b");
+
+	result = gh_comp(a, b);
+
+	if (result > 0.0) {
 		return &LANG_TRUE_VALUE;
 	} else {
 		return &LANG_NIL_VALUE;
@@ -1341,7 +1351,7 @@ datum *lang_gt_eq(datum **locals) {
 	a = var_get(locals, "#a");
 	b = var_get(locals, "#b");
 
-	result = gh_cmp(a, b);
+	result = gh_comp(a, b);
 
 	if (result >= 0.0) {
 		return &LANG_TRUE_VALUE;
@@ -1358,7 +1368,7 @@ datum *lang_lt(datum **locals) {
 	a = var_get(locals, "#a");
 	b = var_get(locals, "#b");
 
-	result = gh_cmp(a, b);
+	result = gh_comp(a, b);
 
 	if (result < 0.0) {
 		return &LANG_TRUE_VALUE;
@@ -1375,7 +1385,7 @@ datum *lang_lt_eq(datum **locals) {
 	a = var_get(locals, "#a");
 	b = var_get(locals, "#b");
 
-	result = gh_cmp(a, b);
+	result = gh_comp(a, b);
 
 	if (result <= 0.0) {
 		return &LANG_TRUE_VALUE;
@@ -3168,9 +3178,9 @@ datum *lang_dec(datum **locals) {
 	gh_assert(x->type == TYPE_INTEGER || x->type == TYPE_DECIMAL, "type-error", "not a number: ~s", gh_cons(x, &LANG_NIL_VALUE));
 
 	if (x->type == TYPE_INTEGER) {
-		return gh_decimal((double)x->value.integer;
+		return gh_decimal((double)x->value.integer);
 	} else {
-		x
+		return x;
 	}
 }
 
