@@ -47,6 +47,16 @@
 			nil
 			lst)))
 
+(defn filter (fn lst)
+	(reverse
+		(fold
+			(lambda (el l)
+				(if (fn el)
+					(cons el l)
+					l))
+			nil
+			lst)))
+
 (defn for-each (fn lst)
 	(map fn lst)
 	nil)
@@ -71,5 +81,4 @@
 	(if (test '-f rc)
 		(load rc)
 		nil))
-
 
