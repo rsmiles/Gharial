@@ -471,6 +471,8 @@ void cleanup(){
 }
 
 int main(int argc, char **argv) {
+	FILE *input;
+
 	yylineno = 0;
 	init_globals(argv);
 	init_io();
@@ -486,8 +488,17 @@ int main(int argc, char **argv) {
 
 	symbol_set(&globals, "*?*", gh_integer(0));
 
+	if (argc > 1) {
+		input = fopen(argv[1], "r");
+		if (input == NULL) {
+			fprintf(stderr, "fatal-error: could not open file \"%s\": %s\n", argv[1], strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+	} else {
+		input = stdin;
+	}
 
-	if (isatty(fileno(stdin))) {
+	if (isatty(fileno(input))) {
 		set_interactive(TRUE);
 	}
 
@@ -495,10 +506,10 @@ int main(int argc, char **argv) {
 		gh_load(init_file());
 	}
 
-	yyin = stdin;
+	yyin = input;
 	yypush_buffer_state(yy_create_buffer(yyin, YY_BUF_SIZE));
 	setjmp(toplevel);
-	if (isatty(fileno(stdin))) {
+	if (isatty(fileno(input))) {
 		set_interactive(TRUE);
 	}
 	do {
@@ -507,7 +518,9 @@ int main(int argc, char **argv) {
 	yylex_destroy();
 
 	yypop_buffer_state();
-	printf("\n");
+	if (interactive) {
+		printf("\n");
+	}
 	return 0;
 }
 
