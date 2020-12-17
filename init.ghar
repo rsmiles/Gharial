@@ -63,9 +63,13 @@
 			(begin (begin . @body) (recur))
 			nil)))
 
+(defn != (a b)
+	(not (= a b)))
+
 # load user's gharialrc file if it exists
 (let ([rc (string-append HOME "/.gharialrc")])
 	(if (test '-f rc)
 		(load rc)
 		nil))
+
 
