@@ -1277,7 +1277,7 @@ datum *lang_is(datum **locals) {
 	} else if (a->type == TYPE_CONS) {
 		return (double) !listcmp(a, b);
 	} else {
-		return -1.0;
+		return (double) !(a == b);
 	}
 }
 
