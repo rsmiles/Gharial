@@ -182,10 +182,15 @@ void init_builtins() {
 	symbol_set(&globals, "append", gh_cfunc(&lang_append, gh_cons(gh_symbol("#lst1"), gh_cons(gh_symbol("#lst2"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "is", gh_cfunc(&lang_is, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "=", gh_cfunc(&lang_equal, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b"), &LANG_NIL_VALUE))));
+	symbol_set(&globals, ">", gh_cfunc(&lang_gt, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b") &LANG_NIL_VALUE))));
+	symbol_set(&globals, ">=", gh_cfunc(&lang_gt_eq, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b") &LANG_NIL_VALUE))));
+	symbol_set(&globals, "<", gh_cfunc(&lang_lt, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b") &LANG_NIL_VALUE))));
+	symbol_set(&globals, "<=", gh_cfunc(&lang_lt_eq, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b") &LANG_NIL_VALUE))));
 	symbol_set(&globals, "+", gh_cfunc(&lang_add, gh_symbol("#args")));
 	symbol_set(&globals, "-", gh_cfunc(&lang_sub, gh_cons(gh_symbol("#first"), gh_symbol("#rest"))));
 	symbol_set(&globals, "*", gh_cfunc(&lang_mul, gh_symbol("#args")));
 	symbol_set(&globals, "/", gh_cfunc(&lang_div, gh_cons(gh_symbol("#first"), gh_symbol("#rest"))));
+	symbol_set(&globals, "%", gh_cfunc(&lang_mod, gh_cons(gh_symbol("#first"), gh_symbol("#rest"))));
 	symbol_set(&globals, "^", gh_cfunc(&lang_pow, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#b"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "lambda", gh_cform(&lang_lambda, gh_cons(gh_symbol("#lambda-list"), gh_symbol("#body"))));
 	symbol_set(&globals, "macro", gh_cform(&lang_macro, gh_cons(gh_symbol("#lambda-list"), gh_symbol("#body"))));
@@ -236,6 +241,8 @@ void init_builtins() {
 	symbol_set(&globals, "locals", gh_cfunc(&lang_locals, &LANG_NIL_VALUE));
 	symbol_set(&globals, "print", gh_cfunc(&lang_print, gh_cons(gh_symbol("#obj"), gh_symbol("#file"))));
 	symbol_set(&globals, "assert", gh_cfunc(&lang_assert, gh_cons(gh_symbol("#test"), gh_cons(gh_symbol("#type"), gh_cons(gh_symbol("#fmt"), gh_symbol("#fmt-args"))))));
+	symbol_set(&globals, "int", gh_cfunc(&lang_int, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
+	symbol_set(&globals, "dec", gh_cfunc(&lang_dec, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
 
 	subproc_nowait = gh_cform(&lang_subproc_nowait, gh_symbol("#commands"));
 	pipe_err_to = gh_cform(&lang_pipe_err_to, gh_cons(gh_symbol("#path"), gh_symbol("#commands")));

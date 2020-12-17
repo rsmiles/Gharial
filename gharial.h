@@ -198,6 +198,8 @@ datum *mul2(datum *a, datum *b, datum **locals);
 
 datum *div2(datum *a, datum *b, datum **locals);
 
+datum *mod2(datum *a, datum *b, datum **locals);
+
 datum *dpow(datum *a, datum *b, datum **locals);
 
 datum *do_unquotes(datum *expr, datum **locals);
@@ -230,6 +232,14 @@ datum *lang_is(datum **locals);
 
 datum *lang_equal(datum **locals);
 
+datum *lang_gt(datum **locals);
+
+datum *lang_gt_eq(datum **locals);
+
+datum *lang_lt(datum **locals);
+
+datum *lang_lt_eq(datum **locals);
+
 datum *lang_add(datum **locals);
 
 datum *lang_sub(datum **locals);
@@ -237,6 +247,8 @@ datum *lang_sub(datum **locals);
 datum *lang_mul(datum **locals);
 
 datum *lang_div(datum **locals);
+
+datum *lang_mod(datum **locals);
 
 datum *lang_pow(datum **locals);
 
@@ -391,6 +403,10 @@ datum *lang_locals(datum **locals);
 datum *lang_print(datum **locals);
 
 datum *lang_assert(datum **locals);
+
+datum *lang_int(datum **locals);
+
+datum *lang_dec(datum **locals);
 
 #endif
 

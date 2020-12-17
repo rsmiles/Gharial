@@ -43,7 +43,7 @@ datum *strip_stack_frames(datum *lst);
 void gh_stacktrace(FILE *file, datum **locals);
 datum *typecheck(datum *args, datum * types, char *mismatch_fmt,  datum **locals);
 datum *gh_cons2(datum *car, datum *cdr, datum **locals);
-datum *gh_equal(datum *a, datum *b);
+datum *gh_comp(datum *a, datum *b);
 bool listcmp(datum *a, datum *b);
 bool gh_is_true(datum *expr);
 
@@ -165,8 +165,26 @@ datum *div2(datum *a, datum *b, datum **locals) {
 		gh_assert(a->value.decimal != 0.0, "math-error", "division by zero", &LANG_NIL_VALUE);
 	}
 
-	return gh_decimal((b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal) /
-						(a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal));
+	return gh_decimal((b->type == TYPE_INTEGER ? (double)b->value.integer : b->value.decimal) /
+						(a->type == TYPE_INTEGER ? (double)a->value.integer : a->value.decimal));
+}
+
+datum *mod2(datum *a, datum *b, datum **locals) {
+	gh_assert(a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL, "type-error", "non-number argument ~s", gh_cons(a, &LANG_NIL_VALUE));
+	gh_assert(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL, "type-error", "non-number argument ~s", gh_cons(b, &LANG_NIL_VALUE));
+
+	if (a->type == TYPE_INTEGER) {
+		gh_assert(a->value.integer != 0, "math-error", "division by zero", &LANG_NIL_VALUE);
+	} else {
+		gh_assert(a->value.decimal != 0.0, "math-error", "division by zero", &LANG_NIL_VALUE);
+	}
+
+	if (a->type == TYPE_INTEGER && b->type == TYPE_INTEGER) {
+		return gh_integer(a->value.integer % b->value.integer);
+	}
+
+	return gh_decimal((b->type == TYPE_INTEGER ? (double)b->value.integer : b->value.decimal) %
+						(a->type == TYPE_INTEGER ? (double)a->value.integer : a->value.decimal));
 }
 
 datum *dpow(datum *a, datum *b, datum **locals) {
@@ -1249,30 +1267,25 @@ datum *lang_is(datum **locals) {
 	}
 }
 
-datum *gh_equal(datum *a, datum *b) {
+/* compare two values. Return 0 if they are equal, a negative number if b is
+   greater than a, and a positive number if a is greater than b, or -1.0 if
+   they are diffrent types */
+double gh_comp(datum *a, datum *b) {
 	bool result;
 
-	if ((a->type == TYPE_INTEGER || a->type == TYPE_DECIMAL) &&
-		(b->type == TYPE_INTEGER || b->type == TYPE_DECIMAL)) {
-		result = (float)(a->type == TYPE_INTEGER ? a->value.integer : a->value.decimal) ==
-					(float)(b->type == TYPE_INTEGER ? b->value.integer : b->value.decimal);
+	if ((a->type == TYPE_INTEGER || a->type == TYPE_RETURNCODE || a->type == TYPE_DECIMAL) &&
+		(b->type == TYPE_INTEGER || b->type == TYPE_RETURNCODE || b->type == TYPE_DECIMAL)) {
+		return (a->type == TYPE_INTEGER ? (double)a->value.integer : a->value.decimal) -
+				(b->type == TYPE_INTEGER ? (double)b->value.integer: b->value.decimal)
 	} else if (a->type != b->type) {
-		result = FALSE;
+		return -1.0;
 	} else if (a->type == TYPE_STRING || a->type == TYPE_SYMBOL) {
-		result = (strcmp(a->value.string, b->value.string) == 0);
+		return (double) strcmp(a->value.string, b->value.string);
 	} else if (a->type == TYPE_CONS) {
-		result = listcmp(a, b);
-	} else if (a == b) {
-		result = TRUE;
+		return (double) !listcmp(a, b);
 	} else {
-		result = FALSE;
+		return -1.0
 	}
-
-
-	if (result == TRUE)
-		return &LANG_TRUE_VALUE;
-	else
-		return &LANG_NIL_VALUE;
 }
 
 bool listcmp(datum *a, datum *b) {
@@ -1306,11 +1319,69 @@ bool listcmp(datum *a, datum *b) {
 datum *lang_equal(datum **locals) {
 	datum *a;
 	datum *b;
+	double result;
 
 	a = var_get(locals, "#a");
 	b = var_get(locals, "#b");
 
-	return gh_equal(a, b);
+	result = gh_cmp(a, b);
+
+	if (result == 0.0) {
+		return &LANG_TRUE_VALUE;
+	} else {
+		return &LANG_NIL_VALUE;
+	}
+}
+
+datum *lang_gt_eq(datum **locals) {
+	datum *a;
+	datum *b;
+	double result;
+
+	a = var_get(locals, "#a");
+	b = var_get(locals, "#b");
+
+	result = gh_cmp(a, b);
+
+	if (result >= 0.0) {
+		return &LANG_TRUE_VALUE;
+	} else {
+		return &LANG_NIL_VALUE;
+	}
+}
+
+datum *lang_lt(datum **locals) {
+	datum *a;
+	datum *b;
+	double result;
+
+	a = var_get(locals, "#a");
+	b = var_get(locals, "#b");
+
+	result = gh_cmp(a, b);
+
+	if (result < 0.0) {
+		return &LANG_TRUE_VALUE;
+	} else {
+		return &LANG_NIL_VALUE;
+	}
+}
+
+datum *lang_lt_eq(datum **locals) {
+	datum *a;
+	datum *b;
+	double result;
+
+	a = var_get(locals, "#a");
+	b = var_get(locals, "#b");
+
+	result = gh_cmp(a, b);
+
+	if (result <= 0.0) {
+		return &LANG_TRUE_VALUE;
+	} else {
+		return &LANG_NIL_VALUE;
+	}
 }
 
 datum *lang_add(datum **locals) {
@@ -1347,6 +1418,16 @@ datum *lang_div(datum **locals) {
 	rest = var_get(locals, "#rest");
 
 	return fold(&div2, first, rest, locals);
+}
+
+datum *lang_mod(datum **locals) {
+	datum *first;
+	datum *rest;
+
+	first = var_get(locals, "#first");
+	rest = var_get(locals, "#rest");
+
+	return fold(&mod2, first, rest, locals);
 }
 
 datum *lang_pow(datum **locals) {
@@ -3065,5 +3146,31 @@ datum *lang_assert(datum **locals) {
 
 	gh_assert(gh_is_true(test), type->value.string, fmt->value.string, fmt_args);
 	return &LANG_NIL_VALUE;
+}
+
+datum *lang_int(datum **locals) {
+	datum *x;
+
+	x = var_get(locals, "#x");
+	gh_assert(x->type == TYPE_INTEGER || x->type == TYPE_DECIMAL, "type-error", "not a number: ~s", gh_cons(x, &LANG_NIL_VALUE));
+
+	if (x->type == TYPE_INTEGER) {
+		return x;
+	} else {
+		return gh_integer((int)x->value.decimal);
+	}
+}
+
+datum *lang_dec(datum **locals) {
+	datum *x;
+
+	x = var_get(locals, "#x");
+	gh_assert(x->type == TYPE_INTEGER || x->type == TYPE_DECIMAL, "type-error", "not a number: ~s", gh_cons(x, &LANG_NIL_VALUE));
+
+	if (x->type == TYPE_INTEGER) {
+		return gh_decimal((double)x->value.integer;
+	} else {
+		x
+	}
 }
 
