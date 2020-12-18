@@ -3140,6 +3140,7 @@ datum *lang_print(datum **locals) {
 	} else {
 		gh_print(file->value.file, obj);
 	}
+	fflush(file->value.file);
 	return &LANG_NIL_VALUE;
 }
 

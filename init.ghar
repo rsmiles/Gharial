@@ -95,11 +95,11 @@
 		(mv file (string-append TRASH "/files/" (string file)))
 		(to (string-append TRASH "/info/" (string file) ".trashinfo")
 			(print "[Trash Info]")
-			(print (string-append "Path=" (string file)))
-			(date "+DeletionDate=%Y-%m-%dT%H%M%S"))))
+			(print (string-append "Path=" (car ($ (readlink '-f file)))))
+			(date "+DeletionDate=%Y-%m-%dT%H:%M:%S"))))
 
 (defn rmtrash ()
-	(for file in ($ (ls '-A TRASH))
+	(for file in ($ (ls '-A (string-append TRASH "/files/")))
 		(rm '-rf (string-append TRASH "/files/" file))
 		(rm (string-append TRASH "/info/" file ".trashinfo"))))
 
