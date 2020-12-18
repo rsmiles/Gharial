@@ -90,6 +90,7 @@
 
 (setenv TRASH (string-append HOME "/.local/share/Trash"))
 
+# move specified files to the trash
 (defn trash files
 	(for file in files
 		(loop ([n 1])
@@ -105,10 +106,17 @@
 							(date "+DeletionDate=%Y-%m-%dT%H:%M:%S"))
 						(mv file (string-append TRASH "/files/" trash-name))))))))
 
+# delete all files in trash
 (defn rmtrash ()
 	(for file in ($ (ls '-A (string-append TRASH "/files/")))
 		(rm '-rf (string-append TRASH "/files/" file))
 		(rm (string-append TRASH "/info/" file ".trashinfo"))))
+
+# restore specified file in trash
+(defn restore (file)
+	(let ([path (car (cdr (string-split (car (cdr ($ (cat (string-append TRASH "/info/" (string file) ".trashinfo"))))) "=")))])
+		(mv (string-append TRASH "/files/" (string file)) path)
+		(rm (string-append TRASH "/info/" (string file) ".trashinfo"))))
 
 # load user's gharialrc file if it exists
 (let ([rc (string-append HOME "/.gharialrc")])
