@@ -2193,7 +2193,7 @@ datum *gh_run(datum *command, datum *args, datum **locals, FILE *input, FILE *ou
 		set_proc_IO(input, output, error);
 		argv = build_argv(command, args);
 		execve(command->value.executable.path, argv, environ);
-		fprintf(stderr, "exec failure: %s", strerror(errno));
+		fprintf(stderr, "could not execute %s: %s\n", command->value.executable.path, strerror(errno));
 		exit(EXIT_FAILURE);
 	} else {
 		gh_assert(pid != -1, "runtime-error", "could not create child process: ~s", gh_cons(gh_error(), &LANG_NIL_VALUE));

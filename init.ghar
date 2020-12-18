@@ -92,11 +92,18 @@
 
 (defn trash files
 	(for file in files
-		(mv file (string-append TRASH "/files/" (string file)))
-		(to (string-append TRASH "/info/" (string file) ".trashinfo")
-			(print "[Trash Info]")
-			(print (string-append "Path=" (car ($ (readlink '-f file)))))
-			(date "+DeletionDate=%Y-%m-%dT%H:%M:%S"))))
+		(loop ([n 1])
+			(let ([trash-name (if (= n 1)
+								(string file)
+								(string-append (string file) "." (car ($ (print n)))))])
+				(if (test '-e (string-append TRASH "/files/" trash-name))
+					(recur (+ n 1))
+					(begin
+						(to (string-append TRASH "/info/" trash-name ".trashinfo")
+							(print "[Trash Info]")
+							(print (string-append "Path=" (car ($ (readlink '-f file)))))
+							(date "+DeletionDate=%Y-%m-%dT%H:%M:%S"))
+						(mv file (string-append TRASH "/files/" trash-name))))))))
 
 (defn rmtrash ()
 	(for file in ($ (ls '-A (string-append TRASH "/files/")))
