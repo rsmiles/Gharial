@@ -88,6 +88,16 @@
 			nil
 			t)))
 
+(setenv TRASH (string-append HOME "/.local/share/Trash/files"))
+
+(defn trash files
+	(for file in files
+		(mv file trash)))
+
+(defn rmtrash ()
+	(for file in ($ (ls '-A TRASH))
+		(rm '-rf (string-append TRASH "/" file))))
+
 # load user's gharialrc file if it exists
 (let ([rc (string-append HOME "/.gharialrc")])
 	(if (test '-f rc)
