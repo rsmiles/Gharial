@@ -3184,3 +3184,29 @@ datum *lang_dec(datum **locals) {
 	}
 }
 
+datum *lang_string(datum **locals) {
+	datum *x;
+
+	x = var_get(locals, "#x");
+	gh_assert(x->type == TYPE_STRING || x->type == TYPE_SYMBOL, "type-error", "not a symbol or string: ~s", gh_cons(x, &LANG_NIL_VALUE));
+
+	if (x->type == TYPE_STRING) {
+		return x;
+	} else {
+		return gh_string(x->value.string);
+	}
+}
+
+datum *lang_symbol(datum **locals) {
+	datum *x;
+
+	x = var_get(locals, "#x");
+	gh_assert(x->type == TYPE_STRING || x->type == TYPE_SYMBOL, "type-error", "not a symbol or string: ~s", gh_cons(x, &LANG_NIL_VALUE));
+
+	if (x->type == TYPE_STRING) {
+		return gh_symbol(x->value.string);
+	} else {
+		return x;
+	}
+}
+

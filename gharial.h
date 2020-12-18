@@ -408,5 +408,9 @@ datum *lang_int(datum **locals);
 
 datum *lang_dec(datum **locals);
 
+datum *lang_string(datum **locals);
+
+datum *lang_symbol(datum **locals);
+
 #endif
 

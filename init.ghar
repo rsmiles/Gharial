@@ -92,10 +92,10 @@
 
 (defn trash files
 	(for file in files
-		(mv file (string-append trash "/files/" file))
-		(to (string-append trash "/info/" file ".trashinfo")
+		(mv file (string-append TRASH "/files/" (string file)))
+		(to (string-append TRASH "/info/" (string file) ".trashinfo")
 			(print "[Trash Info]")
-			(print (string-append "Path=" file))
+			(print (string-append "Path=" (string file)))
 			(date "+DeletionDate=%Y-%m-%dT%H%M%S"))))
 
 (defn rmtrash ()
