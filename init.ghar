@@ -88,15 +88,20 @@
 			nil
 			t)))
 
-(setenv TRASH (string-append HOME "/.local/share/Trash/files"))
+(setenv TRASH (string-append HOME "/.local/share/Trash"))
 
 (defn trash files
 	(for file in files
-		(mv file trash)))
+		(mv file (string-append trash "/files/" file))
+		(to (string-append trash "/info/" file ".trashinfo")
+			(print "[Trash Info]")
+			(print (string-append "Path=" file))
+			(date "+DeletionDate=%Y-%m-%dT%H%M%S"))))
 
 (defn rmtrash ()
 	(for file in ($ (ls '-A TRASH))
-		(rm '-rf (string-append TRASH "/" file))))
+		(rm '-rf (string-append TRASH "/files/" file))
+		(rm (string-append TRASH "/info/" file ".trashinfo"))))
 
 # load user's gharialrc file if it exists
 (let ([rc (string-append HOME "/.gharialrc")])
