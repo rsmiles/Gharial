@@ -1524,7 +1524,7 @@ datum *gh_exception(char *type, char *fmt, datum *fmt_args) {
 	
 	ex->value.exception.fmt = GC_MALLOC(sizeof (char) * (strlen(fmt) + 1));
 	if (ex->value.exception.fmt == NULL) {
-		fprintf(stderr, "memory-error: out of memory in gh_exception!");
+		fprintf(stderr, "fatal-error: out of memory in gh_exception!\n");
 		exit(EXIT_FAILURE);
 	}
 	strcpy(ex->value.exception.fmt, fmt);
@@ -2655,10 +2655,10 @@ void set_interactive(bool value) {
 char *get_format(char command, datum *args) {
 	switch (command) {
 		case '~':
-			return '~';
+			return "~";
 			break;
 		case '%':
-			return '\n';
+			return "\n";
 			break;
 		case 'S':
 		case 's':
@@ -2712,6 +2712,7 @@ datum *lang_format(datum **locals) {
 	datum *output;
 	datum *str;
 	datum *args;
+	char *result;
 
 	output = var_get(locals, "#output");
 	if (output->type == TYPE_TRUE) {
@@ -2725,7 +2726,18 @@ datum *lang_format(datum **locals) {
 
 	args = var_get(locals, "#args");
 
-	return gh_format(output->value.file, str->value.string, args);
+	if (output->type == TYPE_NIL) {
+		result = gh_format(NULL, str->value.string, args);
+	} else {
+		result = gh_format(output, str->value.string, args);
+	}
+
+	if (result == NULL) {
+		return gh_string(result);
+	} else {
+		return &LANG_NIL_VALUE;
+	}
+
 }
 
 void gh_stacktrace(FILE *file, datum **locals) {
@@ -3201,15 +3213,12 @@ char *gh_to_string(datum *x) {
 
 datum *lang_string(datum **locals) {
 	datum *x;
+	char *result;
 
 	x = var_get(locals, "#x");
-	gh_assert(x->type == TYPE_STRING || x->type == TYPE_SYMBOL, "type-error", "not a symbol or string: ~s", gh_cons(x, &LANG_NIL_VALUE));
-
-	if (x->type == TYPE_STRING) {
-		return x;
-	} else {
-		return gh_string(x->value.string);
-	}
+	result = gh_to_string(x);
+	gh_assert(result != NULL, "type-error", "cannot convert object to string: ~s", gh_cons(x, &LANG_NIL_VALUE));
+	return gh_string(result);
 }
 
 datum *lang_symbol(datum **locals) {
