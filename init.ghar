@@ -99,13 +99,13 @@
 		(loop ([n 1])
 			(let ([trash-name (if (= n 1)
 								(string file)
-								(string-append "." ($$ (print n))))])
+								(string-append "." ($$ (println n))))])
 				(if (test '-e (string-append TRASH "/files/" trash-name))
 					(recur (+ n 1))
 					(begin
 						(to (string-append TRASH "/info/" trash-name ".trashinfo")
-							(print "[Trash Info]")
-							(print (string-append "Path=" ($$ (readlink '-f (string file)))))
+							(println "[Trash Info]")
+							(println (string-append "Path=" ($$ (readlink '-f (string file)))))
 							(date "+DeletionDate=%Y-%m-%dT%H:%M:%S"))
 						(mv file (string-append TRASH "/files/" trash-name))))))))
 
