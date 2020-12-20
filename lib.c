@@ -46,6 +46,8 @@ datum *gh_cons2(datum *car, datum *cdr, datum **locals);
 double gh_comp(datum *a, datum *b);
 bool listcmp(datum *a, datum *b);
 bool gh_is_true(datum *expr);
+char *gh_to_string(datum *x);
+char *get_format(char command, datum *args);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -760,88 +762,7 @@ datum *lang_eval(datum **locals) {
 }
 
 void print_datum(FILE *file, datum *expr) {
-	datum *iterator;
-	switch (expr->type) {
-		case TYPE_NIL:
-			fprintf(file, "nil");
-			break;
-		case TYPE_TRUE:
-			fprintf(file, "t");
-			break;
-		case TYPE_INTEGER:
-			fprintf(file, "%d", expr->value.integer);
-			break;
-		case TYPE_DECIMAL:
-			fprintf(file, "%f", expr->value.decimal);
-			break;
-		case TYPE_STRING:
-			fprintf(file, "\"%s\"", expr->value.string);
-			break;
-		case TYPE_SYMBOL:
-			fprintf(file, "%s", expr->value.string);
-			break;
-		case TYPE_CFORM:
-			fprintf(file, "<c_form>");
-			break;
-		case TYPE_CFUNC:
-			fprintf(file, "<c_function>");
-			break;
-		case TYPE_FUNC:
-			fprintf(file, "<function>");
-			break;
-		case TYPE_MACRO:
-			fprintf(file, "<macro>");
-			break;
-		case TYPE_RECUR:
-			fprintf(file, "<recur_object>");
-			break;
-		case TYPE_FILE:
-			fprintf(file, "<file>");
-			break;
-		case TYPE_EOF:
-			fprintf(file, "<EOF>");
-			break;
-		case TYPE_EXCEPTION:
-			fprintf(file, "<exception>");
-			break;
-		case TYPE_RETURNCODE:
-			break;
-		case TYPE_PID:
-			fprintf(file, "<pid %d>", expr->value.integer);
-			break;
-		case TYPE_EXECUTABLE:
-			fprintf(file, "<executable:%s>", expr->value.executable.path);
-			break;
-		case TYPE_CAPTURE:
-			fprintf(file, "<captured_output>");
-			break;
-		case TYPE_JOB:
-			fprintf(file, "<job:");
-			print_datum(stdout, expr->value.job.commands);
-			fprintf(file, ">");
-			break;
-		case TYPE_CONS:
-			iterator = expr;
-	
-			fprintf(file, "(");
-
-			print_datum(file, iterator->value.cons.car);
-			while(iterator->value.cons.cdr->type == TYPE_CONS) {
-				fprintf(file, " ");
-				iterator = iterator->value.cons.cdr;
-				print_datum(file, iterator->value.cons.car);
-			}
-
-			if (iterator->value.cons.cdr->type != TYPE_NIL) {
-				fprintf(file, " . ");
-				print_datum(file, iterator->value.cons.cdr);
-			}
-
-			fprintf(file, ")");
-			break;
-		default:
-			fprintf(stderr, "Error: Unkown data type: %d\n", expr->type);
-	}
+	fprintf(file, "%s", gh_to_string(expr));
 }
 
 void gh_print(FILE *file, datum *expr){
@@ -2731,50 +2652,60 @@ void set_interactive(bool value) {
 	}
 }
 
-datum *gh_format(FILE *output, char *str, datum *args) {
+char *get_format(char command, datum *args) {
+	switch (command) {
+		case '~':
+			return '~';
+			break;
+		case '%':
+			return '\n';
+			break;
+		case 'S':
+		case 's':
+			return string_append("\"", string_append(gh_to_string(args->value.cons.car), "\""));
+			break;
+		case 'A':
+		case 'a':
+			return gh_to_string(args->value.cons.car);
+			break;
+		default:
+			return NULL;
+			break;
+	}
+}
+
+char *gh_format(FILE output, char *str, datum *args) {
+	char *result;
+	char *copy;
+	char *current;
+	datum *arg;
 	int i;
-	datum *iterator;
 
-	iterator = args;
+	copy = string_append("", str);
+	current = copy;
+	arg = args;
+	result = "";
 
-	for (i = 0; str[i] != '\0'; i++) {
-		if (str[i] == '~') {
-			switch(str[i + 1]) {
-				case '~':
-					fprintf(output, "~");
-					break;
+	for (i = 0; copy[i] != '\0'; i++) {
+		if (copy[i] == '~') {
+			copy[i] = '\0';
+			result = string_append(result, current);
+			do {
+				current++;
+			} while (current != '\0');
+			current++;
 
-				case '%':
-					fprintf(output, "\n");
-					break;
-
-				case 'S':
-				case 's':
-					gh_assert(iterator->type == TYPE_CONS, "runtime-error", "not enough args to format string: ~s", gh_cons(gh_string(str), &LANG_NIL_VALUE));
-					print_datum(output, iterator->value.cons.car);
-					iterator = iterator->value.cons.cdr;
-					break;
-
-				case 'A':
-				case 'a':
-					gh_assert(iterator->type == TYPE_CONS, "runtime-error", "not enough args to format string: ~s", gh_cons(gh_string(str), &LANG_NIL_VALUE));
-					if (iterator->value.cons.car->type == TYPE_STRING) {
-						fprintf(output, "%s", iterator->value.cons.car->value.string);
-					} else {
-						print_datum(output, iterator->value.cons.car);
-					}
-					iterator = iterator->value.cons.cdr;
-					break;
-			}
-			i++;
-		} else {
-			fputc(str[i], output);
+			gh_assert(arg->type == TYPE_CONS, "format-error", "not enough arguments to format string: ~s", gh_cons(str, &LANG_NIL_VALUE));
+			result = string_append(result, get_format(copy[i + 1], arg));
 		}
 	}
-	gh_assert(iterator->type == TYPE_NIL, "runtime-error", "too many args to format string: ~s", gh_cons(gh_string(str), &LANG_NIL_VALUE));
-	
-	fprintf(output, "\n");
-	return &LANG_NIL_VALUE;
+
+	if (output == NULL) {
+		return result;
+	} else {
+		fprintf(output, "%s\n", result);
+		return NULL;
+	}
 }
 
 datum *lang_format(datum **locals) {
@@ -3182,6 +3113,89 @@ datum *lang_dec(datum **locals) {
 		return gh_decimal((double)x->value.integer);
 	} else {
 		return x;
+	}
+}
+
+char *gh_to_string(datum *x) {
+	char buff[64];
+	datum *iterator;
+	char *result;
+
+	switch (x->type) {
+		case TYPE_NIL:
+			return "nil";
+			break;
+		case TYPE_TRUE:
+			return "t";
+			break;
+		case TYPE_INTEGER:
+			sprintf(buff, "%d", x->value.integer);
+			return string_append("", buff);
+			break;
+		case TYPE_DECIMAL:
+			sprintf(buff, "%f", x->value.decimal);
+			return string_append("", buff);
+			break;
+		case TYPE_STRING:
+			return x->value.string;
+			break;
+		case TYPE_SYMBOL:
+			return x->value.string;
+			break;
+		case TYPE_CFORM:
+			return "<c_form>";
+			break;
+		case TYPE_CFUNC:
+			return "<c_function>";
+			break;
+		case TYPE_FUNC:
+			return "<function>";
+			break;
+		case TYPE_MACRO:
+			return "<macro>";
+			break;
+		case TYPE_RECUR:
+			return "<recur_object>";
+			break;
+		case TYPE_FILE:
+			return "<file>";
+			break;
+		case TYPE_EXCEPTION:
+			return "<exception>";
+			break;
+		case TYPE_EXECUTABLE:
+			return string_append("<executable:", string_append(x->value.executable.path, ">"));
+			break;
+		case TYPE_RETURNCODE:
+			return "";
+			break;
+		case TYPE_CAPTURE:
+			return "<capture_output>";
+			break;
+		case TYPE_JOB:
+			return string_append("<job:", string_append(gh_to_string(x->value.job.commands), ">"));
+			break;
+		case TYPE_CONS:
+			iterator = x;
+			result = "(";
+
+			result = string_append(result, gh_to_string(iterator->value.cons.car));
+			while (iterator->value.cons.cdr->type == TYPE_CONS) {
+				result = string_append(result, " ");
+				iterator = iterator->value.cons.cdr;
+				result = string_append(result, gh_to_string(iterator->value.cons.car));
+			}
+
+			if (iterator->value.cons.cdr->type != TYPE_NIL) {
+				result = string_append(result, " . ");
+				result = string_append(result, gh_to_string(iterator->value.cons.cdr));
+			}
+			result = string_append(result, ")");
+			return result;
+			break;
+		default:
+			return NULL;
+			break;
 	}
 }
 
