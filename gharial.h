@@ -376,7 +376,7 @@ datum *lang_fg(datum **locals);
 
 void set_interactive(bool value);
 
-datum *gh_format(FILE *output, char *str, datum *args);
+datum *gh_format(FILE *output, char *str, datum *args, datum **locals);
 
 datum *lang_format(datum **locals);
 

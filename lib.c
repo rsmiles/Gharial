@@ -47,7 +47,6 @@ double gh_comp(datum *a, datum *b);
 bool listcmp(datum *a, datum *b);
 bool gh_is_true(datum *expr);
 char *gh_to_string(datum *x);
-char *get_format(char command, datum *args);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -644,7 +643,7 @@ void print_exception(FILE *file, datum *expr, datum **locals) {
 	gh_stacktrace(file, locals);
 
 	fprintf(file, "%s: ", type);
-	gh_format(file, fmt, fmt_args);
+	gh_format(file, fmt, fmt_args, locals);
 }
 
 bool is_macro_call(datum *expr, datum **locals) {
@@ -2652,34 +2651,13 @@ void set_interactive(bool value) {
 	}
 }
 
-char *get_format(char command, datum *args) {
-	switch (command) {
-		case '~':
-			return "~";
-			break;
-		case '%':
-			return "\n";
-			break;
-		case 'S':
-		case 's':
-			return string_append("\"", string_append(gh_to_string(args->value.cons.car), "\""));
-			break;
-		case 'A':
-		case 'a':
-			return gh_to_string(args->value.cons.car);
-			break;
-		default:
-			return NULL;
-			break;
-	}
-}
-
-char *gh_format(FILE output, char *str, datum *args) {
+datum *gh_format(FILE *output, char *str, datum *args, datum **locals) {
 	char *result;
 	char *copy;
 	char *current;
 	datum *arg;
 	int i;
+	char command_string[2];
 
 	copy = string_append("", str);
 	current = copy;
@@ -2692,19 +2670,50 @@ char *gh_format(FILE output, char *str, datum *args) {
 			result = string_append(result, current);
 			do {
 				current++;
-			} while (current != '\0');
+			} while (*current != '\0');
 			current++;
 
-			gh_assert(arg->type == TYPE_CONS, "format-error", "not enough arguments to format string: ~s", gh_cons(str, &LANG_NIL_VALUE));
-			result = string_append(result, get_format(copy[i + 1], arg));
+			switch (copy[i + 1]) {
+				case '~':
+					result = string_append(result, "~");
+					break;
+				case '%':
+					result = string_append(result, "\n");
+					break;
+				case 'S':
+				case 's':
+					gh_assert(arg->type == TYPE_CONS, "format-error", "not enough args to format string: ~s", gh_cons(gh_string(str), &LANG_NIL_VALUE))
+					result = string_append(result, gh_to_string(arg->value.cons.car));
+					arg = arg->value.cons.cdr;
+					break;
+				case 'A':
+				case 'a':
+					gh_assert(arg->type == TYPE_CONS, "format-error", "not enough args to format string: ~s", gh_cons(gh_string(str), &LANG_NIL_VALUE));
+					if (arg->value.cons.car->type == TYPE_STRING) {
+						result = string_append(result, arg->value.cons.car->value.string);
+					} else {
+						result = string_append(result, gh_to_string(arg->value.cons.car));
+					}
+					arg = arg->value.cons.cdr;
+					break;
+				default:
+					command_string[0] = copy[i + 1];
+					command_string[1] = '\0';
+					gh_assert(TRUE, "format-error", "unkown format option: ~s", gh_cons(gh_string(command_string), &LANG_NIL_VALUE));
+					result = NULL;
+					break;
+			}
+			i++;
 		}
 	}
+	gh_assert(arg->type == TYPE_NIL, "format-error", "too many args to format string: ~s", gh_cons(gh_string(str), &LANG_NIL_VALUE));
+	result = string_append(result, current);
 
 	if (output == NULL) {
-		return result;
+		return gh_string(result);
 	} else {
 		fprintf(output, "%s\n", result);
-		return NULL;
+		return &LANG_NIL_VALUE;
 	}
 }
 
@@ -2712,14 +2721,14 @@ datum *lang_format(datum **locals) {
 	datum *output;
 	datum *str;
 	datum *args;
-	char *result;
+	datum *result;
 
 	output = var_get(locals, "#output");
 	if (output->type == TYPE_TRUE) {
 		output = var_get(locals, "output-file");
 	}
 
-	gh_assert(output->type == TYPE_FILE, "type-error", "not a file nor t: ~s", gh_cons(output, &LANG_NIL_VALUE));
+	gh_assert(output->type == TYPE_FILE || output->type == TYPE_NIL, "type-error", "not a file, t, or nil: ~s", gh_cons(output, &LANG_NIL_VALUE));
 
 	str = var_get(locals, "#str");
 	gh_assert(str->type == TYPE_STRING, "type-error", "not a string: ~s", gh_cons(str, &LANG_NIL_VALUE));
@@ -2727,17 +2736,12 @@ datum *lang_format(datum **locals) {
 	args = var_get(locals, "#args");
 
 	if (output->type == TYPE_NIL) {
-		result = gh_format(NULL, str->value.string, args);
+		result = gh_format(NULL, str->value.string, args, locals);
 	} else {
-		result = gh_format(output, str->value.string, args);
+		result = gh_format(output->value.file, str->value.string, args, locals);
 	}
 
-	if (result == NULL) {
-		return gh_string(result);
-	} else {
-		return &LANG_NIL_VALUE;
-	}
-
+	return result;
 }
 
 void gh_stacktrace(FILE *file, datum **locals) {
@@ -3149,7 +3153,7 @@ char *gh_to_string(datum *x) {
 			return string_append("", buff);
 			break;
 		case TYPE_STRING:
-			return x->value.string;
+			return string_append("\"", string_append(x->value.string, "\""));
 			break;
 		case TYPE_SYMBOL:
 			return x->value.string;
