@@ -3101,6 +3101,30 @@ datum *lang_print(datum **locals) {
 	gh_assert(file->type == TYPE_FILE, "type-error", "argument 2 is not a file: ~s", gh_cons(file, &LANG_NIL_VALUE));
 
 	if (obj->type == TYPE_STRING) {
+		fprintf(file->value.file, "%s", obj->value.string);
+	} else {
+		print_datum(file->value.file, obj);
+	}
+	fflush(file->value.file);
+	return &LANG_NIL_VALUE;
+
+}
+
+datum *lang_println(datum **locals) {
+	datum *obj;
+	datum *file;
+
+	obj = var_get(locals, "#obj");
+
+	file = var_get(locals, "#file");
+	if (file->type == TYPE_NIL) {
+		file = var_get(locals, "output-file");
+	} else {
+		file = file->value.cons.car;
+	}
+	gh_assert(file->type == TYPE_FILE, "type-error", "argument 2 is not a file: ~s", gh_cons(file, &LANG_NIL_VALUE));
+
+	if (obj->type == TYPE_STRING) {
 		fprintf(file->value.file, "%s\n", obj->value.string);
 	} else {
 		gh_print(file->value.file, obj);

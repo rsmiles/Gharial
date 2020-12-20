@@ -240,6 +240,7 @@ void init_builtins() {
 	symbol_set(&globals, "globals", gh_cfunc(&lang_globals, &LANG_NIL_VALUE));
 	symbol_set(&globals, "locals", gh_cfunc(&lang_locals, &LANG_NIL_VALUE));
 	symbol_set(&globals, "print", gh_cfunc(&lang_print, gh_cons(gh_symbol("#obj"), gh_symbol("#file"))));
+	symbol_set(&globals, "println", gh_cfunc(&lang_println, gh_cons(gh_symbol("#obj"), gh_symbol("#file"))));
 	symbol_set(&globals, "assert", gh_cfunc(&lang_assert, gh_cons(gh_symbol("#test"), gh_cons(gh_symbol("#type"), gh_cons(gh_symbol("#fmt"), gh_symbol("#fmt-args"))))));
 	symbol_set(&globals, "int", gh_cfunc(&lang_int, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "dec", gh_cfunc(&lang_dec, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
