@@ -2672,6 +2672,9 @@ datum *gh_format(FILE *output, char *str, datum *args, datum **locals) {
 				current++;
 			} while (*current != '\0');
 			current++;
+			if (*current != '\0') {
+				current++;
+			}
 
 			switch (copy[i + 1]) {
 				case '~':
