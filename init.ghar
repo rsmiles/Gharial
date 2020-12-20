@@ -88,6 +88,9 @@
 			nil
 			t)))
 
+(defmacro $$ args
+	'(car ($ . @args)))
+
 (setenv TRASH (string-append HOME "/.local/share/Trash"))
 
 # move specified files to the trash
@@ -95,14 +98,14 @@
 	(for file in files
 		(loop ([n 1])
 			(let ([trash-name (if (= n 1)
-								(string file)
-								(string-append (string file) "." (car ($ (print n)))))])
+								file
+								(string-append "." ($$ (print n))))])
 				(if (test '-e (string-append TRASH "/files/" trash-name))
 					(recur (+ n 1))
 					(begin
 						(to (string-append TRASH "/info/" trash-name ".trashinfo")
 							(print "[Trash Info]")
-							(print (string-append "Path=" (car ($ (readlink '-f file)))))
+							(print (string-append "Path=" ($$ (readlink '-f file))))
 							(date "+DeletionDate=%Y-%m-%dT%H:%M:%S"))
 						(mv file (string-append TRASH "/files/" trash-name))))))))
 

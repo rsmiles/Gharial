@@ -2105,6 +2105,21 @@ datum *lang_subproc(datum **locals) {
 datum *gh_run(datum *command, datum *args, datum **locals, FILE *input, FILE *output, FILE *error) {
 	pid_t pid;
 
+	datum *iterator;
+
+	/* convert all args to strings if they are not already */
+	iterator = args;
+	while (iterator->type == TYPE_CONS) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+		if (current->type != TYPE_STRING) {
+			iterator->value.cons.car = gh_string(gh_to_string(current));
+		}
+		iterator = iterator->value.cons.cdr;
+	}
+	gh_assert(iterator->type == TYPE_NIL, "type-error", "improper list given as argument to command \"~a\": ~s", gh_cons(gh_string(command->value.executable.path), gh_cons(args, &LANG_NIL_VALUE)));
+
 	pid = fork();
 	if (pid == 0) {
 		char **argv;
