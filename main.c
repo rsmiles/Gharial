@@ -212,6 +212,7 @@ void init_builtins() {
 	symbol_set(&globals, "read-line", gh_cfunc(&lang_read_line, gh_symbol("#file")));
 	symbol_set(&globals, "exit", gh_cfunc(&lang_exit, gh_symbol("#status")));
 	symbol_set(&globals, "string-split", gh_cfunc(&lang_string_split, gh_cons(gh_symbol("#str"), gh_symbol("#delim"))));
+	symbol_set(&globals, "string-join", gh_cfunc(&lang_string_join, gh_cons(gh_symbol("#delim"), gh_symbol("#strings"))));
 	symbol_set(&globals, "return-code", gh_cfunc(&lang_return_code, gh_cons(gh_symbol("#num"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "length", gh_cfunc(&lang_length, gh_cons(gh_symbol("#lst"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "subproc", gh_cform(&lang_subproc, gh_symbol("#commands")));

@@ -1508,6 +1508,39 @@ datum *lang_string_split(datum **locals) {
 	return string_split(str->value.string, delim->value.string);
 }
 
+datum *lang_string_join(datum **locals) {
+	datum *delim;
+	datum *strings;
+	char *result;
+	datum *iterator;
+
+	delim = var_get(locals, "#delim");
+	gh_assert(delim->type == TYPE_STRING, "type-error", "not a string: ~s", gh_cons(delim, &LANG_NIL_VALUE));
+
+	strings = var_get(locals, "#strings");
+
+	if (strings->type == TYPE_NIL) {
+		return gh_string("");
+	}
+
+	gh_assert(strings->value.cons.car->type == TYPE_STRING, "type-error", "not a string: ~s", gh_cons(strings->value.cons.car, &LANG_NIL_VALUE));
+	result = strings->value.cons.car->value.string;
+	iterator = strings->value.cons.cdr;
+
+	while (iterator->type == TYPE_CONS) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+		gh_assert(current->type == TYPE_STRING, "type-error", "not a string: ~s", gh_cons(current, &LANG_NIL_VALUE));
+
+		result = string_append(result, string_append(delim->value.string, current->value.string));
+		iterator = iterator->value.cons.cdr;
+	}
+	gh_assert(iterator->type == TYPE_NIL, "type-error", "not a proper list: ~s", gh_cons(strings, &LANG_NIL_VALUE));
+
+	return gh_string(result);
+}
+
 datum *gh_exception(char *type, char *fmt, datum *fmt_args) {
 	datum *ex;
 

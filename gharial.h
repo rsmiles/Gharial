@@ -286,6 +286,8 @@ datum *string_split(const char *str, const char *delim);
 
 datum *lang_string_split(datum **locals);
 
+datum *lang_string_join(datum **locals);
+
 datum *gh_exception(char *type, char *fmt, datum *fmt_args);
 
 datum *gh_begin(datum *body, datum **locals);

@@ -89,7 +89,16 @@
 			t)))
 
 (defmacro $$ args
+	'(apply string-join (cons (format nil "~%") ($ . @args))))
+
+(defmacro car$ args
 	'(car ($ . @args)))
+
+(defn nth (n lst)
+	(loop ([i 0] [l lst])
+		(if (= i n)
+			(car l)
+			(recur (+ i 1) (cdr l)))))
 
 (setenv TRASH (string-append HOME "/.local/share/Trash"))
 
@@ -99,13 +108,13 @@
 		(loop ([n 1])
 			(let ([trash-name (if (= n 1)
 								(string file)
-								(string-append "." ($$ (println n))))])
+								(string-append "." (car$ (println n))))])
 				(if (test '-e (string-append TRASH "/files/" trash-name))
 					(recur (+ n 1))
 					(begin
 						(to (string-append TRASH "/info/" trash-name ".trashinfo")
 							(println "[Trash Info]")
-							(println (string-append "Path=" ($$ (readlink '-f (string file)))))
+							(println (string-append "Path=" (car$ (readlink '-f (string file)))))
 							(date "+DeletionDate=%Y-%m-%dT%H:%M:%S"))
 						(mv file (string-append TRASH "/files/" trash-name))))))))
 
