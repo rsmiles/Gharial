@@ -2763,7 +2763,7 @@ datum *gh_format(FILE *output, char *str, datum *args, datum **locals) {
 	if (output == NULL) {
 		return gh_string(result);
 	} else {
-		fprintf(output, "%s\n", result);
+		fprintf(output, "%s", result);
 		return &LANG_NIL_VALUE;
 	}
 }

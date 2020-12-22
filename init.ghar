@@ -88,6 +88,10 @@
 			nil
 			t)))
 
+(defn formatln (output fmt . fmt-args)
+	(let ([str (string-append fmt "~%")])
+		(apply format '(,output ,str . @fmt-args))))
+
 (defmacro $$ args
 	'(apply string-join (cons (format nil "~%") ($ . @args))))
 
