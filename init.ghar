@@ -134,6 +134,15 @@
 		(mv (string-append TRASH "/files/" (string file)) path)
 		(rm (string-append TRASH "/info/" (string file) ".trashinfo"))))
 
+(defmacro pop (lst)
+	'(let ([res (car ,lst)])
+		(set ,lst (cdr ,lst))
+		res))
+
+(defmacro push (lst val)
+	'(begin (set ,lst (cons ,val ,lst))
+			,val))
+
 # load user's gharialrc file if it exists
 (let ([rc (string-append HOME "/.gharialrc")])
 	(if (test '-f rc)
