@@ -62,8 +62,6 @@ SPECIAL    [\&\|\$\+\-\*\/\^=\?\!_\.<>%:]
 "nil"                 { return TOK_NIL; }
 {DIGIT}+\.{DIGIT}+    { return TOK_DECIMAL; }
 {DIGIT}+              { return TOK_INTEGER; }
-\"[^\"]*[^\\]\"       { return TOK_STRING; }
-"\"\""                { return TOK_EMPTYSTRING; }
 "("                   { depth++; return TOK_OPENPAREN; }
 ")"                   { if (depth > 0 ) depth--; return TOK_CLOSEPAREN; }
 "["                   { depth++; return TOK_OPENSQUARE; }
@@ -72,6 +70,8 @@ SPECIAL    [\&\|\$\+\-\*\/\^=\?\!_\.<>%:]
 "}"                   { if (depth > 0 ) depth--; return TOK_CLOSECURLY; }
 "."                   { return TOK_DOT; }
 <<EOF>>               { return TOK_EOF; }
+"\"\""                { return TOK_EMPTYSTRING; }
+\"[^\"]*(\"\")?[^\"]*\" { return TOK_STRING; }
 ({LETTER}|{SPECIAL}|\.)+({LETTER}|{SPECIAL}|{DIGIT})* { return TOK_SYMBOL; }
 
 %%
