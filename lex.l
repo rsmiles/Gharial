@@ -71,7 +71,7 @@ SPECIAL    [\&\|\$\+\-\*\/\^=\?\!_\.<>%:]
 "."                   { return TOK_DOT; }
 <<EOF>>               { return TOK_EOF; }
 "\"\""                { return TOK_EMPTYSTRING; }
-\"[^\"]*(\"\")?[^\"]*\" { return TOK_STRING; }
+\"(\"\")?[^\"]*(\"\")?[^\"]*(\"\")?\" { return TOK_STRING; }
 ({LETTER}|{SPECIAL}|\.)+({LETTER}|{SPECIAL}|{DIGIT})* { return TOK_SYMBOL; }
 
 %%
