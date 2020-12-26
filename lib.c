@@ -2707,7 +2707,7 @@ datum *gh_format(FILE *output, char *str, datum *args, datum **locals) {
 	int i;
 	char command_string[2];
 
-	copy = string_append("", str);
+	copy = unescape(str);
 	current = copy;
 	arg = args;
 	result = "";
@@ -2741,7 +2741,7 @@ datum *gh_format(FILE *output, char *str, datum *args, datum **locals) {
 				case 'a':
 					gh_assert(arg->type == TYPE_CONS, "format-error", "not enough args to format string: ~s", gh_cons(gh_string(str), &LANG_NIL_VALUE));
 					if (arg->value.cons.car->type == TYPE_STRING) {
-						result = string_append(result, arg->value.cons.car->value.string);
+						result = string_append(result, unescape(arg->value.cons.car->value.string));
 					} else {
 						result = string_append(result, gh_to_string(arg->value.cons.car));
 					}
@@ -3134,7 +3134,7 @@ datum *lang_print(datum **locals) {
 	gh_assert(file->type == TYPE_FILE, "type-error", "argument 2 is not a file: ~s", gh_cons(file, &LANG_NIL_VALUE));
 
 	if (obj->type == TYPE_STRING) {
-		fprintf(file->value.file, "%s", obj->value.string);
+		fprintf(file->value.file, "%s", unescape(obj->value.string));
 	} else {
 		print_datum(file->value.file, obj);
 	}
@@ -3158,7 +3158,7 @@ datum *lang_println(datum **locals) {
 	gh_assert(file->type == TYPE_FILE, "type-error", "argument 2 is not a file: ~s", gh_cons(file, &LANG_NIL_VALUE));
 
 	if (obj->type == TYPE_STRING) {
-		fprintf(file->value.file, "%s\n", obj->value.string);
+		fprintf(file->value.file, "%s\n", unescape(obj->value.string));
 	} else {
 		gh_print(file->value.file, obj);
 	}
@@ -3313,3 +3313,32 @@ datum *lang_symbol(datum **locals) {
 	}
 }
 
+char *unescape(char *str) {
+	char *copy;
+	char *str_ptr;
+	char *copy_ptr;
+
+	copy = GC_MALLOC(sizeof(char) * (strlen(str) + 1));
+
+	copy_ptr = copy;
+	for (str_ptr = str; *str_ptr != '\0'; str_ptr++) {
+		if (*str_ptr == '"') {
+			str_ptr++;
+			if (*str_ptr == '"') {
+				*copy_ptr = '"';
+				copy_ptr++;
+			} else {
+				*copy_ptr = '"';
+				copy_ptr++;
+				*copy_ptr = *str_ptr;
+			}
+		} else {
+			*copy_ptr = *str_ptr;
+			copy_ptr++;
+		}
+	}
+
+	*copy_ptr = '\0';
+
+	return copy;
+}

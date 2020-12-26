@@ -416,5 +416,7 @@ datum *lang_string(datum **locals);
 
 datum *lang_symbol(datum **locals);
 
+char *unescape(char *str);
+
 #endif
 
