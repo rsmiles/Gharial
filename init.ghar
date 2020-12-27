@@ -143,6 +143,43 @@
 	'(begin (set ,lst (cons ,val ,lst))
 			,val))
 
+(defn cddr (lst)
+	(cdr (cdr lst)))
+
+(defn cadr (lst)
+	(car (cdr lst)))
+
+(defn caddr (lst)
+	(car (cdr (cdr lst))))
+
+(defn cdddr (lst)
+	(cdr (cdr (cdr lst))))
+
+(defn group-op (op lst)
+	(let ([l (map (lambda (el)
+					(if (= (type el) "cons")
+						(group-op op el)
+						el)) lst)])
+		(cond
+			[(= l nil) nil]
+			[(= (cdr l) nil) (car l)]
+			[(= (cddr l) nil) l]
+			[t (if (= (cadr l) op)
+					(group-op op (cons '(,op ,(car l) ,(caddr l)) (cdddr l)))
+					(cons (car l) (group-op op (cdr l))))])))
+
+(defmacro math expr
+	(group-ops '(^ / * + -) expr))
+
+(defn group-ops (ops lst)
+	(loop ([o ops] [l lst])
+		(if (= o nil)
+			l
+			(recur (cdr o) (group-op (car o) l)))))
+
+
+
+
 # load user's gharialrc file if it exists
 (let ([rc (string-append HOME "/.gharialrc")])
 	(if (test '-f rc)
