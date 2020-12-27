@@ -155,6 +155,41 @@
 (defn cdddr (lst)
 	(cdr (cdr (cdr lst))))
 
+(defn -group (arg1 op arg2 . rest)
+	(-group-op (cons (list op (-group-op arg1 op) (-group-op arg2 op)) rest) op))
+
+(defn -can-group (lst op)
+	(cond
+		[(< (length lst) 3) f]
+		[(= (cadr lst) op) t]
+		[t f]))
+
+(defn -group-op (lst op)
+	(cond
+		[(!= (type lst) "cons") lst]
+		[(-can-group lst op) (apply -group lst)]
+		[t (cons (-group-op (car lst) op) (-group-op (cdr lst) op))]))
+
+(defn -group-ops (lst ops)
+	(loop ([l lst] [o ops])
+		(if	(= o nil)
+			l
+			(recur (-group-op l (car o)) (cdr o)))))
+
+(defn -unnest (lst)
+	(cond
+		[(!= (type lst) "cons") lst]
+		[(> (length lst) 1) (map -unnest lst)]
+		[(!= (type (car lst)) "cons") (map -unnest lst)]
+		[t (-unnest (car lst))]))
+
+(defn infix (lst ops)
+	(-unnest (-group-ops lst ops)))
+
+(defmacro math args
+	(infix args '(^ / * + - < <= > >= =)))
+
+
 # load user's gharialrc file if it exists
 (let ([rc (string-append HOME "/.gharialrc")])
 	(if (test '-f rc)
