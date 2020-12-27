@@ -350,6 +350,7 @@ datum *lang_macro(datum **locals) {
 	mac->type = TYPE_MACRO;
 	mac->value.func.lambda_list = lambda_list;
 	mac->value.func.body = body;
+	mac->value.func.closure = *locals;
 	mac->value.func.name = "macro";
 	return mac;	
 }
@@ -1657,8 +1658,10 @@ datum *apply_macro(datum *macro, datum *args, datum **locals) {
 	datum *new_locals;
 	datum *result;
 
+	new_locals = combine(macro->value.func.closure, *locals, locals);
+
 	arg_bindings = bind_args(macro->value.func.lambda_list, args);
-	new_locals = combine(arg_bindings, *locals, locals);
+	new_locals = combine(arg_bindings, new_locals, locals);
 
 	result = gh_begin(macro->value.func.body, &new_locals);
 	return result;
