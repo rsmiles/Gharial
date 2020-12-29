@@ -2719,9 +2719,9 @@ datum *gh_format(FILE *output, char *str, datum *args, datum **locals) {
 		if (copy[i] == '~') {
 			copy[i] = '\0';
 			result = string_append(result, current);
-			do {
+			while (*current != '\0') {
 				current++;
-			} while (*current != '\0');
+			}
 			current++;
 			if (*current != '\0') {
 				current++;
