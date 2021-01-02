@@ -324,7 +324,7 @@ datum *lang_lambda(datum **locals) {
 	func->value.func.lambda_list = lambda_list;
 	func->value.func.body = body;
 	func->value.func.closure = strip_stack_frames(*locals);
-	func->value.func.name = "lambda";
+	func->value.func.name = "#?";
 	return func;	
 }
 
@@ -351,7 +351,7 @@ datum *lang_macro(datum **locals) {
 	mac->value.func.lambda_list = lambda_list;
 	mac->value.func.body = body;
 	mac->value.func.closure = *locals;
-	mac->value.func.name = "macro";
+	mac->value.func.name = "#?";
 	return mac;	
 }
 
@@ -645,6 +645,7 @@ void print_exception(FILE *file, datum *expr, datum **locals) {
 
 	fprintf(file, "%s: ", type);
 	gh_format(file, fmt, fmt_args, locals);
+	fprintf(file, "\n");
 }
 
 bool is_macro_call(datum *expr, datum **locals) {
@@ -3237,16 +3238,16 @@ char *gh_to_string(datum *x) {
 			return x->value.string;
 			break;
 		case TYPE_CFORM:
-			return "<c_form>";
+			return string_append("<c_form:", string_append(x->value.c_code.name, ">"));
 			break;
 		case TYPE_CFUNC:
-			return "<c_function>";
+			return string_append("<c_function:", string_append(x->value.c_code.name, ">"));
 			break;
 		case TYPE_FUNC:
-			return "<function>";
+			return string_append("<function:", string_append(x->value.func.name, ">"));
 			break;
 		case TYPE_MACRO:
-			return "<macro>";
+			return string_append("<macro:", string_append(x->value.func.name, ">"));
 			break;
 		case TYPE_RECUR:
 			return "<recur_object>";
