@@ -2491,22 +2491,25 @@ datum *lang_capture(datum **locals) {
 
 datum *gh_redirect(datum *file_symbol, datum *path, char *file_mode,  bool in_pipe, datum *commands, datum **locals) {
 	FILE *file;
-	datum *file_datum;
 	datum *new_locals;
+	datum *outpipe;
+	datum *outpipe_out;
+	datum *outpipe_in;
+	datum *result;
 
 	path = gh_eval(path, locals);
 
 	gh_assert(path->type == TYPE_STRING || path->type == TYPE_SYMBOL, "type-error", "neither a symbol, nor a string: ~a", gh_cons(path, &LANG_NIL_VALUE));
-	file = fopen(path->value.string, file_mode);
-	gh_assert(file != NULL, "i/o-error", "could not open file \"~a\"", gh_cons(path, gh_cons(gh_error(), &LANG_NIL_VALUE)));
 
-	file_datum = gh_file(file);
+	outpipe = gh_pipe();
+	outpipe_out = outpipe->value.cons.car;
+	outpipe_in = outpipe->value.cons.cdr;
 
-	new_locals = gh_cons(gh_cons(file_symbol, file_datum), *locals);
+
+	new_locals = gh_cons(gh_cons(file_symbol, outpipe_in), *locals);
 
 	if (in_pipe) {
 		datum *iterator;
-		datum *result;
 
 		iterator = commands;
 		while (iterator->type == TYPE_CONS) {
@@ -2516,10 +2519,14 @@ datum *gh_redirect(datum *file_symbol, datum *path, char *file_mode,  bool in_pi
 			result = pipe_eval(command, &new_locals);
 			iterator = iterator->value.cons.cdr;
 		}
-		return result;
 	} else {
-		return gh_begin(commands, &new_locals);
+		result = gh_begin(commands, &new_locals);
 	}
+	fclose(outpipe_in->value.file);
+	file = fopen(path->value.string, file_mode);
+	gh_assert(file != NULL, "i/o-error", "could not open file \"~a\"", gh_cons(path, gh_cons(gh_error(), &LANG_NIL_VALUE)));
+	gh_stream_to(outpipe_out->value.file, file);
+	return result;
 }
 
 datum *lang_pipe_err_to(datum **locals) {
@@ -2569,7 +2576,7 @@ datum *lang_to(datum **locals) {
 	path = var_get(locals, "#path");
 	commands = var_get(locals, "#commands");
 
-	return gh_redirect(gh_symbol("output-file"), path, "a", FALSE, commands, locals);
+	return gh_redirect(gh_symbol("output-file"), path, "w", FALSE, commands, locals);
 
 }
 
