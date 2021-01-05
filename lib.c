@@ -2524,7 +2524,7 @@ datum *gh_redirect(datum *file_symbol, datum *path, char *file_mode,  bool in_pi
 	}
 	fclose(outpipe_in->value.file);
 	file = fopen(path->value.string, file_mode);
-	gh_assert(file != NULL, "i/o-error", "could not open file \"~a\"", gh_cons(path, gh_cons(gh_error(), &LANG_NIL_VALUE)));
+	gh_assert(file != NULL, "i/o-error", "could not open file \"\"~a\"\": ~a", gh_cons(path, gh_cons(gh_error(),  &LANG_NIL_VALUE)));
 	gh_stream_to(outpipe_out->value.file, file);
 	return result;
 }
