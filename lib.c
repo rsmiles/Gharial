@@ -356,14 +356,17 @@ datum *lang_macro(datum **locals) {
 }
 
 bool gh_is_true(datum *expr) {
-	if (expr->type == TYPE_NIL) {
-		return FALSE;
-	} else if ((expr->type == TYPE_INTEGER || expr->type == TYPE_RETURNCODE) && expr->value.integer != 0) {
-		return FALSE;
-	} else if (expr->type == TYPE_DECIMAL && expr->value.decimal != 0.0) {
-		return FALSE;
-	} else {
-		return TRUE;
+	switch (expr->type) {
+		case TYPE_TRUE:
+			return TRUE;
+			break;
+		case TYPE_INTEGER:
+		case TYPE_RETURNCODE:
+			return expr->value.integer == 0;
+		case TYPE_DECIMAL:
+			return expr->value.decimal == 0.0;
+		default:
+			return FALSE;
 	}
 }
 

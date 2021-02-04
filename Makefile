@@ -5,14 +5,10 @@ LDFLAGS=-ll -lm -lgc -lcurses -ledit
 
 all: gharial
 
-
 gharial: main.o lib.o parse.o lex.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-main.o: main.c gharial.h hash.o lib.o parse.o lex.o
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-hash.o: hash.c hash.h
+main.o: main.c gharial.h lib.o parse.o lex.o
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 lib.o: lib.c gharial.h parse.o lex.o
