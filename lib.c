@@ -2764,8 +2764,7 @@ datum *gh_format(FILE *output, char *str, datum *args, datum **locals) {
 				default:
 					command_string[0] = copy[i + 1];
 					command_string[1] = '\0';
-					gh_assert(TRUE, "format-error", "unkown format option: ~s", gh_cons(gh_string(command_string), &LANG_NIL_VALUE));
-					result = NULL;
+					gh_assert(FALSE, "format-error", "unkown format option: ~s", gh_cons(gh_string(command_string), &LANG_NIL_VALUE));
 					break;
 			}
 			i++;
