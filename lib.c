@@ -13,6 +13,7 @@
 #include <termios.h>
 #include <gc.h>
 #include <histedit.h>
+#include <sodium.h>
 
 #include "gharial.h"
 #include "y.tab.h"
@@ -25,6 +26,7 @@ extern char **environ;
 datum *translate_binding(datum *let_binding);
 datum *translate_bindings(datum *bindings);
 bool is_path(char *str);
+bool gh_isnum(datum *x);
 datum *gh_exec(char *name);
 datum *exec_lookup(char *name);
 char **build_argv(datum *ex, datum *arglist);
@@ -3354,4 +3356,42 @@ char *unescape(char *str) {
 	*copy_ptr = '\0';
 
 	return copy;
+}
+
+datum *lang_random(datum **locals) {
+	datum *args;
+	size_t nargs;
+	unsigned int lower;
+	unsigned int upper;
+	unsigned int result;
+
+	args = var_get(locals, "#args");
+	nargs = gh_length(args);
+
+	switch (nargs) {
+		case 0:
+			lower = 0;
+			upper = 0x7FFFFFFF;
+			break;
+		case 1:
+			lower = 0;
+			gh_assert(args->value.cons.car->type == TYPE_INTEGER, "type-error", "argument is a non-integer: ~a", args);
+			upper = args->value.cons.car->value.integer;
+			break;
+		case 2:
+			gh_assert(args->value.cons.car->type == TYPE_INTEGER, "type-error", "first argument is a non-integer: ~a", gh_cons(args->value.cons.car, &LANG_NIL_VALUE));
+			lower = args->value.cons.car->value.integer;
+
+			gh_assert(args->value.cons.cdr->value.cons.car->type == TYPE_INTEGER, "type-error", "second argument is a non-integer: ~a", gh_cons(args->value.cons.cdr->value.cons.car, &LANG_NIL_VALUE));
+			upper = args->value.cons.cdr->value.cons.car->value.integer;
+			break;
+		default:
+			gh_assert(FALSE, "agument-error", "random takes 0-2 arguments, received ~a", gh_cons(gh_integer(nargs), &LANG_NIL_VALUE));
+			break;
+	}
+	gh_assert(lower >= 0, "argument-error", "negative lower bound: ~a", gh_cons(gh_integer(lower), &LANG_NIL_VALUE));
+	gh_assert(upper >= 0, "argument-error", "negative upper bound: ~a", gh_cons(gh_integer(upper), &LANG_NIL_VALUE));
+
+	result = randombytes_uniform(upper - lower) + lower;
+	return gh_integer(result);
 }

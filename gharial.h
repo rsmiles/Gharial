@@ -416,6 +416,8 @@ datum *lang_string(datum **locals);
 
 datum *lang_symbol(datum **locals);
 
+datum *lang_random(datum **locals);
+
 char *unescape(char *str);
 
 #endif
