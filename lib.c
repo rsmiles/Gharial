@@ -3389,8 +3389,8 @@ datum *lang_random(datum **locals) {
 			gh_assert(FALSE, "agument-error", "random takes 0-2 arguments, received ~a", gh_cons(gh_integer(nargs), &LANG_NIL_VALUE));
 			break;
 	}
-	gh_assert(lower >= 0, "argument-error", "negative lower bound: ~a", gh_cons(gh_integer(lower), &LANG_NIL_VALUE));
-	gh_assert(upper >= 0, "argument-error", "negative upper bound: ~a", gh_cons(gh_integer(upper), &LANG_NIL_VALUE));
+	gh_assert(lower <= 0, "argument-error", "negative lower bound: ~a", gh_cons(gh_integer(lower), &LANG_NIL_VALUE));
+	gh_assert(upper <= 0, "argument-error", "negative upper bound: ~a", gh_cons(gh_integer(upper), &LANG_NIL_VALUE));
 
 	result = randombytes_uniform(upper - lower) + lower;
 	return gh_integer(result);

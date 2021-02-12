@@ -60,8 +60,8 @@ SPECIAL    [\&\|\$\+\-\*\/\^=\?\!_\.<>%:]
 ","                   { return TOK_UNQUOTE; }
 "t"                   { return TOK_TRUE; }
 "nil"                 { return TOK_NIL; }
-{DIGIT}+\.{DIGIT}+    { return TOK_DECIMAL; }
-{DIGIT}+              { return TOK_INTEGER; }
+-?{DIGIT}+\.{DIGIT}+    { return TOK_DECIMAL; }
+-?{DIGIT}+              { return TOK_INTEGER; }
 "("                   { depth++; return TOK_OPENPAREN; }
 ")"                   { if (depth > 0 ) depth--; return TOK_CLOSEPAREN; }
 "["                   { depth++; return TOK_OPENSQUARE; }
