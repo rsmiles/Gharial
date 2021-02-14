@@ -3196,7 +3196,7 @@ datum *lang_assert(datum **locals) {
 	return &LANG_NIL_VALUE;
 }
 
-datum *lang_int(datum **locals) {
+datum *lang_to_int(datum **locals) {
 	datum *x;
 
 	x = var_get(locals, "#x");
@@ -3209,7 +3209,7 @@ datum *lang_int(datum **locals) {
 	}
 }
 
-datum *lang_dec(datum **locals) {
+datum *lang_to_dec(datum **locals) {
 	datum *x;
 
 	x = var_get(locals, "#x");
@@ -3305,7 +3305,7 @@ char *gh_to_string(datum *x) {
 	}
 }
 
-datum *lang_string(datum **locals) {
+datum *lang_to_string(datum **locals) {
 	datum *x;
 	char *result;
 
@@ -3396,3 +3396,13 @@ datum *lang_random(datum **locals) {
 	result = randombytes_uniform(upper - lower) + lower;
 	return gh_integer(result);
 }
+
+
+datum *gh_array(datum *init, size_t ndims, size_t *dims) {
+
+}
+
+datum *lang_array(datum **locals) {
+
+}
+

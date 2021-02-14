@@ -28,6 +28,7 @@
 #define TYPE_PID        17
 #define TYPE_CAPTURE    18
 #define TYPE_JOB        19
+#define TYPE_ARRAY	20
 
 #define gh_assert(test, type, fmt, fmt_args) \
 	do { \
@@ -408,17 +409,21 @@ datum *lang_println(datum **locals);
 
 datum *lang_assert(datum **locals);
 
-datum *lang_int(datum **locals);
+datum *lang_to_int(datum **locals);
 
-datum *lang_dec(datum **locals);
+datum *lang_to_dec(datum **locals);
 
-datum *lang_string(datum **locals);
+datum *lang_to_string(datum **locals);
 
-datum *lang_symbol(datum **locals);
+datum *lang_to_symbol(datum **locals);
 
 datum *lang_random(datum **locals);
 
 char *unescape(char *str);
+
+datum *gh_array(datum *init, size_t ndims, size_t *dims);
+
+datum *lang_array(datum **locals);
 
 #endif
 

@@ -243,11 +243,12 @@ void init_builtins() {
 	symbol_set(&globals, "print", gh_cfunc(&lang_print, gh_cons(gh_symbol("#obj"), gh_symbol("#file"))));
 	symbol_set(&globals, "println", gh_cfunc(&lang_println, gh_cons(gh_symbol("#obj"), gh_symbol("#file"))));
 	symbol_set(&globals, "assert", gh_cfunc(&lang_assert, gh_cons(gh_symbol("#test"), gh_cons(gh_symbol("#type"), gh_cons(gh_symbol("#fmt"), gh_symbol("#fmt-args"))))));
-	symbol_set(&globals, "int", gh_cfunc(&lang_int, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
-	symbol_set(&globals, "dec", gh_cfunc(&lang_dec, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
-	symbol_set(&globals, "string", gh_cfunc(&lang_string, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
-	symbol_set(&globals, "symbol", gh_cfunc(&lang_symbol, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
+	symbol_set(&globals, "to-int", gh_cfunc(&lang_to_int, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
+	symbol_set(&globals, "to-dec", gh_cfunc(&lang_to_dec, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
+	symbol_set(&globals, "to-string", gh_cfunc(&lang_to_string, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
+	symbol_set(&globals, "to-symbol", gh_cfunc(&lang_to_symbol, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "random", gh_cfunc(&lang_random, gh_symbol("#args")));
+	symbol_set(&globals, "array", gh_cfunc(&lang_array, gh_cons(gh_symbol("#init"), gh_cons(gh_symbol("#len", gh_symbol("#dims"))))))
 
 	subproc_nowait = gh_cform(&lang_subproc_nowait, gh_symbol("#commands"));
 	pipe_err_to = gh_cform(&lang_pipe_err_to, gh_cons(gh_symbol("#path"), gh_symbol("#commands")));
