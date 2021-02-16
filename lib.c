@@ -43,12 +43,12 @@ void job_remove(datum *job);
 char *gh_read_all(FILE *f);
 datum *strip_stack_frames(datum *lst);
 void gh_stacktrace(FILE *file, datum **locals);
-datum *typecheck(datum *args, datum * types, char *mismatch_fmt,  datum **locals);
 datum *gh_cons2(datum *car, datum *cdr, datum **locals);
 double gh_comp(datum *a, datum *b);
 bool listcmp(datum *a, datum *b);
 bool gh_is_true(datum *expr);
 char *gh_to_string(datum *x);
+size_t array_index(size_t num_dims, size_t *indexes);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -2836,34 +2836,6 @@ void gh_stacktrace(FILE *file, datum **locals) {
 	}
 }
 
-datum *typecheck(datum *args, datum *types, char *mismatch_fmt, datum **locals) {
-	datum *arg_iterator;
-
-	arg_iterator = args->value.cons.car;
-	while (arg_iterator->type == TYPE_CONS) {
-		datum *current_arg;
-		datum *type_iterator;
-
-		current_arg = arg_iterator->value.cons.car;
-
-		type_iterator = types;
-		while (type_iterator->type == TYPE_CONS) {
-			datum *current_type;
-
-			current_type = type_iterator->value.cons.car;
-			if (current_type->value.integer == current_arg->type) {
-				goto pass_arg;
-			}	
-			type_iterator = type_iterator->value.cons.cdr;
-		}
-		gh_assert(TRUE, "type-error", mismatch_fmt, gh_cons(current_arg, &LANG_NIL_VALUE));
-		pass_arg:
-
-		arg_iterator = arg_iterator->value.cons.cdr;
-	}
-	return &LANG_NIL_VALUE;
-}
-
 datum *lang_read_password(datum **locals) {
 	datum *prompt;
 	datum *file;
@@ -3397,12 +3369,83 @@ datum *lang_random(datum **locals) {
 	return gh_integer(result);
 }
 
+size_t array_index(size_t num_dims, size_t *dims, size_t *indexes) {
+	size_t i;
+	size_t j;
+	size_t result = 0;
+	for (i = 0; i < num_dims; i++) {
+		size_t dim_product = 1;
+		for (j = 0; j < i; j++) {
+			dim_product *= dims[j];
+		}
+		result += indexes[i] * dim_product;
+	}
+	return result;
+}
 
-datum *gh_array(datum *init, size_t ndims, size_t *dims) {
+datum *gh_array(datum *init, datum *dims) {
+	datum *a;
+	datum *iterator;
+	size_t num_dims;
+	size_t real_size;
+	size_t i;
 
+	a = new_datum();
+	a->type = TYPE_ARRAY;
+	a->value.array.num_dims = num_dims;
+
+	num_dims = gh_length(dims);
+	a->value.dims = GC_MALLOC(sizeof(size_t) * num_dims);
+	if (a->value.dims == NULL) {
+		fprintf(stderr, "fatal-error: out of memory in gh_array\n");
+		exit(EXIT_FAILURE);
+	}
+
+	real_size = 1;
+	iterator = dims;
+	while (iterator->type == TYPE_CONS) {
+		datum *current;
+		current = iterator->value.cons.car;
+		real_size *= current->value.integer;
+		a->value.array.dims[i] = dims[i];
+		iterator = iterator->value.cons.cdr;
+	}
+
+	a->value.data = GC_MALLOC(sizeof(datum) * real_size);
+	if (a->value.data == NULL) {
+		fprintf(stderr, "fatal-error: out of memory in gh_array\n");
+		exit(EXIT_FAILURE);
+	}
+
+	for (i = 0; i < real_size; i++) {
+		a->value.array.data[i] = init;
+	}
+
+	return a;
 }
 
 datum *lang_array(datum **locals) {
+	datum *init;
+	datum *len;
+	datum *dims;
+	datum *iterator;
 
+	init = var_get(locals, "#init");
+	len = var_get(locals, "#len");
+	dims = var_get(locals, "#dims");
+
+	gh_assert(len->type == TYPE_INTEGER, "type-error", "array dimensons can only be integers, found ~a", gh_cons(len, &LANG_NIL_VALUE));
+	gh_assert(len->value.integer > 0, "math-error", "only natural numbers can be array dimensions, found ~a", gh_cons(len, &LANG_NIL_VALUE));
+
+
+	iterator = dims;
+	while (iterator->type != TYPE_CONS) {
+		datum *current = iterator->value.cons.car;
+		gh_assert(current->type == TYPE_INTEGER, "type-error", "array dimensions can only be integers, found ~a", gh_cons(current, &LANG_NIL_VALUE));
+		gh_assert(current->value.integer > 0, "math-error", "only natural numbers can be array dimensions, found ~a", gh_cons(current, &LANG_NIL_VALUE));
+		iterator = iterator->value.cons.cdr;
+	}
+
+	return gh_array(init, gh_cons(len, dims))
 }
 

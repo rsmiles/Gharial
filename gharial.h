@@ -87,6 +87,12 @@ typedef struct datum {
 			struct datum *output_file;
 			struct datum *error_file;
 		} job;
+
+		struct {
+			size_t num_dims;
+			size_t *dims;
+			datum *data;
+		} array;
 		
 	} value;
 } datum;
