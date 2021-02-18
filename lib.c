@@ -3198,6 +3198,8 @@ char *gh_to_string(datum *x) {
 	char buff[64];
 	datum *iterator;
 	char *result;
+	size_t i;
+	size_t array_len;
 
 	switch (x->type) {
 		case TYPE_NIL:
@@ -3269,6 +3271,26 @@ char *gh_to_string(datum *x) {
 				result = string_append(result, gh_to_string(iterator->value.cons.cdr));
 			}
 			result = string_append(result, ")");
+			return result;
+			break;
+		case TYPE_ARRAY:
+			result = "<array:"
+			array_len = 1;
+			for (i = 0; i < value->value.array.num_dims; i++) {
+				result = string_append(result, gh_to_string(gh_integer(value->value.array.dims[i])));
+				array_len *= value->value.array.dims[i];
+				if (i < value->value.array.num_dims) {
+					result = string_append(result, "x");
+				}
+			}
+			result = string_append(result, ":");
+			for (i = 0; i < array_len; i++) {
+				result = string_append(result, gh_to_string(value->value.array.data[i]));
+				if (i < array_len) {
+					result = string_append(result, " ");
+				}
+			}
+			result = string_append(result, ">");
 			return result;
 			break;
 		default:
