@@ -3462,9 +3462,8 @@ datum *lang_array(datum **locals) {
 	gh_assert(len->type == TYPE_INTEGER, "type-error", "array dimensons can only be integers, found ~a", gh_cons(len, &LANG_NIL_VALUE));
 	gh_assert(len->value.integer > 0, "math-error", "only natural numbers can be array dimensions, found ~a", gh_cons(len, &LANG_NIL_VALUE));
 
-
 	iterator = dims;
-	while (iterator->type != TYPE_CONS) {
+	while (iterator->type == TYPE_CONS) {
 		datum *current = iterator->value.cons.car;
 		gh_assert(current->type == TYPE_INTEGER, "type-error", "array dimensions can only be integers, found ~a", gh_cons(current, &LANG_NIL_VALUE));
 		gh_assert(current->value.integer > 0, "math-error", "only natural numbers can be array dimensions, found ~a", gh_cons(current, &LANG_NIL_VALUE));
