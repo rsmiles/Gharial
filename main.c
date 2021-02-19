@@ -248,7 +248,7 @@ void init_builtins() {
 	symbol_set(&globals, "to-string", gh_cfunc(&lang_to_string, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "to-symbol", gh_cfunc(&lang_to_symbol, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "random", gh_cfunc(&lang_random, gh_symbol("#args")));
-	symbol_set(&globals, "array", gh_cfunc(&lang_array, gh_cons(gh_symbol("#init"), gh_cons(gh_symbol("#len", gh_symbol("#dims"))))))
+	symbol_set(&globals, "array", gh_cfunc(&lang_array, gh_cons(gh_symbol("#init"), gh_cons(gh_symbol("#len"), gh_symbol("#dims")))));
 
 	subproc_nowait = gh_cform(&lang_subproc_nowait, gh_symbol("#commands"));
 	pipe_err_to = gh_cform(&lang_pipe_err_to, gh_cons(gh_symbol("#path"), gh_symbol("#commands")));

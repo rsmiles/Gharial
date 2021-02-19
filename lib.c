@@ -48,7 +48,7 @@ double gh_comp(datum *a, datum *b);
 bool listcmp(datum *a, datum *b);
 bool gh_is_true(datum *expr);
 char *gh_to_string(datum *x);
-size_t array_index(size_t num_dims, size_t *indexes);
+size_t array_index(size_t num_dims, size_t *dims, size_t *indexes);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -3274,18 +3274,18 @@ char *gh_to_string(datum *x) {
 			return result;
 			break;
 		case TYPE_ARRAY:
-			result = "<array:"
+			result = "<array:";
 			array_len = 1;
-			for (i = 0; i < value->value.array.num_dims; i++) {
-				result = string_append(result, gh_to_string(gh_integer(value->value.array.dims[i])));
-				array_len *= value->value.array.dims[i];
-				if (i < value->value.array.num_dims) {
+			for (i = 0; i < x->value.array.num_dims; i++) {
+				result = string_append(result, gh_to_string(gh_integer(x->value.array.dims[i])));
+				array_len *= x->value.array.dims[i];
+				if (i < x->value.array.num_dims) {
 					result = string_append(result, "x");
 				}
 			}
 			result = string_append(result, ":");
 			for (i = 0; i < array_len; i++) {
-				result = string_append(result, gh_to_string(value->value.array.data[i]));
+				result = string_append(result, gh_to_string(x->value.array.data[i]));
 				if (i < array_len) {
 					result = string_append(result, " ");
 				}
@@ -3309,7 +3309,7 @@ datum *lang_to_string(datum **locals) {
 	return gh_string(result);
 }
 
-datum *lang_symbol(datum **locals) {
+datum *lang_to_symbol(datum **locals) {
 	datum *x;
 
 	x = var_get(locals, "#x");
@@ -3412,29 +3412,32 @@ datum *gh_array(datum *init, datum *dims) {
 	size_t real_size;
 	size_t i;
 
+	num_dims = gh_length(dims);
+
 	a = new_datum();
 	a->type = TYPE_ARRAY;
 	a->value.array.num_dims = num_dims;
 
-	num_dims = gh_length(dims);
-	a->value.dims = GC_MALLOC(sizeof(size_t) * num_dims);
-	if (a->value.dims == NULL) {
+	a->value.array.dims = GC_MALLOC(sizeof(size_t) * num_dims);
+	if (a->value.array.dims == NULL) {
 		fprintf(stderr, "fatal-error: out of memory in gh_array\n");
 		exit(EXIT_FAILURE);
 	}
 
 	real_size = 1;
 	iterator = dims;
+	i = 0;
 	while (iterator->type == TYPE_CONS) {
 		datum *current;
 		current = iterator->value.cons.car;
 		real_size *= current->value.integer;
-		a->value.array.dims[i] = dims[i];
+		a->value.array.dims[i] = current->value.integer;
 		iterator = iterator->value.cons.cdr;
+		i++;
 	}
 
-	a->value.data = GC_MALLOC(sizeof(datum) * real_size);
-	if (a->value.data == NULL) {
+	a->value.array.data = GC_MALLOC(sizeof(datum *) * real_size);
+	if (a->value.array.data == NULL) {
 		fprintf(stderr, "fatal-error: out of memory in gh_array\n");
 		exit(EXIT_FAILURE);
 	}
@@ -3468,6 +3471,6 @@ datum *lang_array(datum **locals) {
 		iterator = iterator->value.cons.cdr;
 	}
 
-	return gh_array(init, gh_cons(len, dims))
+	return gh_array(init, gh_cons(len, dims));
 }
 

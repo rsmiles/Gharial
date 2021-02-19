@@ -91,7 +91,7 @@ typedef struct datum {
 		struct {
 			size_t num_dims;
 			size_t *dims;
-			datum *data;
+			struct datum **data;
 		} array;
 		
 	} value;
@@ -427,7 +427,7 @@ datum *lang_random(datum **locals);
 
 char *unescape(char *str);
 
-datum *gh_array(datum *init, size_t ndims, size_t *dims);
+datum *gh_array(datum *init, datum *dims);
 
 datum *lang_array(datum **locals);
 
