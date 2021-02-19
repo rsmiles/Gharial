@@ -3279,14 +3279,14 @@ char *gh_to_string(datum *x) {
 			for (i = 0; i < x->value.array.num_dims; i++) {
 				result = string_append(result, gh_to_string(gh_integer(x->value.array.dims[i])));
 				array_len *= x->value.array.dims[i];
-				if (i < x->value.array.num_dims) {
+				if (i < x->value.array.num_dims - 1) {
 					result = string_append(result, "x");
 				}
 			}
 			result = string_append(result, ":");
 			for (i = 0; i < array_len; i++) {
 				result = string_append(result, gh_to_string(x->value.array.data[i]));
-				if (i < array_len) {
+				if (i < array_len - 1) {
 					result = string_append(result, " ");
 				}
 			}
