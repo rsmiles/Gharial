@@ -49,6 +49,7 @@ bool listcmp(datum *a, datum *b);
 bool gh_is_true(datum *expr);
 char *gh_to_string(datum *x);
 size_t array_index(size_t num_dims, size_t *dims, size_t *indexes);
+size_t gh_array_length(datum *array);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -1999,7 +2000,22 @@ datum *lang_length(datum **locals) {
 	datum *lst;
 
 	lst = var_get(locals, "#lst");
-	gh_assert(lst->type == TYPE_CONS, "type-error", "not a list: ~s", gh_cons(lst, &LANG_NIL_VALUE));
+
+	switch (lst->type) {
+		case TYPE_CONS:
+			return gh_integer(gh_length(lst));
+			break;
+		case TYPE_STRING:
+			return gh_integer(strlen(lst->value.string));
+			break;
+		case TYPE_ARRAY:
+			return gh_integer(gh_array_length(lst);
+			break;
+		default:
+			gh_assert(FALSE, "type-error", "Not a list, string, or array: ~s" gh_cons(lst, &LANG_NIL_VALUE));
+			return NULL;
+			break;
+	}
 
 	return gh_integer(gh_length(lst));
 }
@@ -3473,3 +3489,64 @@ datum *lang_array(datum **locals) {
 	return gh_array(init, gh_cons(len, dims));
 }
 
+datum *lang_nth(datum **locals) {
+	datum *obj;
+	datum *n;
+	datum *iterator;
+	char char_string[2];
+	size_t i;
+
+	obj = var_get(locals, "#obj");
+	n = var_get(locals, "#n");
+
+	gh_assert(n->type == TYPE_INTEGER, "type-error", "not an integer: ~s", gh_cons(n, &LANG_NIL_VALUE));
+	gh_assert(n->value.integer >= 0, "index-error", "negative number: ~s", gh_cons(n, &LANG_NIL_VALUE));
+
+	switch (obj->type) {
+		case TYPE_CONS:
+			iterator = obj;
+			for (i = 0; i != n->value.integer; i++) {
+				gh_assert(iterator->type == TYPE_CONS, "index-error", "index out of bounds: ~s", gh_cons(n, &LANG_NIL_VALUE));
+				iterator = iterator->value.cons.cdr;
+			}
+			return iterator->value.cons.car;
+			break;
+		case TYPE_STRING:
+			gh_assert(strlen(obj->value.string) >= n, "index-error", "index out of bounds: ~s", gh_cons(n, &LANG_NIL_VALUE));
+			char_string[1] = '\0';
+			char_string[0] = obj->value.string[n];
+			return gh_string(char_string);
+			break;
+		case TYPE_ARRAY:
+			gh_assert(gh_array_length(obj) >= n, "index-error", "index out of bounds: ~s", gh_cons(n, &LANG_NIL_VALUE));
+			return obj->value.array.data[n];
+			break;
+		default:
+			gh_assert(FALSE, "type-error", "not a list, string, or array: ~s", gh_cons(obj, &LANG_NIL_VALUE));
+			return NULL;
+			break;
+	}
+}
+
+datum *lang_array_get(datum **locals) {
+
+}
+
+datum *lang_array_set(datum **locals) {
+
+}
+
+datum *lang_array_dim(datum **locals) {
+
+}
+
+size_t gh_array_length(datum *array) {
+	size_t i;
+	size_t result;
+
+	result = 1;
+	for (i = 0; i < num_dims; i++) {
+		result *= num_dims[i];
+	}
+	return result;
+}

@@ -431,5 +431,13 @@ datum *gh_array(datum *init, datum *dims);
 
 datum *lang_array(datum **locals);
 
+datum *lang_nth(datum **locals);
+
+datum *lang_array_get(datum **locals);
+
+datum *lang_array_set(datum **locals);
+
+datum *lang_array_dim(datum **locals);
+
 #endif
 

@@ -98,12 +98,6 @@
 (defmacro car$ args
 	'(car ($ . @args)))
 
-(defn nth (n lst)
-	(loop ([i 0] [l lst])
-		(if (= i n)
-			(car l)
-			(recur (+ i 1) (cdr l)))))
-
 (setenv TRASH (string-append HOME "/.local/share/Trash"))
 
 # move specified files to the trash
