@@ -3023,6 +3023,9 @@ datum *lang_type(datum **locals) {
 		case TYPE_JOB:
 			type = "job";
 			break;
+		case TYPE_ARRAY:
+			type = "array";
+			break;
 		default:
 			gh_assert(TRUE, "type-error", "unkown type: ~s", gh_cons(obj, &LANG_NIL_VALUE));
 	}
@@ -3288,23 +3291,14 @@ char *gh_to_string(datum *x) {
 			return result;
 			break;
 		case TYPE_ARRAY:
-			result = "<array:";
-			array_len = 1;
-			for (i = 0; i < x->value.array.num_dims; i++) {
-				result = string_append(result, gh_to_string(gh_integer(x->value.array.dims[i])));
-				array_len *= x->value.array.dims[i];
-				if (i < x->value.array.num_dims - 1) {
-					result = string_append(result, "x");
-				}
-			}
-			result = string_append(result, ":");
-			for (i = 0; i < array_len; i++) {
+			result = "(: ";
+			for (i = 0; i < lst->value.array.length; i++) {
 				result = string_append(result, gh_to_string(x->value.array.data[i]));
-				if (i < array_len - 1) {
+				if (i < lst->value.array.length -  1) {
 					result = string_append(result, " ");
 				}
 			}
-			result = string_append(result, ">");
+			result = string_append(result, ")");
 			return result;
 			break;
 		default:
