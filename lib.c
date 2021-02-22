@@ -3475,9 +3475,9 @@ datum *lang_set_nth(datum **locals) {
 	datum *index;
 	datum *value;
 
-	obj = var_get(locals, "#obj");
 	index = var_get(locals, "#index");
-	value = var_get(locals, "#index");
+	obj = var_get(locals, "#obj");
+	value = var_get(locals, "#value");
 
 	gh_assert(index->type == TYPE_INTEGER, "type-error", "index is not an integer: ~s", gh_cons(index, &LANG_NIL_VALUE));
 	gh_assert(index->value.integer >= 0, "index-error", "index is negative: ~s", gh_cons(index, &LANG_NIL_VALUE));
@@ -3494,6 +3494,7 @@ datum *lang_set_nth(datum **locals) {
 					iterator->value.cons.car = value;
 					break;
 				}
+				i++;
 			}
 			break;
 		case TYPE_ARRAY:
