@@ -183,6 +183,7 @@
 (defmacro math args
 	(infix args '(^ / * + - < <= > >= =)))
 
+(set array :)
 
 # load user's gharialrc file if it exists
 (let ([rc (string-append HOME "/.gharialrc")])

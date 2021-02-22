@@ -2010,7 +2010,7 @@ datum *lang_length(datum **locals) {
 			return gh_integer(lst->value.array.length);
 			break;
 		default:
-			gh_assert(FALSE, "type-error", "Not a list, string, or array: ~s" gh_cons(lst, &LANG_NIL_VALUE));
+			gh_assert(FALSE, "type-error", "Not a list, string, or array: ~s", gh_cons(lst, &LANG_NIL_VALUE));
 			return NULL;
 			break;
 	}
@@ -3216,7 +3216,6 @@ char *gh_to_string(datum *x) {
 	datum *iterator;
 	char *result;
 	size_t i;
-	size_t array_len;
 
 	switch (x->type) {
 		case TYPE_NIL:
@@ -3239,8 +3238,7 @@ char *gh_to_string(datum *x) {
 		case TYPE_SYMBOL:
 			return x->value.string;
 			break;
-		case TYPE_CFORM:
-			return string_append("<c_form:", string_append(x->value.c_code.name, ">"));
+		case TYPE_CFORM: return string_append("<c_form:", string_append(x->value.c_code.name, ">"));
 			break;
 		case TYPE_CFUNC:
 			return string_append("<c_function:", string_append(x->value.c_code.name, ">"));
@@ -3292,9 +3290,9 @@ char *gh_to_string(datum *x) {
 			break;
 		case TYPE_ARRAY:
 			result = "(: ";
-			for (i = 0; i < lst->value.array.length; i++) {
+			for (i = 0; i < x->value.array.length; i++) {
 				result = string_append(result, gh_to_string(x->value.array.data[i]));
-				if (i < lst->value.array.length -  1) {
+				if (i < x->value.array.length -  1) {
 					result = string_append(result, " ");
 				}
 			}
@@ -3399,12 +3397,13 @@ datum *lang_random(datum **locals) {
 	return gh_integer(result);
 }
 
-datum *lang_array(datum **locals) {
+datum *lang_array (datum **locals) {
 	datum *first;
 	datum *rest;
 	datum *elems;
 	datum *iterator;
 	datum *result;
+	size_t i;
 
 	first = var_get(locals, "#first");
 	rest = var_get(locals, "#rest");
@@ -3421,16 +3420,18 @@ datum *lang_array(datum **locals) {
 	}
 
 	iterator = elems;
+	i = 0;
 	while (iterator->type == TYPE_CONS) {
 		datum *current;
 		current = iterator->value.cons.car;
 		result->value.array.data[i] = current;
+		i++;
 		iterator = iterator->value.cons.cdr;
 	}
 	return result;
 }
 
-datum *lang_nth(datum **locals) {
+datum *lang_nth (datum **locals) {
 	datum *obj;
 	datum *n;
 	datum *iterator;
@@ -3453,14 +3454,14 @@ datum *lang_nth(datum **locals) {
 			return iterator->value.cons.car;
 			break;
 		case TYPE_STRING:
-			gh_assert(strlen(obj->value.string) >= n, "index-error", "index out of bounds: ~s", gh_cons(n, &LANG_NIL_VALUE));
+			gh_assert(strlen(obj->value.string) >= n->value.integer, "index-error", "index out of bounds: ~s", gh_cons(n, &LANG_NIL_VALUE));
 			char_string[1] = '\0';
-			char_string[0] = obj->value.string[n];
+			char_string[0] = obj->value.string[n->value.integer];
 			return gh_string(char_string);
 			break;
 		case TYPE_ARRAY:
-			gh_assert(obj->value.array.length >= n, "index-error", "index out of bounds: ~s", gh_cons(n, &LANG_NIL_VALUE);
-			return obj->value.array.data[n];
+			gh_assert(obj->value.array.length >= n->value.integer, "index-error", "index out of bounds: ~s", gh_cons(n, &LANG_NIL_VALUE));
+			return obj->value.array.data[n->value.integer];
 			break;
 		default:
 			gh_assert(FALSE, "type-error", "not a list, string, or array: ~s", gh_cons(obj, &LANG_NIL_VALUE));
@@ -3486,18 +3487,17 @@ datum *lang_set_nth(datum **locals) {
 		size_t i;
 
 		case TYPE_CONS:
-			gh_assert(index->value.integer, < gh_length(obj), "index-error", "index is out of bounds: ~s", gh_cons(index, &LANG_NIL_VALUE));
+			gh_assert(index->value.integer < gh_length(obj), "index-error", "index is out of bounds: ~s", gh_cons(index, &LANG_NIL_VALUE));
 			i = 0;
 			for (iterator = obj; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
 				if (i == index->value.integer) {
-					datum *current;
 					iterator->value.cons.car = value;
 					break;
 				}
 			}
 			break;
 		case TYPE_ARRAY:
-			gh_assert(index->value.integer < obj->value.array.length);
+			gh_assert(index->value.integer < obj->value.array.length, "index-error", "index is out of bounds: ~s", gh_cons(index, &LANG_NIL_VALUE));
 			obj->value.array.data[index->value.integer] = value;
 			break;
 		default:

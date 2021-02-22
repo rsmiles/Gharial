@@ -249,7 +249,7 @@ void init_builtins() {
 	symbol_set(&globals, "to-symbol", gh_cfunc(&lang_to_symbol, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "random", gh_cfunc(&lang_random, gh_symbol("#args")));
 	symbol_set(&globals, ":", gh_cfunc(&lang_array, gh_cons(gh_symbol("#first"), gh_symbol("#rest"))));
-	symbol_set(&globals, "nth", gh_cfunc(&lang_nth, gh_cons(gh_symbol("#obj"), gh_cons(gh_symbol("#n"), &LANG_NIL_VALUE))));
+	symbol_set(&globals, "nth", gh_cfunc(&lang_nth, gh_cons(gh_symbol("#n"), gh_cons(gh_symbol("#obj"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "set-nth", gh_cfunc(&lang_set_nth, gh_cons(gh_symbol("#obj"), gh_cons(gh_symbol("#index"), gh_cons(gh_symbol("#value"), &LANG_NIL_VALUE)))));
 
 	subproc_nowait = gh_cform(&lang_subproc_nowait, gh_symbol("#commands"));
