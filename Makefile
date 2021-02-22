@@ -1,7 +1,7 @@
 .PHONY: clean install uninstall install-user uninstall-user
 
 CFLAGS= --std=c89 -pedantic -Wall -Werror -g
-LDFLAGS=-ll -lm -lgc -lcurses -ledit -lsodium
+LDFLAGS=-ll -lm -lgc -lcurses -ledit -lsodium -ltk -ltcl -lX11
 
 all: gharial
 
