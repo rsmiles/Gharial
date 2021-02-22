@@ -89,8 +89,7 @@ typedef struct datum {
 		} job;
 
 		struct {
-			size_t num_dims;
-			size_t *dims;
+			size_t length;
 			struct datum **data;
 		} array;
 		
@@ -433,11 +432,8 @@ datum *lang_array(datum **locals);
 
 datum *lang_nth(datum **locals);
 
-datum *lang_array_get(datum **locals);
+datum *lang_set_nth(datum **locals);
 
-datum *lang_array_set(datum **locals);
-
-datum *lang_array_dim(datum **locals);
 
 #endif
 

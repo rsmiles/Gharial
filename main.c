@@ -248,11 +248,9 @@ void init_builtins() {
 	symbol_set(&globals, "to-string", gh_cfunc(&lang_to_string, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "to-symbol", gh_cfunc(&lang_to_symbol, gh_cons(gh_symbol("#x"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "random", gh_cfunc(&lang_random, gh_symbol("#args")));
-	symbol_set(&globals, "array", gh_cfunc(&lang_array, gh_cons(gh_symbol("#init"), gh_cons(gh_symbol("#len"), gh_symbol("#dims")))));
+	symbol_set(&globals, "array", gh_cfunc(&lang_array, gh_cons(gh_symbol("#first"), gh_symbol("#rest"))));
 	symbol_set(&globals, "nth", gh_cfunc(&lang_nth, gh_cons(gh_symbol("#obj"), gh_cons(gh_symbol("#n"), &LANG_NIL_VALUE))));
-	symbol_set(&globals, "array-get", gh_cfunc(&lang_array_get, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#x"), gh_symbol("#rest")))));
-	symbol_set(&globals, "array-set", gh_cfunc(&lang_array_set, gh_cons(gh_symbol("#a"), gh_cons(gh_symbol("#val"), gh_cons(gh_symbol("#x"), gh_symbol("#rest"))))));
-	symbol_set(&globals, "array-dim", gh_cfunc(&lang_array_dim, gh_cons(&gh_symbol("#a"), &LANG_NIL_VALUE)));
+	symbol_set(&globals, "set-nth", gh_cfunc(&lang_set_nth, gh_cons(gh_symbol("#obj"), gh_cons(gh_symbol("#index"), gh_cons(gh_symbol("#value"), &LANG_NIL_VALUE)))));
 
 	subproc_nowait = gh_cform(&lang_subproc_nowait, gh_symbol("#commands"));
 	pipe_err_to = gh_cform(&lang_pipe_err_to, gh_cons(gh_symbol("#path"), gh_symbol("#commands")));

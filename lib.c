@@ -48,8 +48,6 @@ double gh_comp(datum *a, datum *b);
 bool listcmp(datum *a, datum *b);
 bool gh_is_true(datum *expr);
 char *gh_to_string(datum *x);
-size_t array_index(size_t num_dims, size_t *dims, size_t *indexes);
-size_t gh_array_length(datum *array);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -2009,7 +2007,7 @@ datum *lang_length(datum **locals) {
 			return gh_integer(strlen(lst->value.string));
 			break;
 		case TYPE_ARRAY:
-			return gh_integer(gh_array_length(lst);
+			return gh_integer(lst->value.array.length);
 			break;
 		default:
 			gh_assert(FALSE, "type-error", "Not a list, string, or array: ~s" gh_cons(lst, &LANG_NIL_VALUE));
@@ -3407,86 +3405,35 @@ datum *lang_random(datum **locals) {
 	return gh_integer(result);
 }
 
-size_t array_index(size_t num_dims, size_t *dims, size_t *indexes) {
-	size_t i;
-	size_t j;
-	size_t result = 0;
-	for (i = 0; i < num_dims; i++) {
-		size_t dim_product = 1;
-		for (j = 0; j < i; j++) {
-			dim_product *= dims[j];
-		}
-		result += indexes[i] * dim_product;
-	}
-	return result;
-}
-
-datum *gh_array(datum *init, datum *dims) {
-	datum *a;
+datum *lang_array(datum **locals) {
+	datum *first;
+	datum *rest;
+	datum *elems;
 	datum *iterator;
-	size_t num_dims;
-	size_t real_size;
-	size_t i;
+	datum *result;
 
-	num_dims = gh_length(dims);
+	first = var_get(locals, "#first");
+	rest = var_get(locals, "#rest");
 
-	a = new_datum();
-	a->type = TYPE_ARRAY;
-	a->value.array.num_dims = num_dims;
+	elems = gh_cons(first, rest);
 
-	a->value.array.dims = GC_MALLOC(sizeof(size_t) * num_dims);
-	if (a->value.array.dims == NULL) {
-		fprintf(stderr, "fatal-error: out of memory in gh_array\n");
+	result = new_datum();
+	result->type = TYPE_ARRAY;
+	result->value.array.length = gh_length(elems);
+	result->value.array.data = GC_MALLOC(sizeof(datum *) * result->value.array.length);
+	if (result->value.array.data == NULL) {
+		fprintf(stderr, "fatal-error: out of memory in lang_array\n");
 		exit(EXIT_FAILURE);
 	}
 
-	real_size = 1;
-	iterator = dims;
-	i = 0;
+	iterator = elems;
 	while (iterator->type == TYPE_CONS) {
 		datum *current;
 		current = iterator->value.cons.car;
-		real_size *= current->value.integer;
-		a->value.array.dims[i] = current->value.integer;
-		iterator = iterator->value.cons.cdr;
-		i++;
-	}
-
-	a->value.array.data = GC_MALLOC(sizeof(datum *) * real_size);
-	if (a->value.array.data == NULL) {
-		fprintf(stderr, "fatal-error: out of memory in gh_array\n");
-		exit(EXIT_FAILURE);
-	}
-
-	for (i = 0; i < real_size; i++) {
-		a->value.array.data[i] = init;
-	}
-
-	return a;
-}
-
-datum *lang_array(datum **locals) {
-	datum *init;
-	datum *len;
-	datum *dims;
-	datum *iterator;
-
-	init = var_get(locals, "#init");
-	len = var_get(locals, "#len");
-	dims = var_get(locals, "#dims");
-
-	gh_assert(len->type == TYPE_INTEGER, "type-error", "array dimensons can only be integers, found ~a", gh_cons(len, &LANG_NIL_VALUE));
-	gh_assert(len->value.integer > 0, "math-error", "only natural numbers can be array dimensions, found ~a", gh_cons(len, &LANG_NIL_VALUE));
-
-	iterator = dims;
-	while (iterator->type == TYPE_CONS) {
-		datum *current = iterator->value.cons.car;
-		gh_assert(current->type == TYPE_INTEGER, "type-error", "array dimensions can only be integers, found ~a", gh_cons(current, &LANG_NIL_VALUE));
-		gh_assert(current->value.integer > 0, "math-error", "only natural numbers can be array dimensions, found ~a", gh_cons(current, &LANG_NIL_VALUE));
+		result->value.array.data[i] = current;
 		iterator = iterator->value.cons.cdr;
 	}
-
-	return gh_array(init, gh_cons(len, dims));
+	return result;
 }
 
 datum *lang_nth(datum **locals) {
@@ -3518,7 +3465,7 @@ datum *lang_nth(datum **locals) {
 			return gh_string(char_string);
 			break;
 		case TYPE_ARRAY:
-			gh_assert(gh_array_length(obj) >= n, "index-error", "index out of bounds: ~s", gh_cons(n, &LANG_NIL_VALUE));
+			gh_assert(obj->value.array.length >= n, "index-error", "index out of bounds: ~s", gh_cons(n, &LANG_NIL_VALUE);
 			return obj->value.array.data[n];
 			break;
 		default:
@@ -3528,25 +3475,42 @@ datum *lang_nth(datum **locals) {
 	}
 }
 
-datum *lang_array_get(datum **locals) {
+datum *lang_set_nth(datum **locals) {
+	datum *obj;
+	datum *index;
+	datum *value;
 
-}
+	obj = var_get(locals, "#obj");
+	index = var_get(locals, "#index");
+	value = var_get(locals, "#index");
 
-datum *lang_array_set(datum **locals) {
+	gh_assert(index->type == TYPE_INTEGER, "type-error", "index is not an integer: ~s", gh_cons(index, &LANG_NIL_VALUE));
+	gh_assert(index->value.integer >= 0, "index-error", "index is negative: ~s", gh_cons(index, &LANG_NIL_VALUE));
 
-}
+	switch (obj->type) {
+		datum *iterator;
+		size_t i;
 
-datum *lang_array_dim(datum **locals) {
-
-}
-
-size_t gh_array_length(datum *array) {
-	size_t i;
-	size_t result;
-
-	result = 1;
-	for (i = 0; i < num_dims; i++) {
-		result *= num_dims[i];
+		case TYPE_CONS:
+			gh_assert(index->value.integer, < gh_length(obj), "index-error", "index is out of bounds: ~s", gh_cons(index, &LANG_NIL_VALUE));
+			i = 0;
+			for (iterator = obj; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
+				if (i == index->value.integer) {
+					datum *current;
+					iterator->value.cons.car = value;
+					break;
+				}
+			}
+			break;
+		case TYPE_ARRAY:
+			gh_assert(index->value.integer < obj->value.array.length);
+			obj->value.array.data[index->value.integer] = value;
+			break;
+		default:
+			gh_assert(FALSE, "type-error", "not a list or array: ~s", gh_cons(obj, &LANG_NIL_VALUE));
+			return NULL;
+			break;
 	}
-	return result;
+	return value;
 }
+
