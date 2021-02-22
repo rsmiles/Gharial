@@ -5,7 +5,7 @@ LDFLAGS=-ll -lm -lgc -lcurses -ledit -lsodium -ltk -ltcl -lX11
 
 all: gharial
 
-gharial: main.o lib.o parse.o lex.o
+gharial: main.o lib.o parse.o lex.o tkbind.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 main.o: main.c gharial.h lib.o parse.o lex.o
@@ -13,6 +13,9 @@ main.o: main.c gharial.h lib.o parse.o lex.o
 
 lib.o: lib.c gharial.h parse.o lex.o
 	$(CC) $(CFLAGS) -c -o $@ $<
+
+tkbind.o: tkbind.c tkbind.h
+	$(CC) --std=c99 -pedantic -Wall -Werror -g -I/usr/include/tcl -c -o $@ $<
 
 parse.o: parse.y gharial.h
 	yacc --defines $<; $(CC) $(CFLAGS) -c -o $@ y.tab.c
