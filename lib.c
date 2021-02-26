@@ -2957,6 +2957,7 @@ datum *lang_test_expr(datum **locals) {
 			fflush(out->value.file);
 		}
 		gh_assert(FALSE, "test-failure", "test \"~a\" failed", gh_cons(test_name, &LANG_NIL_VALUE)) ;
+		return NULL;
 	}
 }
 

@@ -17,6 +17,7 @@
 #include "gharial.h"
 #include "y.tab.h"
 #include "lex.yy.h"
+#include "tkbind.h"
 
 void init_globals();
 void init_io();
@@ -31,6 +32,8 @@ unsigned char insert_doublequotes(EditLine *el, int ch);
 static unsigned char
 complete(EditLine *el, int ch __attribute__((__unused__)));
 
+int global_argc;
+char **global_argv;
 void init_editline();
 char *el_prompt(EditLine *el);
 void cleanup();
@@ -251,6 +254,7 @@ void init_builtins() {
 	symbol_set(&globals, ":", gh_cfunc(&lang_array, gh_cons(gh_symbol("#first"), gh_symbol("#rest"))));
 	symbol_set(&globals, "nth", gh_cfunc(&lang_nth, gh_cons(gh_symbol("#n"), gh_cons(gh_symbol("#obj"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "set-nth", gh_cfunc(&lang_set_nth, gh_cons(gh_symbol("#index"), gh_cons(gh_symbol("#obj"), gh_cons(gh_symbol("#value"), &LANG_NIL_VALUE)))));
+	symbol_set(&globals, "tk-main", gh_cfunc(&lang_tk_main, &LANG_NIL_VALUE));
 
 	subproc_nowait = gh_cform(&lang_subproc_nowait, gh_symbol("#commands"));
 	pipe_err_to = gh_cform(&lang_pipe_err_to, gh_cons(gh_symbol("#path"), gh_symbol("#commands")));
@@ -480,6 +484,10 @@ void cleanup(){
 
 int main(int argc, char **argv) {
 	FILE *input;
+
+	/* TK needs these, so make them global */
+	global_argc = argc;
+	global_argv = argv;
 
 	yylineno = 0;
 	init_globals(argv);

@@ -34,7 +34,7 @@
 	do { \
 		if (test) \
 			; \
-		else return gh_eval(gh_exception(type, fmt, fmt_args), locals); \
+		else gh_eval(gh_exception(type, fmt, fmt_args), locals); \
 	} while(0);
 
 typedef int bool;
