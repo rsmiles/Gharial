@@ -8,10 +8,6 @@ extern int global_argc;
 extern char **global_argv;
 Tcl_Interp *tcl_interp;
 
-int Tcl_AppInit(Tcl_Interp *tcl_interp) {
-	return TCL_OK;
-}
-
 datum *lang_tk_init(datum **locals) {
 	int ret;
 
@@ -34,7 +30,7 @@ datum *tcl_eval(char *commands) {
 }
 
 datum *lang_tk_main(datum **locals) {
-	Tk_Main(global_argc, global_argv, &Tcl_AppInit);
+	Tk_MainLoop();
 	return &LANG_NIL_VALUE;
 }
 
