@@ -1,7 +1,7 @@
 #ifndef TKBIND_H
 #define TKBIND_H
 
-datum *tcl_eval(char *commands);
+int tcl_eval(char *commands);
 
 datum *lang_tk_init(datum **locals);
 

@@ -172,6 +172,8 @@ void init_io() {
 }
 
 void init_builtins() {
+	datum *tk_module;
+
 	symbol_set(&globals, "set", gh_cform(&lang_set, gh_cons(gh_symbol("#symbol"), gh_cons(gh_symbol("#value"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "setenv", gh_cform(&lang_setenv, gh_cons(gh_symbol("#symbol"), gh_cons(gh_symbol("#value"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "quote", gh_cform(&lang_quote, gh_cons(gh_symbol("#expr"), &LANG_NIL_VALUE)));
@@ -254,8 +256,11 @@ void init_builtins() {
 	symbol_set(&globals, ":", gh_cfunc(&lang_array, gh_cons(gh_symbol("#first"), gh_symbol("#rest"))));
 	symbol_set(&globals, "nth", gh_cfunc(&lang_nth, gh_cons(gh_symbol("#n"), gh_cons(gh_symbol("#obj"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "set-nth", gh_cfunc(&lang_set_nth, gh_cons(gh_symbol("#index"), gh_cons(gh_symbol("#obj"), gh_cons(gh_symbol("#value"), &LANG_NIL_VALUE)))));
-	symbol_set(&globals, "tk-init", gh_cfunc(&lang_tk_init, &LANG_NIL_VALUE));
-	symbol_set(&globals, "tk-main", gh_cfunc(&lang_tk_main, &LANG_NIL_VALUE));
+
+	tk_module = &LANG_NIL_VALUE;
+	symbol_set(&tk_module, "init", gh_cfunc(&lang_tk_init, &LANG_NIL_VALUE));
+	symbol_set(&tk_module, "main", gh_cfunc(&lang_tk_main, &LANG_NIL_VALUE));
+	symbol_set(&globals, "tk", tk_module);
 
 	subproc_nowait = gh_cform(&lang_subproc_nowait, gh_symbol("#commands"));
 	pipe_err_to = gh_cform(&lang_pipe_err_to, gh_cons(gh_symbol("#path"), gh_symbol("#commands")));
