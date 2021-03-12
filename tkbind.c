@@ -43,7 +43,10 @@ datum *lang_tk_eval(datum **locals) {
 	tcl_string = "";
 
 	for (iterator = args; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
-		tcl_string = gh_to_string(iterator->value.cons.car);
+		tcl_string = string_append(tcl_string, gh_to_string(iterator->value.cons.car));
+		if (iterator->value.cons.cdr->type == TYPE_CONS) {
+			tcl_string = string_append(tcl_string, " ");
+		}
 	}
 
 	tcl_ret = tcl_eval(tcl_string);
