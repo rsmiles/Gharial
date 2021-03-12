@@ -28,7 +28,8 @@
 #define TYPE_PID        17
 #define TYPE_CAPTURE    18
 #define TYPE_JOB        19
-#define TYPE_ARRAY	20
+#define TYPE_ARRAY		20
+#define TYPE_TCLOBJECT	21
 
 #define gh_assert(test, type, fmt, fmt_args) \
 	do { \
@@ -385,6 +386,8 @@ datum *lang_fg(datum **locals);
 void set_interactive(bool value);
 
 datum *gh_format(FILE *output, char *str, datum *args, datum **locals);
+
+char *gh_to_string(datum *x);
 
 datum *lang_format(datum **locals);
 

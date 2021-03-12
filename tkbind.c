@@ -25,7 +25,6 @@ int tcl_eval(char *commands) {
 	int ret;
 
 	ret = Tcl_Eval(tcl_interp, commands);
-	gh_assert(ret == TCL_OK, "tcl-error", "error occured when running commands: ~s", gh_cons(gh_string(commands), &LANG_NIL_VALUE));
 	return ret;
 }
 
@@ -34,4 +33,22 @@ datum *lang_tk_main(datum **locals) {
 	return &LANG_NIL_VALUE;
 }
 
+datum *lang_tk_eval(datum **locals) {
+	datum *args;
+	char *tcl_string;
+	datum *iterator;
+	int tcl_ret;
+
+	args = var_get(locals, "#args");
+	tcl_string = "";
+
+	for (iterator = args; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
+		tcl_string = gh_to_string(iterator->value.cons.car);
+	}
+
+	tcl_ret = tcl_eval(tcl_string);
+	gh_assert(tcl_ret == TCL_OK, "tcl-error", "error occured when running commands: ~s", gh_cons(gh_string(tcl_string), &LANG_NIL_VALUE));
+	
+	return &LANG_NIL_VALUE;
+}
 

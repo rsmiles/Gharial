@@ -260,6 +260,7 @@ void init_builtins() {
 	tk_module = &LANG_NIL_VALUE;
 	symbol_set(&tk_module, "init", gh_cfunc(&lang_tk_init, &LANG_NIL_VALUE));
 	symbol_set(&tk_module, "main", gh_cfunc(&lang_tk_main, &LANG_NIL_VALUE));
+	symbol_set(&tk_module, "eval", gh_cfunc(&lang_tk_eval, gh_symbol("#args")));
 	symbol_set(&globals, "tk", tk_module);
 
 	subproc_nowait = gh_cform(&lang_subproc_nowait, gh_symbol("#commands"));

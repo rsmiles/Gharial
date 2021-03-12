@@ -7,4 +7,7 @@ datum *lang_tk_init(datum **locals);
 
 datum *lang_tk_main(datum **locals);
 
+datum *lang_tk_eval(datum **locals);
+
 #endif
+

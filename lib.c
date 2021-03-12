@@ -47,7 +47,6 @@ datum *gh_cons2(datum *car, datum *cdr, datum **locals);
 double gh_comp(datum *a, datum *b);
 bool listcmp(datum *a, datum *b);
 bool gh_is_true(datum *expr);
-char *gh_to_string(datum *x);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
