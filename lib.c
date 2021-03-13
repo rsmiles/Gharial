@@ -218,6 +218,13 @@ datum *gh_string(const char* value) {
 	return s;
 }
 
+datum *gh_tclobj(Tcl_Obj *value) {
+	datum *o = new_datum();
+	o->type = TYPE_TCLOBJ;
+	o->value.tclobj = value;
+	return o;
+}
+
 datum *gh_substring(int start, int end, char *value) {
 	datum *s;
 	int len;
@@ -3297,6 +3304,11 @@ char *gh_to_string(datum *x) {
 				}
 			}
 			result = string_append(result, ")");
+			return result;
+			break;
+		case TYPE_TCLOBJ:
+			result = "<tcl-obj:";
+			result = string_append(Tcl_GetString(x->value.tclobj), ">");
 			return result;
 			break;
 		default:

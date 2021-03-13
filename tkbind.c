@@ -21,9 +21,7 @@ datum *lang_tk_init(datum **locals) {
 	return &LANG_TRUE_VALUE;
 }
 
-int tcl_eval(char *commands) {
-	int ret;
-
+int tcl_eval(char *commands) { int ret; 
 	ret = Tcl_Eval(tcl_interp, commands);
 	return ret;
 }
@@ -53,5 +51,16 @@ datum *lang_tk_eval(datum **locals) {
 	gh_assert(tcl_ret == TCL_OK, "tcl-error", "error occured when running commands: ~s", gh_cons(gh_string(tcl_string), &LANG_NIL_VALUE));
 	
 	return &LANG_NIL_VALUE;
+}
+
+datum *lang_tk_get(datum **locals) {
+	datum *name;
+	Tcl_Obj *value;
+
+	name = var_get(locals, "#name");
+	gh_assert(name->type == TYPE_STRING || name->type == TYPE_SYMBOL, "type-error", "not a string or symbol: ~s", gh_cons(name, &LANG_NIL_VALUE));
+
+	value = Tcl_GetVar2Ex(tcl_interp, name->value.string, NULL, 0);
+	return gh_tclobj(value);
 }
 
