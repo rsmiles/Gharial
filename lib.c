@@ -3307,9 +3307,7 @@ char *gh_to_string(datum *x) {
 			return result;
 			break;
 		case TYPE_TCLOBJ:
-			result = "<tcl-obj:";
-			result = string_append(Tcl_GetString(x->value.tclobj), ">");
-			return result;
+			return x->value.string;
 			break;
 		default:
 			return NULL;

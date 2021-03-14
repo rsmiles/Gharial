@@ -48,19 +48,20 @@ datum *lang_tk_eval(datum **locals) {
 	}
 
 	tcl_ret = tcl_eval(tcl_string);
-	gh_assert(tcl_ret == TCL_OK, "tcl-error", "error occured when running commands: ~s", gh_cons(gh_string(tcl_string), &LANG_NIL_VALUE));
+	gh_assert(tcl_ret == TCL_OK, "tcl-error", "~a", gh_cons(gh_string(Tcl_GetStringResult(tcl_interp)), &LANG_NIL_VALUE));
 	
 	return &LANG_NIL_VALUE;
 }
 
 datum *lang_tk_get(datum **locals) {
 	datum *name;
-	Tcl_Obj *value;
+	const char *value;
 
 	name = var_get(locals, "#name");
 	gh_assert(name->type == TYPE_STRING || name->type == TYPE_SYMBOL, "type-error", "not a string or symbol: ~s", gh_cons(name, &LANG_NIL_VALUE));
 
-	value = Tcl_GetVar2Ex(tcl_interp, name->value.string, NULL, 0);
-	return gh_tclobj(value);
+	value = Tcl_GetVar(tcl_interp, name->value.string, TCL_LEAVE_ERR_MSG);
+	gh_assert(value != NULL, "tcl-error", "~a", gh_cons(gh_string(Tcl_GetStringResult(tcl_interp)), &LANG_NIL_VALUE));
+	return gh_string(value);
 }
 
