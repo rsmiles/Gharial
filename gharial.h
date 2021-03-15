@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <histedit.h>
 #include <setjmp.h>
-#include <tcl.h>
 
 #define TRUE  1
 #define FALSE 0
@@ -30,7 +29,6 @@
 #define TYPE_CAPTURE    18
 #define TYPE_JOB        19
 #define TYPE_ARRAY		20
-#define TYPE_TCLOBJ		21
 
 #define gh_assert(test, type, fmt, fmt_args) \
 	do { \
@@ -94,8 +92,6 @@ typedef struct datum {
 			size_t length;
 			struct datum **data;
 		} array;
-		Tcl_Obj *tclobj;
-		
 	} value;
 } datum;
 
@@ -146,8 +142,6 @@ datum *gh_integer(int value);
 datum *gh_decimal(double value);
 
 datum *gh_string(const char *value);
-
-datum *gh_tclobj(Tcl_Obj *value);
 
 datum *gh_substring(int start, int end, char *value);
 

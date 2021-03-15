@@ -53,15 +53,3 @@ datum *lang_tk_eval(datum **locals) {
 	return &LANG_NIL_VALUE;
 }
 
-datum *lang_tk_get(datum **locals) {
-	datum *name;
-	const char *value;
-
-	name = var_get(locals, "#name");
-	gh_assert(name->type == TYPE_STRING || name->type == TYPE_SYMBOL, "type-error", "not a string or symbol: ~s", gh_cons(name, &LANG_NIL_VALUE));
-
-	value = Tcl_GetVar(tcl_interp, name->value.string, TCL_LEAVE_ERR_MSG);
-	gh_assert(value != NULL, "tcl-error", "~a", gh_cons(gh_string(Tcl_GetStringResult(tcl_interp)), &LANG_NIL_VALUE));
-	return gh_string(value);
-}
-

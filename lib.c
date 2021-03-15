@@ -218,13 +218,6 @@ datum *gh_string(const char* value) {
 	return s;
 }
 
-datum *gh_tclobj(Tcl_Obj *value) {
-	datum *o = new_datum();
-	o->type = TYPE_TCLOBJ;
-	o->value.tclobj = value;
-	return o;
-}
-
 datum *gh_substring(int start, int end, char *value) {
 	datum *s;
 	int len;
