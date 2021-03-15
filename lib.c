@@ -3299,9 +3299,6 @@ char *gh_to_string(datum *x) {
 			result = string_append(result, ")");
 			return result;
 			break;
-		case TYPE_TCLOBJ:
-			return x->value.string;
-			break;
 		default:
 			return NULL;
 			break;

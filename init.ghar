@@ -191,3 +191,12 @@
 		(load rc)
 		nil))
 
+# tk utility functions
+(defn tk.label (name . args)
+	(apply tk.eval (cons 'label (cons name args)))
+	(cons "button" name))
+
+(defn tk.pack (name . args)
+	(apply tk.eval (cons 'pack (cons name args))))
+
+
