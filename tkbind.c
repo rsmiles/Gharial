@@ -8,8 +8,16 @@ extern int global_argc;
 extern char **global_argv;
 Tcl_Interp *tcl_interp;
 
+int gh_callback(ClientData client_data, Tcl_Interp tcl_interp, int argc, char *argv[]);
+
+int gh_callback(ClientData client_data, Tcl_Interp tcl_interp, int argc, char *argv[]) {
+	printf("Test\n");
+	return TCL_OK;
+}
+
 datum *lang_tk_init(datum **locals) {
 	int ret;
+	Tcl_Command tk_callback;
 
 	tcl_interp = Tcl_CreateInterp();
 	ret = Tcl_Init(tcl_interp);
@@ -17,6 +25,8 @@ datum *lang_tk_init(datum **locals) {
 
 	ret = Tk_Init(tcl_interp);
 	gh_assert(ret == TCL_OK, "tk-error", "could not initialize tk", &LANG_NIL_VALUE);
+
+	tk_callback = Tcl_CreateCommand(tcl_interp, "gh-callback", &gh_callback, NULL, NULL);
 
 	return &LANG_TRUE_VALUE;
 }
@@ -41,7 +51,11 @@ datum *lang_tk_eval(datum **locals) {
 	tcl_string = "";
 
 	for (iterator = args; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
-		tcl_string = string_append(tcl_string, gh_to_string(iterator->value.cons.car));
+		if (iterator->value.cons.car->type == TYPE_FUNC || iterator->value.cons.car->type == TYPE_CFUNC || iterator->value.cons.car->type == TYPE_CFORM) {
+			tcl_string = string_append(tcl_string, "gh-callback");
+		} else {
+			tcl_string = string_append(tcl_string, gh_to_string(iterator->value.cons.car));
+		}
 		if (iterator->value.cons.cdr->type == TYPE_CONS) {
 			tcl_string = string_append(tcl_string, " ");
 		}
