@@ -8,16 +8,15 @@ extern int global_argc;
 extern char **global_argv;
 Tcl_Interp *tcl_interp;
 
-int gh_callback(ClientData client_data, Tcl_Interp tcl_interp, int argc, char *argv[]);
+int gh_callback(void *client_data, Tcl_Interp *tcl_interp, int argc, const char **argv);
 
-int gh_callback(ClientData client_data, Tcl_Interp tcl_interp, int argc, char *argv[]) {
+int gh_callback(void *client_data, Tcl_Interp *tcl_interp, int argc, const char **argv) {
 	printf("Test\n");
 	return TCL_OK;
 }
 
 datum *lang_tk_init(datum **locals) {
 	int ret;
-	Tcl_Command tk_callback;
 
 	tcl_interp = Tcl_CreateInterp();
 	ret = Tcl_Init(tcl_interp);
@@ -26,7 +25,7 @@ datum *lang_tk_init(datum **locals) {
 	ret = Tk_Init(tcl_interp);
 	gh_assert(ret == TCL_OK, "tk-error", "could not initialize tk", &LANG_NIL_VALUE);
 
-	tk_callback = Tcl_CreateCommand(tcl_interp, "gh-callback", &gh_callback, NULL, NULL);
+	Tcl_CreateCommand(tcl_interp, "gh-callback", &gh_callback, NULL, NULL);
 
 	return &LANG_TRUE_VALUE;
 }
