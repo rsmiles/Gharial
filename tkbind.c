@@ -11,7 +11,7 @@ Tcl_Interp *tcl_interp;
 int gh_callback(void *client_data, Tcl_Interp *tcl_interp, int argc, const char **argv);
 
 int gh_callback(void *client_data, Tcl_Interp *tcl_interp, int argc, const char **argv) {
-	printf("Test\n");
+	printf("argv[2]: %s\n", argv[2]);
 	return TCL_OK;
 }
 
@@ -44,20 +44,32 @@ datum *lang_tk_eval(datum **locals) {
 	datum *args;
 	char *tcl_string;
 	datum *iterator;
+	datum *previous;
 	int tcl_ret;
 
 	args = var_get(locals, "#args");
 	tcl_string = "";
 
+	previous = NULL;
 	for (iterator = args; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
-		if (iterator->value.cons.car->type == TYPE_FUNC || iterator->value.cons.car->type == TYPE_CFUNC || iterator->value.cons.car->type == TYPE_CFORM) {
-			tcl_string = string_append(tcl_string, "gh-callback");
+		datum *current;
+
+		current = iterator->value.cons.car;
+		if (current->type == TYPE_FUNC || current->type == TYPE_CFUNC || current->type == TYPE_CFORM) {
+			tcl_string = string_append(tcl_string, "{gh-callback ");
+			tcl_string = string_append(tcl_string, gh_to_string(args->value.cons.cdr->value.cons.car));
+			if (previous != NULL) {
+				tcl_string = string_append(tcl_string, " ");
+				tcl_string = string_append(tcl_string, gh_to_string(previous));
+			}
+			tcl_string = string_append(tcl_string, "}");
 		} else {
 			tcl_string = string_append(tcl_string, gh_to_string(iterator->value.cons.car));
 		}
 		if (iterator->value.cons.cdr->type == TYPE_CONS) {
 			tcl_string = string_append(tcl_string, " ");
 		}
+		previous = current;
 	}
 
 	tcl_ret = tcl_eval(tcl_string);
