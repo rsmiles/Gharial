@@ -127,11 +127,11 @@ extern struct sigaction sigstop_action;
 extern struct sigaction siginterrupt_action;
 extern jmp_buf toplevel;
 
-datum *symbol_loc_one(datum *table, char *symbol);
+datum *symbol_loc_one(datum *table, const char *symbol);
 
-datum *symbol_loc(datum *table, char *symbol);
+datum *symbol_loc(datum *table, const char *symbol);
 
-datum *symbol_get(datum *table, char *symbol);
+datum *symbol_get(datum *table, const char *symbol);
 
 char  *symbol_set(datum **table, char *symbol, datum *value);
 

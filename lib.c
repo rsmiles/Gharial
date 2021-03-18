@@ -784,7 +784,7 @@ char *string_copy(const char *str) {
 	return copy;
 }
 
-datum *symbol_loc_one(datum *table, char *symbol) {
+datum *symbol_loc_one(datum *table, const char *symbol) {
 	datum *iterator;
 
 
@@ -809,7 +809,7 @@ datum *symbol_loc_one(datum *table, char *symbol) {
 	return NULL;
 }
 
-datum *symbol_loc(datum *table, char *symbol) {
+datum *symbol_loc(datum *table, const char *symbol) {
 	char *sym_copy;
 	char *current_sym;
 	datum *loc;
@@ -830,7 +830,7 @@ datum *symbol_loc(datum *table, char *symbol) {
 	return loc;
 }
 
-datum *symbol_get(datum *table, char *symbol) {
+datum *symbol_get(datum *table, const char *symbol) {
 	datum *loc;
 	loc = symbol_loc(table, symbol);
 	if (loc == NULL)
