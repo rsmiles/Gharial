@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include <tcl.h>
 #include <tk.h>
 
@@ -10,6 +12,48 @@ Tcl_Interp *tcl_interp;
 datum *callbacks;
 
 int gh_callback(void *client_data, Tcl_Interp *tcl_interp, int argc, const char **argv);
+
+void callback_set(char *widget, char *arg, datum *callback);
+datum *callback_get(char *widget, char *arg);
+
+void callback_set(char *widget, char *arg, datum *callback) {
+	datum *iterator;
+
+	for (iterator = callbacks; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
+		datum *current;
+		current = iterator->value.cons.car;
+
+		if (current->value.cons.car->value.string == widget) {
+			current->value.cons.cdr = gh_cons(gh_cons(gh_string(arg), callback), current->value.cons.cdr);
+		} else {
+			callbacks = gh_cons(gh_cons(gh_string(widget), gh_cons(gh_cons(gh_string(arg), callback), &LANG_NIL_VALUE)), callbacks);
+		}
+	}
+}
+
+datum *callback_get(char *widget, char *arg) {
+	datum *iterator;
+
+	for (iterator = callbacks; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+
+		if (strcmp(current->value.cons.car->value.string, widget) == 0) {
+			datum *arg_iterator;
+
+			for (arg_iterator = current->value.cons.cdr; arg_iterator->type == TYPE_CONS; arg_iterator = arg_iterator->value.cons.cdr) {
+				if (strcmp(arg_iterator->value.cons.car->value.string, arg) == 0) {
+					return arg_iterator->value.cons.cdr;
+				}
+			}
+			gh_assert(FALSE, "tcl-error", "callback ~s not found in widget ~s", gh_cons(gh_string(arg), gh_cons(gh_string(widget), &LANG_NIL_VALUE)));
+
+		}
+	}
+	gh_assert(FALSE, "tcl-error", "callback widget ~s not found", gh_cons(gh_string(widget), &LANG_NIL_VALUE));
+	return NULL;
+}
 
 int gh_callback(void *client_data, Tcl_Interp *tcl_interp, int argc, const char **argv) {
 	datum *widget;
