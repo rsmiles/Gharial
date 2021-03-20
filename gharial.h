@@ -98,7 +98,7 @@ typedef struct datum {
 		struct {
 			size_t size;
 			size_t num_entries;
-			datum **data;
+			struct datum **data;
 		} table;
 	} value;
 } datum;
@@ -455,7 +455,7 @@ datum *lang_table_set(datum **locals);
 
 datum *lang_table_get(datum **locals);
 
-datum *lan_table_size(datum **locals);
+datum *lang_table_size(datum **locals);
 
 datum *lang_table_entries(datum **locals);
 

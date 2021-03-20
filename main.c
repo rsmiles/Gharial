@@ -257,10 +257,10 @@ void init_builtins() {
 	symbol_set(&globals, "nth", gh_cfunc(&lang_nth, gh_cons(gh_symbol("#n"), gh_cons(gh_symbol("#obj"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "set-nth", gh_cfunc(&lang_set_nth, gh_cons(gh_symbol("#index"), gh_cons(gh_symbol("#obj"), gh_cons(gh_symbol("#value"), &LANG_NIL_VALUE)))));
 	symbol_set(&globals, "compress-path", gh_cfunc(&lang_compress_path, gh_cons(gh_symbol("#path"), &LANG_NIL_VALUE)));
-	symbol_set(&globals, "sized-table", gh_cfunc(&lang_sized_table, gh_cons(gh_symbol("#size"), gh_symbol("#items")));
-	symbol_set(&globals, "::", gh_cfunc(&lang_table, gh_symbol("#items");
+	symbol_set(&globals, "sized-table", gh_cfunc(&lang_sized_table, gh_cons(gh_symbol("#size"), gh_symbol("#items"))));
+	symbol_set(&globals, "::", gh_cfunc(&lang_table, gh_symbol("#items")));
 	symbol_set(&globals, "table-set", gh_cfunc(&lang_table_set, gh_cons(gh_symbol("#table"), gh_cons(gh_symbol("#key"), gh_cons(gh_symbol("#value"), &LANG_NIL_VALUE)))));
-	symbol_set(&globals, "table-get", gh_cfunc(&lang_table_get, gh_cons(gh_symbol("#table"), gh_cons(gh_symbol("#key")))));
+	symbol_set(&globals, "table-get", gh_cfunc(&lang_table_get, gh_cons(gh_symbol("#table"), gh_cons(gh_symbol("#key"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "table-size", gh_cfunc(&lang_table_size, gh_cons(gh_symbol("#table"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "table-entries", gh_cfunc(&lang_table_entries, gh_cons(gh_symbol("#table"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "table-resize", gh_cfunc(&lang_table_resize, gh_cons(gh_symbol("#table"), gh_cons(gh_symbol("#size"), &LANG_NIL_VALUE))));

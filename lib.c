@@ -49,8 +49,8 @@ bool listcmp(datum *a, datum *b);
 bool gh_is_true(datum *expr);
 size_t hash_string(const char *str, size_t table_size);
 datum *gh_table(size_t size);
-size_t table_set(datum *table, datum *obj);
-datum *table_get(datum *table, datum *key);((
+size_t table_set(datum *table, datum *key, datum *obj);
+datum *table_get(datum *table, datum *key);
 datum *string_to_list(datum *obj);
 datum *array_to_list(datum *obj);
 datum *table_to_list(datum *obj);
@@ -3578,9 +3578,9 @@ size_t table_set(datum *table, datum *key, datum *obj) {
 	val = table->value.table.data[hash];
 
 	if (val == NULL) {
-		table->value.table.data[hash] = gh_cons(gh_cons(str, obj), &LANG_NIL_VALUE);
+		table->value.table.data[hash] = gh_cons(gh_cons(gh_string(str), obj), &LANG_NIL_VALUE);
 	} else {
-		table->value.table.data[hash] = gh_cons(gh_cons(str, obj), table->value.table.data[hash]);
+		table->value.table.data[hash] = gh_cons(gh_cons(gh_string(str), obj), table->value.table.data[hash]);
 	}
 	return hash;
 }
@@ -3595,14 +3595,14 @@ datum *table_get(datum *table, datum *key) {
 	hash = hash_string(str, table->value.table.size);
 	val = table->value.table.data[hash];
 
-	gh_assert(var != NULL, "ref-error", "table does not contain the key: ~s", gh_cons(key, &LANG_NIL_VALUE));
+	gh_assert(val != NULL, "ref-error", "table does not contain the key: ~s", gh_cons(key, &LANG_NIL_VALUE));
 
 	for (iterator = val; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
 		datum *current;
 
 		current = iterator->value.cons.car;
 		
-		if (strcmp(str, current->value.cons.car) == 0) {
+		if (strcmp(str, current->value.cons.car->value.string) == 0) {
 			return current->value.cons.cdr;
 		}
 	}
@@ -3625,7 +3625,7 @@ datum *string_to_list(datum *obj) {
 
 	for (i = 0; str[i] != '\0'; i++) {
 		char_str[0] = str[i];
-		result = gh_cons(gh_string(char_list, result));
+		result = gh_cons(gh_string(char_str), result);
 	}
 	return reverse(result);
 }
@@ -3650,11 +3650,11 @@ datum *table_to_list(datum *table) {
 	gh_assert(table->type == TYPE_TABLE, "type-error", "not a table: ~s", gh_cons(table, &LANG_NIL_VALUE));
 
 	result = &LANG_NIL_VALUE;
-	for (i = 0; i < table->vlaue.table.size; i++) {
+	for (i = 0; i < table->value.table.size; i++) {
 		if (table->value.table.data[i] != NULL) {
 			datum *iterator;
 
-			for (iterator = table->value.table.data[i]; iterator->type == TYPE_LIST; i++) {
+			for (iterator = table->value.table.data[i]; iterator->type == TYPE_CONS; i++) {
 				datum *current;
 
 				current = iterator->value.cons.car;
@@ -3681,6 +3681,7 @@ datum *gh_to_list(datum *obj) {
 			break;
 		default:
 			gh_assert(FALSE, "type-error", "cannot convert to list: ~s", gh_cons(obj, &LANG_NIL_VALUE));
+			return NULL;
 			break;
 	}
 }
@@ -3717,7 +3718,7 @@ datum *table_resize(datum *table, size_t new_size) {
 	new_table = gh_table(new_size);
 	old_values = table_to_list(table);
 
-	for (iterator = old_valued; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
+	for (iterator = old_values; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
 		datum *current;
 
 		current = iterator->value.cons.car;
@@ -3768,8 +3769,8 @@ datum *lang_table_set(datum **locals) {
 	table = var_get(locals, "#table");
 	gh_assert(table->type == TYPE_TABLE, "type-error", "first argument is not a table: ~s", gh_cons(table, &LANG_NIL_VALUE));
 
-	datum *key = var_get(locals, "#key");
-	datum *value = var_get(locals, "#value");
+	key = var_get(locals, "#key");
+	value = var_get(locals, "#value");
 
 	table_set(table, key, value);
 
@@ -3788,7 +3789,7 @@ datum *lang_table_get(datum **locals) {
 	return table_get(table, key);
 }
 
-datum *lan_table_size(datum **locals) {
+datum *lang_table_size(datum **locals) {
 	datum *table;
 
 	table = var_get(locals, "#table");
@@ -3803,7 +3804,7 @@ datum *lang_table_entries(datum **locals) {
 	table = var_get(locals, "#table");
 	gh_assert(table->type == TYPE_TABLE, "type-error", "not a table: ~s", gh_cons(table, &LANG_NIL_VALUE));
 
-	return gh_integer(tablel->value.table.num_entries);
+	return gh_integer(table->value.table.num_entries);
 }
 
 datum *lang_table_resize(datum **locals) {
