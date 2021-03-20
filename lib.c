@@ -51,6 +51,7 @@ size_t hash_string(const char *str, size_t table_size);
 datum *gh_table(size_t size);
 size_t table_set(datum *table, datum *key, datum *obj);
 datum *table_get(datum *table, datum *key);
+void table_delete(datum *table, datum *key);
 datum *string_to_list(datum *obj);
 datum *array_to_list(datum *obj);
 datum *table_to_list(datum *obj);
@@ -3562,6 +3563,10 @@ datum *gh_table(size_t size) {
 	t->value.table.size = size;
 	t->value.table.num_entries = 0;
 	t->value.table.data = GC_MALLOC(sizeof(datum *) * size);
+	if (t->value.table.data == NULL) {
+		fprintf(stderr, "fatal-error: out of memory in gh_table\n");
+		exit(EXIT_FAILURE);
+	}
 	for (i = 0; i < size; i++) {
 		t->value.table.data[i] = NULL;
 	}
@@ -3578,10 +3583,12 @@ size_t table_set(datum *table, datum *key, datum *obj) {
 	val = table->value.table.data[hash];
 
 	if (val == NULL) {
-		table->value.table.data[hash] = gh_cons(gh_cons(gh_string(str), obj), &LANG_NIL_VALUE);
+		table->value.table.data[hash] = gh_cons(gh_cons(key, obj), &LANG_NIL_VALUE);
 	} else {
-		table->value.table.data[hash] = gh_cons(gh_cons(gh_string(str), obj), table->value.table.data[hash]);
+		table->value.table.data[hash] = gh_cons(gh_cons(key, obj), table->value.table.data[hash]);
 	}
+
+	table->value.table.num_entries++;
 	return hash;
 }
 
@@ -3609,6 +3616,40 @@ datum *table_get(datum *table, datum *key) {
 
 	gh_assert(FALSE, "ref-error", "table does not contain the key: ~s", gh_cons(key, &LANG_NIL_VALUE));
 	return NULL;
+}
+
+void table_delete(datum *table, datum *key) {
+	char *str;
+	size_t hash;
+	datum *val;
+	datum *iterator;
+
+	str = gh_to_string(key);
+	hash = hash_string(str, table->value.table.size);
+	val = table->value.table.data[hash];
+
+	gh_assert(val != NULL, "ref-error", "table does not contain the key: ~s", gh_cons(key, &LANG_NIL_VALUE));
+
+	prev = NULL;
+	for (iterator = val; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+		
+		if (strcmp(str, current->value.cons.car->value.string) == 0) {
+			if (prev == NULL) {
+				table->value.table.data[hash] = NULL;
+			} else {
+				datum *next;
+
+				next = iterator->value.cons.cdr;
+				prev->value.cons.cdr = next;
+			}
+		}
+		prev = iterator;
+	}
+
+	gh_assert(FALSE, "ref-error", "table does not contain the key: ~s", gh_cons(key, &LANG_NIL_VALUE));
 }
 
 datum *string_to_list(datum *obj) {
@@ -3654,7 +3695,7 @@ datum *table_to_list(datum *table) {
 		if (table->value.table.data[i] != NULL) {
 			datum *iterator;
 
-			for (iterator = table->value.table.data[i]; iterator->type == TYPE_CONS; i++) {
+			for (iterator = table->value.table.data[i]; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
 				datum *current;
 
 				current = iterator->value.cons.car;
@@ -3694,7 +3735,7 @@ datum *gh_to_table(datum *obj) {
 
 	table = gh_table(DEFAULT_TABLE_SIZE);
 
-	for(iterator = 0; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
+	for (iterator = obj; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
 		datum *current;
 
 		current = iterator->value.cons.car;
@@ -3709,14 +3750,27 @@ datum *gh_to_table(datum *obj) {
 }
 
 datum *table_resize(datum *table, size_t new_size) {
-	datum *new_table;
+	datum **new_data;
 	datum *old_values;
 	datum *iterator;
+	size_t i;
 
 	gh_assert(table->type == TYPE_TABLE, "type-error", "not a table: ~s", gh_cons(table, &LANG_NIL_VALUE));
 
-	new_table = gh_table(new_size);
 	old_values = table_to_list(table);
+
+	new_data = GC_MALLOC(sizeof(datum *) * new_size);
+	if (new_data == NULL) {
+		fprintf(stderr, "fatal-error", "out of memory in table_resize\n");
+		exit(EXIT_FAILURE);
+	}
+	for (i = 0; i < new_size; i++) {
+		new_data[i] = NULL;
+	}
+
+	table->value.table.size = new_size;
+	table->value.table.num_entries = 0;
+
 
 	for (iterator = old_values; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
 		datum *current;
@@ -3724,7 +3778,7 @@ datum *table_resize(datum *table, size_t new_size) {
 		current = iterator->value.cons.car;
 		table_set(new_table, current->value.cons.car, current->value.cons.cdr);
 	}
-	return new_table;
+	return table;
 }
 
 datum *lang_sized_table(datum **locals) {
@@ -3757,7 +3811,11 @@ datum *lang_table(datum **locals) {
 
 	items = var_get(locals, "#items");
 
-	return gh_to_table(items);
+	if (items->type == TYPE_NIL) {
+		return gh_table(DEFAULT_TABLE_SIZE);
+	} else {
+		return gh_to_table(items);
+	}
 }
 
 
