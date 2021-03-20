@@ -3509,3 +3509,21 @@ datum *lang_set_nth(datum **locals) {
 	return value;
 }
 
+char *compress_path(char *path) {
+	const char *home = getenv("HOME");
+	const int len = strlen(home);
+
+	if (strncmp(home, path, len) == 0) {
+		return string_append("~", path + len);
+	} else {
+		return path;
+	}
+}
+
+datum *lang_compress_path(datum **locals) {
+	datum *path;
+
+	path = var_get(locals, "#path");
+	return gh_string(compress_path(path->value.string));
+}
+

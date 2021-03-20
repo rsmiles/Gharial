@@ -32,7 +32,7 @@
 		result))
 
 (defn *prompt* ()
-	(string-append USER "@" HOSTNAME ":" PWD "$ "))
+	(string-append USER "@" HOSTNAME ":" (compress-path PWD) "$ "))
 
 (defn fold (fn seed lst)
 	(loop ([res seed] [l lst])
@@ -195,6 +195,9 @@
 (defn tk.pack (name . args)
 	(apply tk.eval (cons 'pack (cons name args))))
 
+(defmacro tk.pack (name . args)
+	'(tk.eval pack ,name . @args))
+
 (defn tk.label (name . args)
 	(apply tk.eval (cons 'label (cons name args)))
 	name)
@@ -202,4 +205,3 @@
 (defn tk.button (name . args)
 	(apply tk.eval (cons 'button (cons name args)))
 	name)
-

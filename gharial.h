@@ -435,5 +435,9 @@ datum *lang_nth(datum **locals);
 
 datum *lang_set_nth(datum **locals);
 
+char *compress_path(char *path);
+
+datum *lang_compress_path(datum **locals);
+
 #endif
 
