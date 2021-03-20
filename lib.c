@@ -48,6 +48,15 @@ double gh_comp(datum *a, datum *b);
 bool listcmp(datum *a, datum *b);
 bool gh_is_true(datum *expr);
 size_t hash_string(const char *str, size_t table_size);
+datum *gh_table(size_t size);
+size_t table_set(datum *table, datum *obj);
+datum *table_get(datum *table, datum *key);((
+datum *string_to_list(datum *obj);
+datum *array_to_list(datum *obj);
+datum *table_to_list(datum *obj);
+datum *gh_to_list(datum *obj);
+datum *table_resize(datum *obj, size_t new_size);
+datum *gh_to_table(datum *obj);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -3300,6 +3309,9 @@ char *gh_to_string(datum *x) {
 			result = string_append(result, ")");
 			return result;
 			break;
+		case TYPE_TABLE:
+			return gh_to_string(gh_cons(gh_symbol("::"), gh_to_list(x)));
+			break;
 		default:
 			return NULL;
 			break;
@@ -3539,4 +3551,271 @@ size_t hash_string(const char *str, size_t table_size) {
 	return sum % table_size;
 }
 
+datum *gh_table(size_t size) {
+	datum *t;
+	size_t i;
+
+	gh_assert(size > 0, "value-error", "table size cannot be zero", &LANG_NIL_VALUE);
+
+	t = new_datum();
+	t->type = TYPE_TABLE;
+	t->value.table.size = size;
+	t->value.table.num_entries = 0;
+	t->value.table.data = GC_MALLOC(sizeof(datum *) * size);
+	for (i = 0; i < size; i++) {
+		t->value.table.data[i] = NULL;
+	}
+	return t;
+}
+
+size_t table_set(datum *table, datum *key, datum *obj) {
+	char *str;
+	size_t hash;
+	datum *val;
+
+	str = gh_to_string(key);
+	hash = hash_string(str, table->value.table.size);
+	val = table->value.table.data[hash];
+
+	if (val == NULL) {
+		table->value.table.data[hash] = gh_cons(gh_cons(str, obj), &LANG_NIL_VALUE);
+	} else {
+		table->value.table.data[hash] = gh_cons(gh_cons(str, obj), table->value.table.data[hash]);
+	}
+	return hash;
+}
+
+datum *table_get(datum *table, datum *key) {
+	char *str;
+	size_t hash;
+	datum *val;
+	datum *iterator;
+
+	str = gh_to_string(key);
+	hash = hash_string(str, table->value.table.size);
+	val = table->value.table.data[hash];
+
+	gh_assert(var != NULL, "ref-error", "table does not contain the key: ~s", gh_cons(key, &LANG_NIL_VALUE));
+
+	for (iterator = val; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+		
+		if (strcmp(str, current->value.cons.car) == 0) {
+			return current->value.cons.cdr;
+		}
+	}
+
+	gh_assert(FALSE, "ref-error", "table does not contain the key: ~s", gh_cons(key, &LANG_NIL_VALUE));
+	return NULL;
+}
+
+datum *string_to_list(datum *obj) {
+	size_t i;
+	char *str;
+	char char_str[2];
+	datum *result;
+
+	gh_assert(obj->type == TYPE_STRING, "type-error", "not a string: ~s", gh_cons(obj, &LANG_NIL_VALUE));
+
+	char_str[1] = '\0';
+	str = obj->value.string;
+	result = &LANG_NIL_VALUE;
+
+	for (i = 0; str[i] != '\0'; i++) {
+		char_str[0] = str[i];
+		result = gh_cons(gh_string(char_list, result));
+	}
+	return reverse(result);
+}
+
+datum *array_to_list(datum *arr) {
+	datum *result;
+	size_t i;
+
+	gh_assert(arr->type == TYPE_ARRAY, "type-error", "not an array: ~s", gh_cons(arr, &LANG_NIL_VALUE));
+
+	result = &LANG_NIL_VALUE;
+	for (i = 0; i < arr->value.array.length; i++) {
+		result = gh_cons(arr->value.array.data[i], result);
+	}
+	return reverse(result);
+}
+
+datum *table_to_list(datum *table) {
+	datum *result;
+	size_t i;
+
+	gh_assert(table->type == TYPE_TABLE, "type-error", "not a table: ~s", gh_cons(table, &LANG_NIL_VALUE));
+
+	result = &LANG_NIL_VALUE;
+	for (i = 0; i < table->vlaue.table.size; i++) {
+		if (table->value.table.data[i] != NULL) {
+			datum *iterator;
+
+			for (iterator = table->value.table.data[i]; iterator->type == TYPE_LIST; i++) {
+				datum *current;
+
+				current = iterator->value.cons.car;
+				result = gh_cons(current, result);
+			}
+		}
+	}
+	return result;
+}
+
+datum *gh_to_list(datum *obj) {
+	switch (obj->type) {
+		case TYPE_CONS:
+			return obj;
+			break;
+		case TYPE_STRING:
+			return string_to_list(obj);
+			break;
+		case TYPE_ARRAY:
+			return array_to_list(obj);
+			break;
+		case TYPE_TABLE:
+			return table_to_list(obj);
+			break;
+		default:
+			gh_assert(FALSE, "type-error", "cannot convert to list: ~s", gh_cons(obj, &LANG_NIL_VALUE));
+			break;
+	}
+}
+
+datum *gh_to_table(datum *obj) {
+	datum *iterator;
+	datum *table;
+
+	gh_assert(obj->type == TYPE_CONS, "type-error", "not a list: ~s", gh_cons(obj, &LANG_NIL_VALUE));
+
+	table = gh_table(DEFAULT_TABLE_SIZE);
+
+	for(iterator = 0; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+
+		gh_assert(current->type == TYPE_CONS, "type-error", "not an association list: ~s", gh_cons(obj, &LANG_NIL_VALUE));
+
+		table_set(table, current->value.cons.car, current->value.cons.cdr);
+	}
+	gh_assert(iterator->type == TYPE_NIL, "type-error", "not a proper association list: ~s", gh_cons(obj, &LANG_NIL_VALUE));
+
+	return table;
+}
+
+datum *table_resize(datum *table, size_t new_size) {
+	datum *new_table;
+	datum *old_values;
+	datum *iterator;
+
+	gh_assert(table->type == TYPE_TABLE, "type-error", "not a table: ~s", gh_cons(table, &LANG_NIL_VALUE));
+
+	new_table = gh_table(new_size);
+	old_values = table_to_list(table);
+
+	for (iterator = old_valued; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+		table_set(new_table, current->value.cons.car, current->value.cons.cdr);
+	}
+	return new_table;
+}
+
+datum *lang_sized_table(datum **locals) {
+	datum *table;
+	datum *size;
+	datum *items;
+	datum *iterator;
+
+	size = var_get(locals, "#size");
+	gh_assert(size->type == TYPE_INTEGER, "type-error", "first argument not an integer: ~s", gh_cons(size, &LANG_NIL_VALUE));
+
+	items = var_get(locals, "#items");
+
+	table = gh_table(size->value.integer);
+
+	for (iterator = items; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
+		datum *current;
+
+		current = iterator->value.cons.car;
+		gh_assert(current->type == TYPE_CONS, "type-error", "not a pair: ~s", gh_cons(current, &LANG_NIL_VALUE));
+
+		table_set(table, current->value.cons.car, current->value.cons.cdr);
+	}
+
+	return table;
+}
+
+datum *lang_table(datum **locals) {
+	datum *items;
+
+	items = var_get(locals, "#items");
+
+	return gh_to_table(items);
+}
+
+
+datum *lang_table_set(datum **locals) {
+	datum *table;
+	datum *key;
+	datum *value;
+
+	table = var_get(locals, "#table");
+	gh_assert(table->type == TYPE_TABLE, "type-error", "first argument is not a table: ~s", gh_cons(table, &LANG_NIL_VALUE));
+
+	datum *key = var_get(locals, "#key");
+	datum *value = var_get(locals, "#value");
+
+	table_set(table, key, value);
+
+	return &LANG_NIL_VALUE;
+}
+
+datum *lang_table_get(datum **locals) {
+	datum *table;
+	datum *key;
+
+	table = var_get(locals, "#table");
+	gh_assert(table->type == TYPE_TABLE, "type-error", "first argument is not a table: ~s", gh_cons(table, &LANG_NIL_VALUE));
+
+	key = var_get(locals, "#key");
+
+	return table_get(table, key);
+}
+
+datum *lan_table_size(datum **locals) {
+	datum *table;
+
+	table = var_get(locals, "#table");
+	gh_assert(table->type == TYPE_TABLE, "type-error", "not a table: ~s", gh_cons(table, &LANG_NIL_VALUE));
+
+	return gh_integer(table->value.table.size);
+}
+
+datum *lang_table_entries(datum **locals) {
+	datum *table;
+
+	table = var_get(locals, "#table");
+	gh_assert(table->type == TYPE_TABLE, "type-error", "not a table: ~s", gh_cons(table, &LANG_NIL_VALUE));
+
+	return gh_integer(tablel->value.table.num_entries);
+}
+
+datum *lang_table_resize(datum **locals) {
+	datum *table;
+	datum *size;
+
+	table = var_get(locals, "#table");
+	gh_assert(table->type == TYPE_TABLE, "type-error", "first argument is not a table: ~s", gh_cons(table, &LANG_NIL_VALUE));
+
+	size = var_get(locals, "#size");
+	gh_assert(size->type == TYPE_INTEGER, "type-error", "second argument is not an integer: ~s", gh_cons(size, &LANG_NIL_VALUE));
+
+	return table_resize(table, size->value.integer);
+}
 

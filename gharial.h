@@ -7,6 +7,7 @@
 
 #define TRUE  1
 #define FALSE 0
+#define DEFAULT_TABLE_SIZE 10
 
 #define TYPE_NIL        0
 #define TYPE_TRUE       1
@@ -29,6 +30,7 @@
 #define TYPE_CAPTURE    18
 #define TYPE_JOB        19
 #define TYPE_ARRAY		20
+#define TYPE_TABLE		21
 
 #define gh_assert(test, type, fmt, fmt_args) \
 	do { \
@@ -92,6 +94,12 @@ typedef struct datum {
 			size_t length;
 			struct datum **data;
 		} array;
+
+		struct {
+			size_t size;
+			size_t num_entries;
+			datum **data;
+		} table;
 	} value;
 } datum;
 
@@ -438,6 +446,20 @@ datum *lang_set_nth(datum **locals);
 char *compress_path(char *path);
 
 datum *lang_compress_path(datum **locals);
+
+datum *lang_table(datum **locals);
+
+datum *lang_sized_table(datum **locals);
+
+datum *lang_table_set(datum **locals);
+
+datum *lang_table_get(datum **locals);
+
+datum *lan_table_size(datum **locals);
+
+datum *lang_table_entries(datum **locals);
+
+datum *lang_table_resize(datum **locals);
 
 #endif
 
