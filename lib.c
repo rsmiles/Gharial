@@ -47,6 +47,7 @@ datum *gh_cons2(datum *car, datum *cdr, datum **locals);
 double gh_comp(datum *a, datum *b);
 bool listcmp(datum *a, datum *b);
 bool gh_is_true(datum *expr);
+size_t hash_string(const char *str, size_t table_size);
 
 datum LANG_NIL_VALUE = { TYPE_NIL, { 0 } };
 datum LANG_TRUE_VALUE = { TYPE_TRUE, { 0 } };
@@ -3526,4 +3527,16 @@ datum *lang_compress_path(datum **locals) {
 	path = var_get(locals, "#path");
 	return gh_string(compress_path(path->value.string));
 }
+
+size_t hash_string(const char *str, size_t table_size) {
+	size_t sum;
+	size_t i;
+
+	sum = 0;
+	for (i = 0; str[i] != '\0'; i++) {
+		sum += (int)str[i];
+	}
+	return sum % table_size;
+}
+
 
