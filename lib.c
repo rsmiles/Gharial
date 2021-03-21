@@ -3738,13 +3738,12 @@ datum *gh_to_table(datum *obj) {
 	datum *iterator;
 	datum *table;
 	size_t len;
-	size_t table_len;
 
 	gh_assert(obj->type == TYPE_CONS, "type-error", "not a list: ~s", gh_cons(obj, &LANG_NIL_VALUE));
 
 	len = gh_length(obj);
 
-	table = gh_table(table_len);
+	table = gh_table(DEFAULT_TABLE_SIZE);
 
 	for (iterator = obj; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
 		datum *current;
