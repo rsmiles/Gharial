@@ -50,6 +50,7 @@ bool gh_is_true(datum *expr);
 size_t hash_string(const char *str, size_t table_size);
 datum *gh_table(size_t size);
 size_t table_set(datum *table, datum *key, datum *obj);
+datum *table_get_loc(datum *table, datum *key);
 datum *table_get(datum *table, datum *key);
 void table_delete(datum *table, datum *key);
 datum *string_to_list(datum *obj);
@@ -241,7 +242,7 @@ datum *gh_substring(int start, int end, char *value) {
 	return s;
 }
 
-datum *gh_symbol(char* value) {
+datum *gh_symbol(const char* value) {
 	datum *s;
 	s = new_datum();
 	s->type = TYPE_SYMBOL;
@@ -803,21 +804,28 @@ datum *symbol_loc_one(datum *table, const char *symbol) {
 		return NULL;
 	}
 
-	iterator = table;
-	while (iterator->type == TYPE_CONS) {
-		datum *current;
+	if (table->type == TYPE_CONS || table->type == TYPE_NIL) {
 
-		current = iterator->value.cons.car;
-		if (current->type != TYPE_CONS) {
+		iterator = table;
+		while (iterator->type == TYPE_CONS) {
+			datum *current;
+
+			current = iterator->value.cons.car;
+			if (current->type != TYPE_CONS) {
+				iterator = iterator->value.cons.cdr;
+				continue;
+			}
+
+			if (strcmp(current->value.cons.car->value.string, symbol) == 0)
+				return current;
 			iterator = iterator->value.cons.cdr;
-			continue;
 		}
-
-		if (strcmp(current->value.cons.car->value.string, symbol) == 0)
-			return current;
-		iterator = iterator->value.cons.cdr;
+		return NULL;
+	} else if (table->type == TYPE_TABLE) {
+		return table_get_loc(table, gh_symbol(symbol));
+	} else {
+		return NULL;
 	}
-	return NULL;
 }
 
 datum *symbol_loc(datum *table, const char *symbol) {
@@ -897,9 +905,17 @@ char *symbol_set(datum **table, char *symbol, datum *value) {
 		if (next_sym == NULL) {
 			if (loc == NULL) {
 				if (current_table == *table) {
-					*table = gh_cons(gh_cons(gh_symbol(current_sym), value), current_table);
+					if (current_table->type == TYPE_TABLE) {
+						table_set(*table, gh_symbol(current_sym), value);
+					} else {
+						*table = gh_cons(gh_cons(gh_symbol(current_sym), value), current_table);
+					}
 				} else {
-					prev_loc->value.cons.cdr = gh_cons(gh_cons(gh_symbol(current_sym), value), current_table);
+					if (current_table->type == TYPE_TABLE) {
+						table_set(current_table, gh_symbol(current_sym), value);
+					} else {
+						prev_loc->value.cons.cdr = gh_cons(gh_cons(gh_symbol(current_sym), value), current_table);
+					}
 				}
 			} else {
 				loc->value.cons.cdr = value;
@@ -2665,8 +2681,6 @@ datum *lang_disown(datum **locals) {
 	output_file = var_get(locals, "output-file");
 	error_file = var_get(locals, "error-file");
 
-	printf("command: ");
-
 	return job_start(command, input_file, output_file, error_file, locals);
 }
 
@@ -3596,7 +3610,7 @@ size_t table_set(datum *table, datum *key, datum *obj) {
 	return hash;
 }
 
-datum *table_get(datum *table, datum *key) {
+datum *table_get_loc(datum *table, datum *key) {
 	char *str;
 	size_t hash;
 	datum *val;
@@ -3606,7 +3620,9 @@ datum *table_get(datum *table, datum *key) {
 	hash = hash_string(str, table->value.table.size);
 	val = table->value.table.data[hash];
 
-	gh_assert(val != NULL, "ref-error", "table does not contain the key: ~s", gh_cons(key, &LANG_NIL_VALUE));
+	if (val == NULL) {
+		return NULL;
+	}
 
 	for (iterator = val; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
 		datum *current;
@@ -3614,12 +3630,19 @@ datum *table_get(datum *table, datum *key) {
 		current = iterator->value.cons.car;
 		
 		if (strcmp(str, current->value.cons.car->value.string) == 0) {
-			return current->value.cons.cdr;
+			return current;
 		}
 	}
 
-	gh_assert(FALSE, "ref-error", "table does not contain the key: ~s", gh_cons(key, &LANG_NIL_VALUE));
 	return NULL;
+}
+
+datum *table_get(datum *table, datum *key) {
+	datum *loc;
+
+	loc = table_get_loc(table, key);
+	gh_assert(loc != NULL, "ref-error", "table does not contain key: ~s", gh_cons(key, &LANG_NIL_VALUE));
+	return loc->value.cons.car;
 }
 
 void table_delete(datum *table, datum *key) {
@@ -3737,11 +3760,8 @@ datum *gh_to_list(datum *obj) {
 datum *gh_to_table(datum *obj) {
 	datum *iterator;
 	datum *table;
-	size_t len;
 
 	gh_assert(obj->type == TYPE_CONS, "type-error", "not a list: ~s", gh_cons(obj, &LANG_NIL_VALUE));
-
-	len = gh_length(obj);
 
 	table = gh_table(DEFAULT_TABLE_SIZE);
 

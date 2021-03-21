@@ -153,7 +153,7 @@ datum *gh_string(const char *value);
 
 datum *gh_substring(int start, int end, char *value);
 
-datum *gh_symbol(char *value);
+datum *gh_symbol(const char *value);
 
 datum *gh_file(FILE *fptr);
 
