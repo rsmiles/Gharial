@@ -3744,12 +3744,6 @@ datum *gh_to_table(datum *obj) {
 
 	len = gh_length(obj);
 
-	if (len > DEFAULT_TABLE_SIZE) {
-		table_len = len * 3;
-	} else {
-		table_len = DEFAULT_TABLE_SIZE;
-	}
-
 	table = gh_table(table_len);
 
 	for (iterator = obj; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
