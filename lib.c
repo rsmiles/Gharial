@@ -3582,6 +3582,10 @@ size_t table_set(datum *table, datum *key, datum *obj) {
 	hash = hash_string(str, table->value.table.size);
 	val = table->value.table.data[hash];
 
+	if ((double)table->value.table.num_entries / (double)table->value.table.size >= 0.75) {
+		table_resize(table, table->value.table.size * 2);
+	}
+
 	if (val == NULL) {
 		table->value.table.data[hash] = gh_cons(gh_cons(key, obj), &LANG_NIL_VALUE);
 	} else {
@@ -3840,11 +3844,6 @@ datum *lang_table_set(datum **locals) {
 
 	table = var_get(locals, "#table");
 	gh_assert(table->type == TYPE_TABLE, "type-error", "first argument is not a table: ~s", gh_cons(table, &LANG_NIL_VALUE));
-
-	if (table->value.table.num_entries >= table->value.table.size / 2) {
-		table_resize(table, table->value.table.size * 2);
-	}
-
 
 	key = var_get(locals, "#key");
 	value = var_get(locals, "#value");
