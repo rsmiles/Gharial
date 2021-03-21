@@ -3623,6 +3623,7 @@ void table_delete(datum *table, datum *key) {
 	size_t hash;
 	datum *val;
 	datum *iterator;
+	datum *prev;
 
 	str = gh_to_string(key);
 	hash = hash_string(str, table->value.table.size);
@@ -3645,6 +3646,8 @@ void table_delete(datum *table, datum *key) {
 				next = iterator->value.cons.cdr;
 				prev->value.cons.cdr = next;
 			}
+			table->value.table.num_entries--;
+			return;
 		}
 		prev = iterator;
 	}
@@ -3730,10 +3733,20 @@ datum *gh_to_list(datum *obj) {
 datum *gh_to_table(datum *obj) {
 	datum *iterator;
 	datum *table;
+	size_t len;
+	size_t table_len;
 
 	gh_assert(obj->type == TYPE_CONS, "type-error", "not a list: ~s", gh_cons(obj, &LANG_NIL_VALUE));
 
-	table = gh_table(DEFAULT_TABLE_SIZE);
+	len = gh_length(obj);
+
+	if (len > DEFAULT_TABLE_SIZE) {
+		table_len = len * 3;
+	} else {
+		table_len = DEFAULT_TABLE_SIZE;
+	}
+
+	table = gh_table(table_len);
 
 	for (iterator = obj; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
 		datum *current;
@@ -3761,7 +3774,7 @@ datum *table_resize(datum *table, size_t new_size) {
 
 	new_data = GC_MALLOC(sizeof(datum *) * new_size);
 	if (new_data == NULL) {
-		fprintf(stderr, "fatal-error", "out of memory in table_resize\n");
+		fprintf(stderr, "fatal-error: out of memory in table_resize\n");
 		exit(EXIT_FAILURE);
 	}
 	for (i = 0; i < new_size; i++) {
@@ -3770,13 +3783,14 @@ datum *table_resize(datum *table, size_t new_size) {
 
 	table->value.table.size = new_size;
 	table->value.table.num_entries = 0;
+	table->value.table.data = new_data;
 
 
 	for (iterator = old_values; iterator->type == TYPE_CONS; iterator = iterator->value.cons.cdr) {
 		datum *current;
 
 		current = iterator->value.cons.car;
-		table_set(new_table, current->value.cons.car, current->value.cons.cdr);
+		table_set(table, current->value.cons.car, current->value.cons.cdr);
 	}
 	return table;
 }
@@ -3827,6 +3841,11 @@ datum *lang_table_set(datum **locals) {
 	table = var_get(locals, "#table");
 	gh_assert(table->type == TYPE_TABLE, "type-error", "first argument is not a table: ~s", gh_cons(table, &LANG_NIL_VALUE));
 
+	if (table->value.table.num_entries >= table->value.table.size / 2) {
+		table_resize(table, table->value.table.size * 2);
+	}
+
+
 	key = var_get(locals, "#key");
 	value = var_get(locals, "#value");
 
@@ -3863,6 +3882,18 @@ datum *lang_table_entries(datum **locals) {
 	gh_assert(table->type == TYPE_TABLE, "type-error", "not a table: ~s", gh_cons(table, &LANG_NIL_VALUE));
 
 	return gh_integer(table->value.table.num_entries);
+}
+
+datum *lang_table_delete(datum **locals) {
+	datum *table;
+	datum *key;
+
+	table = var_get(locals, "#table");
+	gh_assert(table->type == TYPE_TABLE, "type-error", "not a table: ~s", gh_cons(table, &LANG_NIL_VALUE));
+	key = var_get(locals, "#key");
+
+	table_delete(table, key);
+	return &LANG_NIL_VALUE;
 }
 
 datum *lang_table_resize(datum **locals) {

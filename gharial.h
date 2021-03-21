@@ -457,6 +457,8 @@ datum *lang_table_get(datum **locals);
 
 datum *lang_table_size(datum **locals);
 
+datum *lang_table_delete(datum **locals);
+
 datum *lang_table_entries(datum **locals);
 
 datum *lang_table_resize(datum **locals);

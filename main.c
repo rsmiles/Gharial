@@ -262,6 +262,7 @@ void init_builtins() {
 	symbol_set(&globals, "table-set", gh_cfunc(&lang_table_set, gh_cons(gh_symbol("#table"), gh_cons(gh_symbol("#key"), gh_cons(gh_symbol("#value"), &LANG_NIL_VALUE)))));
 	symbol_set(&globals, "table-get", gh_cfunc(&lang_table_get, gh_cons(gh_symbol("#table"), gh_cons(gh_symbol("#key"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "table-size", gh_cfunc(&lang_table_size, gh_cons(gh_symbol("#table"), &LANG_NIL_VALUE)));
+	symbol_set(&globals, "table-delete", gh_cfunc(&lang_table_delete, gh_cons(gh_symbol("#table"), gh_cons(gh_symbol("#key"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "table-entries", gh_cfunc(&lang_table_entries, gh_cons(gh_symbol("#table"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "table-resize", gh_cfunc(&lang_table_resize, gh_cons(gh_symbol("#table"), gh_cons(gh_symbol("#size"), &LANG_NIL_VALUE))));
 
