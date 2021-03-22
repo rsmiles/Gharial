@@ -48,7 +48,6 @@ double gh_comp(datum *a, datum *b);
 bool listcmp(datum *a, datum *b);
 bool gh_is_true(datum *expr);
 size_t hash_string(const char *str, size_t table_size);
-datum *gh_table(size_t size);
 size_t table_set(datum *table, datum *key, datum *obj);
 datum *table_get_loc(datum *table, datum *key);
 datum *table_get(datum *table, datum *key);

@@ -61,9 +61,10 @@ char *current_file = "<REPL>";
 #define NUM_INIT_FILES 4
 const char *INIT_FILES[] = {"./init.ghar", "/.local/lib/init.ghar", "/usr/local/lib/init.ghar", "/usr/lib/init.ghar"};
 
+#define GLOBALS_SIZE 150
+datum *globals;
 datum *gh_input = &LANG_NIL_VALUE;
 datum *gh_result = &LANG_NIL_VALUE;
-datum *globals = &LANG_NIL_VALUE;
 datum *empty_locals = &LANG_NIL_VALUE;
 datum **locals = &empty_locals;
 datum *jobs;
@@ -154,7 +155,7 @@ void init_globals(char **argv){
 	PROGNAME = (char *)GC_MALLOC(sizeof(char) * (strlen(argv[0] + 1)));
 	strcpy(PROGNAME, argv[0]);
 	PROGNAME = basename(PROGNAME);
-	
+	globals = gh_table(GLOBALS_SIZE);
 
 	hist_file = string_append(getenv("HOME"), "/");
 	hist_file = string_append(hist_file, ".");
@@ -173,6 +174,7 @@ void init_io() {
 
 void init_builtins() {
 	datum *tk_module;
+
 
 	symbol_set(&globals, "set", gh_cform(&lang_set, gh_cons(gh_symbol("#symbol"), gh_cons(gh_symbol("#value"), &LANG_NIL_VALUE))));
 	symbol_set(&globals, "setenv", gh_cform(&lang_setenv, gh_cons(gh_symbol("#symbol"), gh_cons(gh_symbol("#value"), &LANG_NIL_VALUE))));
@@ -500,10 +502,6 @@ void cleanup(){
 
 int main(int argc, char **argv) {
 	FILE *input;
-
-	/* TK needs these, so make them global */
-	global_argc = argc;
-	global_argv = argv;
 
 	yylineno = 0;
 	init_globals(argv);

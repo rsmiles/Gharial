@@ -447,6 +447,8 @@ char *compress_path(char *path);
 
 datum *lang_compress_path(datum **locals);
 
+datum *gh_table(size_t size);
+
 datum *lang_table(datum **locals);
 
 datum *lang_sized_table(datum **locals);
