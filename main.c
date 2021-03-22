@@ -268,7 +268,7 @@ void init_builtins() {
 	symbol_set(&globals, "table-entries", gh_cfunc(&lang_table_entries, gh_cons(gh_symbol("#table"), &LANG_NIL_VALUE)));
 	symbol_set(&globals, "table-resize", gh_cfunc(&lang_table_resize, gh_cons(gh_symbol("#table"), gh_cons(gh_symbol("#size"), &LANG_NIL_VALUE))));
 
-	tk_module = &LANG_NIL_VALUE;
+	tk_module = gh_table(DEFAULT_TABLE_SIZE);
 	symbol_set(&tk_module, "init", gh_cfunc(&lang_tk_init, &LANG_NIL_VALUE));
 	symbol_set(&tk_module, "main", gh_cfunc(&lang_tk_main, &LANG_NIL_VALUE));
 	symbol_set(&tk_module, "eval", gh_cfunc(&lang_tk_eval, gh_symbol("#args")));

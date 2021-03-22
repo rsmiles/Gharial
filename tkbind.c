@@ -83,7 +83,7 @@ datum *lang_tk_init(datum **locals) {
 
 	callbacks = &LANG_NIL_VALUE;
 
-	return &LANG_TRUE_VALUE;
+	return &LANG_NIL_VALUE;
 }
 
 int tcl_eval(char *commands) { int ret; 
